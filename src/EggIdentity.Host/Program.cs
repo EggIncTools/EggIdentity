@@ -109,6 +109,9 @@ _ = sweeper.RunAsync(app.Lifetime.ApplicationStopping);
 
 var sponsorSyncOrNull = sponsorEnabled ? app.Services.GetRequiredService<SponsorSyncService>() : null;
 
+app.MapGet("/privacy", () => Results.Content(LegalPages.Privacy, "text/html"));
+app.MapGet("/terms", () => Results.Content(LegalPages.Terms, "text/html"));
+
 var loginRoutes = app.MapGroup("/auth");
 
 loginRoutes.MapGet("/sources", (HttpContext ctx) => {
@@ -459,6 +462,7 @@ app.Use(async (ctx, next) => {
     if (ctx.Request.Path == "/" || ctx.Request.Path.StartsWithSegments("/auth") || ctx.Request.Path.StartsWithSegments("/eggidentity-login.js")
         || ctx.Request.Path.StartsWithSegments("/profile") || ctx.Request.Path.StartsWithSegments("/avatars")
         || ctx.Request.Path.StartsWithSegments("/webhooks") || ctx.Request.Path.StartsWithSegments("/admin")
+        || ctx.Request.Path.StartsWithSegments("/privacy") || ctx.Request.Path.StartsWithSegments("/terms")
         || ctx.Request.Path.StartsWithSegments("/_framework") || ctx.Request.Path.StartsWithSegments("/_blazor")
         || ctx.Request.Path.StartsWithSegments("/_content")) {
         await next();
