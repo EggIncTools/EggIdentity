@@ -109,6 +109,7 @@ _ = sweeper.RunAsync(app.Lifetime.ApplicationStopping);
 
 var sponsorSyncOrNull = sponsorEnabled ? app.Services.GetRequiredService<SponsorSyncService>() : null;
 
+app.MapGet("/", () => Results.Content(LandingPage.Html, "text/html"));
 app.MapGet("/privacy", () => Results.Content(LegalPages.Privacy, "text/html"));
 app.MapGet("/terms", () => Results.Content(LegalPages.Terms, "text/html"));
 
@@ -532,10 +533,8 @@ app.MapPost("/identity/redeem", async (RedeemLoginCodeRequest req, LoginCodeStor
     });
 });
 
-if (adminEnabled) {
-    app.MapGet("/", () => Results.Redirect("/admin"));
+if (adminEnabled)
     app.MapRazorComponents<AppHost>().AddInteractiveServerRenderMode();
-}
 
 app.Run();
 

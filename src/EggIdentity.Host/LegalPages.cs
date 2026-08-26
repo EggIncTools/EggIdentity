@@ -1,7 +1,7 @@
 namespace EggIdentity.Host;
 
 public static class LegalPages {
-    private const string Style = """
+    internal const string Style = """
         <style>
             :root { color-scheme: dark; }
             * { box-sizing: border-box; }

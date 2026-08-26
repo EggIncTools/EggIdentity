@@ -1,6 +1,7 @@
 using System.Reflection;
 using Discord.WebSocket;
 using EggIdentity.Bot;
+using EggIdentity.Contract;
 using EggIdentity.Db;
 using Microsoft.Extensions.Hosting;
 using Npgsql;
@@ -11,12 +12,22 @@ public sealed class BotHostedService(string configFilePath, string postgresConne
     public EggIdentityBot? Bot { get; private set; }
 
     public async Task StartAsync(CancellationToken cancellationToken) {
+        var build = BuildInfo.Build(Environment.GetEnvironmentVariable, Assembly.GetExecutingAssembly());
+        var startedAt = DateTimeOffset.UtcNow;
+
         var builder = new EggIdentityBotBuilder()
             .WithConfigFile(configFilePath)
             .WithEnvFallback(key => key == "POSTGRES_CONNECTION_STRING" ? postgresConnectionString : Environment.GetEnvironmentVariable(key))
             .WithName("EggIdentity")
-            .WithBuild(BuildInfo.Build(Environment.GetEnvironmentVariable, Assembly.GetExecutingAssembly()))
-            .WithMigrationsLocation("BotMigrations", "eggidentity_bot_migrations");
+            .WithBuild(build)
+            .WithMigrationsLocation("BotMigrations", "eggidentity_bot_migrations")
+            .WithDashboardProvider(_ => Task.FromResult(new DashboardSnapshot {
+                AppName = "EggIdentity",
+                Version = build.Version,
+                BuildHash = build.Sha256,
+                UptimeSince = startedAt,
+                RepoUrl = "https://github.com/DavidArthurCole/eggidentity",
+            }));
 
         var cfg = builder.BuildConfig();
 
