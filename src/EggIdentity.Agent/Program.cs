@@ -41,15 +41,16 @@ if (sessionOptions is not null) {
     app.MapGet("/fallback/{appName}", (string appName, HttpContext ctx) => {
         if (!registry.Apps.ContainsKey(appName)) return Results.NotFound();
         var isAdmin = ctx.User.IsAtLeast(EggIdentity.Contract.UserRole.Admin);
-        var branding = new EggIdentity.Fallback.FallbackBranding(appName, new Dictionary<string, string>());
+        var branding = new EggIdentity.Fallback.FallbackBranding(appName, EggIdentity.Fallback.FallbackDefaults.Tokens);
         var html = EggIdentity.Fallback.FallbackPages.RenderDown(branding, isAdmin, $"/logs/{appName}/tail");
         return Results.Content(html, "text/html");
     });
 
     app.MapGet("/logs/{appName}/tail", async (string appName, HttpContext ctx, int? lines) => {
-        if (!registry.Apps.ContainsKey(appName)) return Results.NotFound();
         if (!ctx.User.IsAtLeast(EggIdentity.Contract.UserRole.Admin)) return Results.Forbid();
-        var output = await DockerLogReader.TailAsync(appName, lines ?? 200, ctx.RequestAborted);
+        if (!registry.Apps.ContainsKey(appName)) return Results.NotFound();
+        var clampedLines = AgentRouteHelpers.ClampLogLines(lines);
+        var output = await DockerLogReader.TailAsync(appName, clampedLines, ctx.RequestAborted);
         return Results.Text(output, "text/plain");
     });
 }

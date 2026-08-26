@@ -92,4 +92,22 @@ public class FallbackPagesTests {
         var html = FallbackPages.RenderNotFound(maliciousBranding);
         Assert.DoesNotContain("red>evil", html);
     }
+
+    [Fact]
+    public void StyleBlock_RejectsSemicolonBreakoutWithoutAngleBrackets() {
+        var maliciousBranding = new FallbackBranding("TestApp", new Dictionary<string, string> {
+            ["--color-bg"] = "red; } body { display:none; } .x {color:red",
+        });
+        var html = FallbackPages.RenderNotFound(maliciousBranding);
+        Assert.DoesNotContain("red; } body { display:none; } .x {color:red", html);
+    }
+
+    [Fact]
+    public void RenderMaintenanceAdmin_ReflectsCurrentState() {
+        var htmlOn = FallbackPages.RenderMaintenanceAdmin(Branding, isOn: true);
+        Assert.Contains("/admin/maintenance/off", htmlOn);
+
+        var htmlOff = FallbackPages.RenderMaintenanceAdmin(Branding, isOn: false);
+        Assert.Contains("/admin/maintenance/on", htmlOff);
+    }
 }

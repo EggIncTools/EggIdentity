@@ -24,15 +24,23 @@ public static class FallbackMiddlewareExtensions {
             app.Logger.LogError(exception, "Unhandled exception. TraceId={TraceId}", ctx.TraceIdentifier);
             var showTrace = ctx.User.IsAtLeast(UserRole.Admin);
             ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
-            ctx.Response.ContentType = "text/html";
-            await ctx.Response.WriteAsync(FallbackPages.RenderError(branding, exception, showTrace, ctx.TraceIdentifier));
+            if (WantsJson(ctx)) {
+                await ctx.Response.WriteAsJsonAsync(new { error = "internal_server_error", traceId = ctx.TraceIdentifier, trace = showTrace ? exception.ToString() : null });
+            } else {
+                ctx.Response.ContentType = "text/html";
+                await ctx.Response.WriteAsync(FallbackPages.RenderError(branding, exception, showTrace, ctx.TraceIdentifier));
+            }
         }));
 
         app.Use(async (ctx, next) => {
             if (maintenance.IsOn && !ctx.User.IsAtLeast(UserRole.Admin)) {
                 ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                ctx.Response.ContentType = "text/html";
-                await ctx.Response.WriteAsync(FallbackPages.RenderMaintenance(branding));
+                if (WantsJson(ctx)) {
+                    await ctx.Response.WriteAsJsonAsync(new { error = "maintenance" });
+                } else {
+                    ctx.Response.ContentType = "text/html";
+                    await ctx.Response.WriteAsync(FallbackPages.RenderMaintenance(branding));
+                }
                 return;
             }
             await next();
@@ -45,12 +53,28 @@ public static class FallbackMiddlewareExtensions {
             return Results.NoContent();
         });
 
+        app.MapGet("/admin/maintenance", (HttpContext ctx) => {
+            if (!ctx.User.IsAtLeast(UserRole.Admin)) return Results.StatusCode(StatusCodes.Status403Forbidden);
+            return Results.Content(FallbackPages.RenderMaintenanceAdmin(branding, maintenance.IsOn), "text/html");
+        });
+
         app.Use(async (ctx, next) => {
             await next();
             if (ctx.Response.StatusCode == StatusCodes.Status404NotFound && !ctx.Response.HasStarted) {
-                ctx.Response.ContentType = "text/html";
-                await ctx.Response.WriteAsync(FallbackPages.RenderNotFound(branding));
+                if (WantsJson(ctx)) {
+                    ctx.Response.ContentType = "application/json";
+                    await ctx.Response.WriteAsJsonAsync(new { error = "not_found" });
+                } else {
+                    ctx.Response.ContentType = "text/html";
+                    await ctx.Response.WriteAsync(FallbackPages.RenderNotFound(branding));
+                }
             }
         });
+    }
+
+    private static bool WantsJson(HttpContext ctx) {
+        var accept = ctx.Request.Headers.Accept.ToString();
+        return accept.Contains("application/json", StringComparison.OrdinalIgnoreCase)
+            && !accept.Contains("text/html", StringComparison.OrdinalIgnoreCase);
     }
 }

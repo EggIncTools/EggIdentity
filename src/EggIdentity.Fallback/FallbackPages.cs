@@ -26,6 +26,18 @@ public static class FallbackPages {
             <h1>{Escape(branding.AppName)} - page not found</h1>
             """);
 
+    public static string RenderMaintenanceAdmin(FallbackBranding branding, bool isOn) {
+        var action = isOn ? "off" : "on";
+        var label = isOn ? "Turn maintenance off" : "Turn maintenance on";
+        return Page(branding, "Maintenance admin", $"""
+            <h1>{Escape(branding.AppName)} maintenance</h1>
+            <p>Maintenance mode is currently {(isOn ? "on" : "off")}.</p>
+            <form method="post" action="/admin/maintenance/{action}">
+            <button type="submit">{Escape(label)}</button>
+            </form>
+            """);
+    }
+
     public static string RenderDown(FallbackBranding branding, bool showAdminLink, string logsUrl) {
         var link = showAdminLink
             ? $"""<p><a href="{Escape(logsUrl)}">View crash details</a></p>"""
@@ -54,14 +66,17 @@ public static class FallbackPages {
         </html>
         """;
 
+    private static readonly System.Text.RegularExpressions.Regex SafeTokenValue =
+        new(@"^[#A-Za-z0-9(),.\s%-]{1,64}$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
     private static string StyleBlock(FallbackBranding branding) {
         var vars = new StringBuilder();
         foreach (var name in ComponentTokens.Required) {
-            if (branding.Tokens.TryGetValue(name, out var value) && !value.Contains('<') && !value.Contains('>'))
+            if (branding.Tokens.TryGetValue(name, out var value) && SafeTokenValue.IsMatch(value))
                 vars.Append(name).Append(':').Append(value).Append(';');
         }
         foreach (var name in ComponentTokens.Optional) {
-            if (branding.Tokens.TryGetValue(name, out var value) && !value.Contains('<') && !value.Contains('>'))
+            if (branding.Tokens.TryGetValue(name, out var value) && SafeTokenValue.IsMatch(value))
                 vars.Append(name).Append(':').Append(value).Append(';');
         }
         return $$"""

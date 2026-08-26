@@ -57,18 +57,7 @@ builder.Services.AddSingleton<ProfileService>();
 builder.Services.AddSingleton<LoginCodeStore>();
 builder.Services.AddSingleton<OAuthStateStore>();
 builder.Services.AddHttpClient();
-builder.Services.AddEggIdentityFallback(new FallbackBranding("EggIdentity", new Dictionary<string, string> {
-    ["--color-bg"] = "#0b0d12",
-    ["--color-panel"] = "#161a24",
-    ["--color-panel2"] = "#1a1f2c",
-    ["--color-fg"] = "#f3f5f9",
-    ["--color-muted"] = "#8992a4",
-    ["--color-accent"] = "#7aa2ff",
-    ["--color-accent2"] = "#5865f2",
-    ["--color-ok"] = "#3fb950",
-    ["--color-err"] = "#f85149",
-    ["--color-border"] = "#262c3a",
-}));
+builder.Services.AddEggIdentityFallback(new FallbackBranding("EggIdentity", FallbackDefaults.Tokens));
 if (sponsorConfig is not null) {
     builder.Services.AddSingleton(sponsorConfig);
     builder.Services.AddSingleton<GitHubSponsorStatusStore>();
