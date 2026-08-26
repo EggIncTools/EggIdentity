@@ -5,7 +5,7 @@
 set -euo pipefail
 
 INSTANCE="${1:?usage: install.sh <instance-name>}"
-REPO_URL="${EGGIDENTITY_REPO_URL:-https://github.com/DavidArthurCole/eggidentity.git}"
+REPO_URL="${EGGIDENTITY_REPO_URL:-https://github.com/EggIncTools/eggidentity.git}"
 INSTALL_DIR="${EGGIDENTITY_INSTALL_DIR:-/opt/eggidentity-agent}"
 SERVICE_USER="${EGGIDENTITY_SERVICE_USER:-eggidentity-agent}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

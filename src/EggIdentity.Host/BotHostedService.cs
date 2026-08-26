@@ -26,7 +26,7 @@ public sealed class BotHostedService(string configFilePath, string postgresConne
                 Version = build.Version,
                 BuildHash = build.Sha256,
                 UptimeSince = startedAt,
-                RepoUrl = "https://github.com/DavidArthurCole/eggidentity",
+                RepoUrl = "https://github.com/EggIncTools/eggidentity",
             }));
 
         var cfg = builder.BuildConfig();

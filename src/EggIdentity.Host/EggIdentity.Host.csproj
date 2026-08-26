@@ -23,6 +23,7 @@
     <ProjectReference Include="..\EggIdentity.Bot.AdminUi\EggIdentity.Bot.AdminUi.csproj" />
     <ProjectReference Include="..\EggIdentity.Client\EggIdentity.Client.csproj" />
     <ProjectReference Include="..\EggIdentity.Config\EggIdentity.Config.csproj" />
+    <ProjectReference Include="..\EggIdentity.Fallback\EggIdentity.Fallback.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -20,7 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\EggIdentity.Agent\EggIdentity.Agent.csproj" />
     <ProjectReference Include="..\..\src\EggIdentity.Fallback\EggIdentity.Fallback.csproj" />
   </ItemGroup>
 

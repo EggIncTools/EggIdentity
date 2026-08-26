@@ -8,6 +8,7 @@
     <Project Path="src/EggIdentity.Config/EggIdentity.Config.csproj" />
     <Project Path="src/EggIdentity.Contract/EggIdentity.Contract.csproj" />
     <Project Path="src/EggIdentity.Db/EggIdentity.Db.csproj" />
+    <Project Path="src/EggIdentity.Fallback/EggIdentity.Fallback.csproj" />
     <Project Path="src/EggIdentity/EggIdentity.csproj" />
     <Project Path="src/EggIdentity.AdminUi/EggIdentity.AdminUi.csproj" />
     <Project Path="src/EggIdentity.Client/EggIdentity.Client.csproj" />
@@ -26,6 +27,7 @@
     <Project Path="tests/EggIdentity.Config.Tests/EggIdentity.Config.Tests.csproj" />
     <Project Path="tests/EggIdentity.Contract.Tests/EggIdentity.Contract.Tests.csproj" />
     <Project Path="tests/EggIdentity.Db.Tests/EggIdentity.Db.Tests.csproj" />
+    <Project Path="tests/EggIdentity.Fallback.Tests/EggIdentity.Fallback.Tests.csproj" />
     <Project Path="tests/EggIdentity.Tests/EggIdentity.Tests.csproj" />
     <Project Path="tests/EggIdentity.Client.Tests/EggIdentity.Client.Tests.csproj" />
     <Project Path="tests/EggIdentity.Host.Tests/EggIdentity.Host.Tests.csproj" />

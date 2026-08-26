@@ -7,7 +7,7 @@ public class AgentConfigTests {
     public void Parse_FullPipeline_DecodesStepsAndWatch() {
         const string yaml = """
         name: EggIncognito
-        repo_url: https://github.com/DavidArthurCole/EggIncognito
+        repo_url: https://github.com/EggIncTools/EggIncognito
         steps:
           - docker-pull: { ref: ghcr.io/x/y:latest, container: y }
           - portainer-update-stack

@@ -174,7 +174,7 @@ public static class LegalPages {
                     <li>Clear cookies for davidarthurcole.me sites to remove the local session.</li>
                     <li>
                         Contact the operator through the
-                        <a href="https://github.com/DavidArthurCole/eggidentity" target="_blank" rel="noopener">GitHub repository</a>
+                        <a href="https://github.com/EggIncTools/eggidentity" target="_blank" rel="noopener">GitHub repository</a>
                         or the project
                         <a href="https://discord.davidarthurcole.me" target="_blank" rel="noopener">Discord server</a>
                         to request deletion of your stored account record.
@@ -234,7 +234,7 @@ public static class LegalPages {
                 <h2>2. Provided as-is, no warranty</h2>
                 <p>
                     Source for EggIdentity is available at
-                    <a href="https://github.com/DavidArthurCole/eggidentity" target="_blank" rel="noopener">github.com/DavidArthurCole/eggidentity</a>.
+                    <a href="https://github.com/EggIncTools/eggidentity" target="_blank" rel="noopener">github.com/DavidArthurCole/eggidentity</a>.
                     It, and the hosted instance, are offered "as is", without warranty of any kind, express
                     or implied. There is no guarantee it will be available, uninterrupted, or accurate. You,
                     and any app that relies on it, use it at your own risk.
@@ -297,7 +297,7 @@ public static class LegalPages {
                 <h2>8. Contact</h2>
                 <p>
                     Questions about these terms can go to the operator through the
-                    <a href="https://github.com/DavidArthurCole/eggidentity" target="_blank" rel="noopener">GitHub repository</a>
+                    <a href="https://github.com/EggIncTools/eggidentity" target="_blank" rel="noopener">GitHub repository</a>
                     or the project
                     <a href="https://discord.davidarthurcole.me" target="_blank" rel="noopener">Discord server</a>.
                 </p>

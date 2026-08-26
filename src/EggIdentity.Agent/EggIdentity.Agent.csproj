@@ -17,6 +17,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EggIdentity.Contract\EggIdentity.Contract.csproj" />
+    <ProjectReference Include="..\EggIdentity.Auth\EggIdentity.Auth.csproj" />
+    <ProjectReference Include="..\EggIdentity.Fallback\EggIdentity.Fallback.csproj" />
   </ItemGroup>
 
   <ItemGroup>
