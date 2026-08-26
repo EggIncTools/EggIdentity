@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Net;
 using System.Net.Http.Json;
+using System.Reflection;
 using EggIdentity.Contract;
 
 namespace EggIdentity.Client.Tests;
@@ -38,12 +39,103 @@ public class IdentityApiClientTests {
     }
 
     [Fact]
+    public async Task GetSponsorStatusAsync_ParsesResponse() {
+        var userId = Guid.NewGuid();
+        var expected = new SponsorStatusResponse { IsSponsor = true, LastSyncedAt = DateTimeOffset.UtcNow };
+        var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(expected) });
+
+        var result = await client.GetSponsorStatusAsync(userId, CancellationToken.None);
+
+        Assert.Equal(expected.IsSponsor, result.IsSponsor);
+        Assert.Equal(expected.LastSyncedAt, result.LastSyncedAt);
+        Assert.Equal($"/identity/{userId}/sponsor", handler.LastRequest!.RequestUri!.AbsolutePath);
+        Assert.Equal(HttpMethod.Get, handler.LastRequest.Method);
+    }
+
+    [Fact]
+    public async Task ListAdminUsersAsync_ParsesResponse() {
+        var expected = new List<IdentityUserResponse> {
+            new() { UserId = Guid.NewGuid(), Username = "alice", Role = "admin" },
+            new() { UserId = Guid.NewGuid(), Username = "bob", Role = "viewer" },
+        };
+        var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(expected) });
+
+        var result = await client.ListAdminUsersAsync(CancellationToken.None);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("alice", result[0].Username);
+        Assert.Equal("/identity/admin/users", handler.LastRequest!.RequestUri!.AbsolutePath);
+        Assert.Equal(HttpMethod.Get, handler.LastRequest.Method);
+    }
+
+    [Fact]
+    public async Task SetRoleAsync_PostsRoleBody() {
+        var userId = Guid.NewGuid();
+        var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        await client.SetRoleAsync(userId, "admin", CancellationToken.None);
+
+        Assert.Equal($"/identity/{userId}/role", handler.LastRequest!.RequestUri!.AbsolutePath);
+        Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
+        Assert.Contains("\"role\":\"admin\"", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task GetLoginSourcesAsync_ParsesResponse_AndBuildsQuery() {
+        var expected = new LoginSourcesResponse {
+            Sources = [new LoginSourceResponse { Name = "Discord", IconUrl = "/auth/icons/discord", Url = "/auth/go/discord" }],
+        };
+        var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(expected) });
+
+        var result = await client.GetLoginSourcesAsync("https://app.example.com/return", "modal", CancellationToken.None);
+
+        Assert.Single(result.Sources);
+        Assert.Equal("Discord", result.Sources[0].Name);
+        Assert.Equal("/auth/sources", handler.LastRequest!.RequestUri!.AbsolutePath);
+        Assert.Contains("mode=modal", handler.LastRequest.RequestUri.Query);
+        Assert.Contains("https%3A%2F%2Fapp.example.com%2Freturn", handler.LastRequest.RequestUri.Query);
+    }
+
+    [Fact]
+    public void IconUrl_BuildsRelativeUrl_WithProvider() {
+        var (client, _) = MakeClient(new HttpResponseMessage(HttpStatusCode.OK));
+
+        var url = client.IconUrl("discord");
+
+        Assert.Equal("/auth/icons/discord", url);
+    }
+
+    [Fact]
+    public async Task UploadAvatarAsync_PostsFile_AndReturnsSuccess() {
+        var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.NoContent));
+        using var stream = new MemoryStream([1, 2, 3]);
+
+        var result = await client.UploadAvatarAsync("tok-1", stream, "avatar.png", "image/png", CancellationToken.None);
+
+        Assert.True(result);
+        Assert.Equal("/profile/avatar", handler.LastRequest!.RequestUri!.AbsolutePath);
+        Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
+    }
+
+    [Fact]
+    public async Task RevokeSessionAsync_PostsSidBody() {
+        var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        await client.RevokeSessionAsync("sid-9", CancellationToken.None);
+
+        Assert.Equal("/identity/revoke-session", handler.LastRequest!.RequestUri!.AbsolutePath);
+        Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
+        Assert.Contains("\"sid\":\"sid-9\"", handler.LastRequestBody);
+    }
+
+    [Fact]
     public async Task IsRevokedAsync_ParsesBoolBody() {
-        var (client, _) = MakeClient(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(true) });
+        var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(true) });
 
         var result = await client.IsRevokedAsync("sid-1", CancellationToken.None);
 
         Assert.True(result);
+        Assert.Equal("/identity/sessions/sid-1/revoked", handler.LastRequest!.RequestUri!.AbsolutePath);
     }
 
     [Fact]
@@ -129,5 +221,20 @@ public class IdentityApiClientTests {
         Assert.True(result);
         Assert.Equal("/profile/avatar/select", handler.LastRequest!.RequestUri!.AbsolutePath);
         Assert.Contains("\"provider\":\"authentik\"", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public void PublicSurface_MatchesExpectedMethodSet() {
+        var expected = new HashSet<string> {
+            "ResolveAsync", "GetAsync", "ListAdminUsersAsync", "RevokeSessionAsync", "IsRevokedAsync",
+            "MergeAsync", "SetRoleAsync", "RedeemAsync", "GetLoginSourcesAsync", "GetProfileAsync",
+            "StartLinkUrl", "StartRelinkUrl", "IconUrl", "UnlinkIdentityAsync", "UploadAvatarAsync",
+            "SelectAvatarAsync", "GetSponsorStatusAsync",
+        };
+        var actual = typeof(IdentityApiClient)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Select(m => m.Name)
+            .ToHashSet();
+        Assert.Equal(expected, actual);
     }
 }

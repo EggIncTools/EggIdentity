@@ -19,6 +19,12 @@ public sealed class IdentityApiClient(HttpClient http) {
         return await resp.Content.ReadFromJsonAsync<IdentityUserResponse>(cancellationToken: ct);
     }
 
+    public async Task<SponsorStatusResponse> GetSponsorStatusAsync(Guid userId, CancellationToken ct) {
+        var resp = await http.GetAsync($"/identity/{userId}/sponsor", ct);
+        resp.EnsureSuccessStatusCode();
+        return (await resp.Content.ReadFromJsonAsync<SponsorStatusResponse>(cancellationToken: ct))!;
+    }
+
     public async Task<IReadOnlyList<IdentityUserResponse>> ListAdminUsersAsync(CancellationToken ct) {
         var resp = await http.GetAsync("/identity/admin/users", ct);
         resp.EnsureSuccessStatusCode();

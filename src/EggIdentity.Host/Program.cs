@@ -494,6 +494,14 @@ app.MapGet("/identity/{userId:guid}", async (Guid userId, UserQueries users, Can
     return Results.Ok(ToResponse(user));
 });
 
+app.MapGet("/identity/{userId:guid}/sponsor", async (Guid userId, GitHubSponsorStatusStore store, CancellationToken ct) => {
+    var status = await store.GetAsync(userId, ct);
+    return Results.Ok(new SponsorStatusResponse {
+        IsSponsor = status?.IsSponsor ?? false,
+        LastSyncedAt = status?.LastSyncedAt,
+    });
+});
+
 app.MapPost("/identity/revoke-session", async (RevokeSessionRequest req, RevocationStore store, CancellationToken ct) => {
     await store.RevokeAsync(req.Sid, ct);
     return Results.NoContent();
