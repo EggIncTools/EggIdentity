@@ -234,7 +234,7 @@ public static class LegalPages {
                 <h2>2. Provided as-is, no warranty</h2>
                 <p>
                     Source for EggIdentity is available at
-                    <a href="https://github.com/EggIncTools/eggidentity" target="_blank" rel="noopener">github.com/DavidArthurCole/eggidentity</a>.
+                    <a href="https://github.com/EggIncTools/eggidentity" target="_blank" rel="noopener">github.com/EggIncTools/eggidentity</a>.
                     It, and the hosted instance, are offered "as is", without warranty of any kind, express
                     or implied. There is no guarantee it will be available, uninterrupted, or accurate. You,
                     and any app that relies on it, use it at your own risk.

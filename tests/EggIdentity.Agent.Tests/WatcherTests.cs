@@ -51,7 +51,7 @@ public class WatcherTests {
     }
 
     [Theory]
-    [InlineData("Head \"https://ghcr.io/v2/davidarthurcole/eggledger/manifests/latest\": Get \"https://ghcr.io/token?scope=...\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)")]
+    [InlineData("Head \"https://ghcr.io/v2/egginctools/eggledger/manifests/latest\": Get \"https://ghcr.io/token?scope=...\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)")]
     [InlineData("Get \"https://ghcr.io/v2/\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)")]
     [InlineData("Get \"https://registry-1.docker.io/v2/\": net/http: TLS handshake timeout")]
     [InlineData("dial tcp: lookup ghcr.io: no such host")]
