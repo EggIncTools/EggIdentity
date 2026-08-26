@@ -25,11 +25,13 @@ public class ComponentContractTests {
 
     [Fact]
     public void Tokens_MatchGoldenNames() {
-        Assert.Equal([
+        string[] expectedRequired = [
             "--color-bg", "--color-panel", "--color-panel2", "--color-fg", "--color-muted",
             "--color-accent", "--color-accent2", "--color-ok", "--color-err", "--color-border",
-        ], ComponentTokens.Required);
+        ];
+        Assert.Equal<string>(expectedRequired, [.. ComponentTokens.Required]);
 
-        Assert.Equal(["--color-panel0"], ComponentTokens.Optional);
+        string[] expectedOptional = ["--color-panel0"];
+        Assert.Equal<string>(expectedOptional, [.. ComponentTokens.Optional]);
     }
 }
