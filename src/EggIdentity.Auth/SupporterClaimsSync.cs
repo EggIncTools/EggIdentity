@@ -7,10 +7,10 @@ namespace EggIdentity.Auth;
 
 public static class SupporterClaimsSync {
     public static Task OnValidated(ClaimsPrincipal principal, HttpContext ctx, CancellationToken ct) =>
-        SyncAsync(principal, ctx, ct, idClaimType: null);
+        SyncAsync(principal, ctx, idClaimType: null, ct);
 
     public static Func<ClaimsPrincipal, HttpContext, CancellationToken, Task> Create(string idClaimType) =>
-        (principal, ctx, ct) => SyncAsync(principal, ctx, ct, idClaimType);
+        (principal, ctx, ct) => SyncAsync(principal, ctx, idClaimType, ct);
 
     public static void Stamp(ClaimsIdentity? identity, bool isSupporter) {
         if (identity is null) return;
@@ -18,7 +18,7 @@ public static class SupporterClaimsSync {
         identity.AddClaim(new Claim(SessionClaims.Supporter, isSupporter ? "true" : "false"));
     }
 
-    private static async Task SyncAsync(ClaimsPrincipal principal, HttpContext ctx, CancellationToken ct, string? idClaimType) {
+    private static async Task SyncAsync(ClaimsPrincipal principal, HttpContext ctx, string? idClaimType, CancellationToken ct) {
         if (principal.Identity is not ClaimsIdentity claimsIdentity) return;
         if (ResolveUserId(principal, idClaimType) is not Guid userId) return;
 
