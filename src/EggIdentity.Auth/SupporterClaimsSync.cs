@@ -16,21 +16,20 @@ public static class SupporterClaimsSync {
     }
 
     private static async Task SyncAsync(ClaimsPrincipal principal, HttpContext ctx, CancellationToken ct) {
-        var userId = principal.EggIdentityUserId();
-        var identity = principal.Identity as ClaimsIdentity;
-        if (userId is null || identity is null) return;
+        if (principal.Identity is not ClaimsIdentity claimsIdentity) return;
+        if (principal.EggIdentityUserId() is not Guid userId) return;
 
         var client = ctx.RequestServices.GetService<IdentityApiClient>();
         if (client is null) return;
 
         bool isSupporter;
         try {
-            var status = await client.GetSupporterStatusAsync(userId.Value, ct);
+            var status = await client.GetSupporterStatusAsync(userId, ct);
             isSupporter = status.IsSupporter;
         } catch (Exception) {
             isSupporter = false;
         }
 
-        Stamp(identity, isSupporter);
+        Stamp(claimsIdentity, isSupporter);
     }
 }

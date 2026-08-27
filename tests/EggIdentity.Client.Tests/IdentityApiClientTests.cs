@@ -229,7 +229,8 @@ public class IdentityApiClientTests {
             "ResolveAsync", "GetAsync", "ListAdminUsersAsync", "RevokeSessionAsync", "IsRevokedAsync",
             "MergeAsync", "SetRoleAsync", "RedeemAsync", "GetLoginSourcesAsync", "GetProfileAsync",
             "StartLinkUrl", "StartRelinkUrl", "IconUrl", "UnlinkIdentityAsync", "UploadAvatarAsync",
-            "SelectAvatarAsync", "GetSponsorStatusAsync",
+            "SelectAvatarAsync", "GetSponsorStatusAsync", "GetSupporterStatusAsync", "RefreshSupporterStatusAsync",
+            "SetPreferencesAsync",
         };
         var actual = typeof(IdentityApiClient)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)

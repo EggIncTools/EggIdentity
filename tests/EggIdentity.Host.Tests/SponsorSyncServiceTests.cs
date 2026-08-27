@@ -25,6 +25,11 @@ public class SponsorSyncServiceTests {
             Calls.Add(("remove", guildId, discordUserId, roleId));
             return Task.CompletedTask;
         }
+
+        public Task<bool> HasRoleAsync(string guildId, string discordUserId, string roleId, CancellationToken ct) {
+            Calls.Add(("has", guildId, discordUserId, roleId));
+            return Task.FromResult(false);
+        }
     }
 
     private static readonly SponsorConfig Config = new(

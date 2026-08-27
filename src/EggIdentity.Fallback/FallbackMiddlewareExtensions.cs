@@ -22,7 +22,7 @@ public static class FallbackMiddlewareExtensions {
             var feature = ctx.Features.Get<IExceptionHandlerFeature>();
             var exception = feature?.Error ?? new InvalidOperationException("unknown error");
             app.Logger.LogError(exception, "Unhandled exception. TraceId={TraceId}", ctx.TraceIdentifier);
-            var showTrace = ctx.User.IsAtLeast(UserRole.Admin);
+            var showTrace = IsAdmin(ctx, branding);
             ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
             if (WantsJson(ctx)) {
                 await ctx.Response.WriteAsJsonAsync(new { error = "internal_server_error", traceId = ctx.TraceIdentifier, trace = showTrace ? exception.ToString() : null });
@@ -33,7 +33,7 @@ public static class FallbackMiddlewareExtensions {
         }));
 
         app.Use(async (ctx, next) => {
-            if (maintenance.IsOn && !ctx.User.IsAtLeast(UserRole.Admin)) {
+            if (maintenance.IsOn && !IsAdmin(ctx, branding)) {
                 ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
                 if (WantsJson(ctx)) {
                     await ctx.Response.WriteAsJsonAsync(new { error = "maintenance" });
@@ -47,14 +47,14 @@ public static class FallbackMiddlewareExtensions {
         });
 
         app.MapPost("/admin/maintenance/{state}", (string state, HttpContext ctx) => {
-            if (!ctx.User.IsAtLeast(UserRole.Admin)) return Results.StatusCode(StatusCodes.Status403Forbidden);
+            if (!IsAdmin(ctx, branding)) return Results.StatusCode(StatusCodes.Status403Forbidden);
             if (state is not ("on" or "off")) return Results.BadRequest("state must be \"on\" or \"off\"");
             maintenance.Set(state == "on");
             return Results.NoContent();
         });
 
         app.MapGet("/admin/maintenance", (HttpContext ctx) => {
-            if (!ctx.User.IsAtLeast(UserRole.Admin)) return Results.StatusCode(StatusCodes.Status403Forbidden);
+            if (!IsAdmin(ctx, branding)) return Results.StatusCode(StatusCodes.Status403Forbidden);
             return Results.Content(FallbackPages.RenderMaintenanceAdmin(branding, maintenance.IsOn), "text/html");
         });
 
@@ -70,6 +70,12 @@ public static class FallbackMiddlewareExtensions {
                 }
             }
         });
+    }
+
+    private static bool IsAdmin(HttpContext ctx, FallbackBranding branding) {
+        if (branding.RoleClaimType is null) return ctx.User.IsAtLeast(UserRole.Admin);
+        var role = UserRoles.Parse(ctx.User.FindFirst(branding.RoleClaimType)?.Value);
+        return UserRoles.IsAtLeast(role, UserRole.Admin);
     }
 
     private static bool WantsJson(HttpContext ctx) {
