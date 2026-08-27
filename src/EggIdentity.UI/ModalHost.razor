@@ -1,13 +1,13 @@
 @if (_isOpen && !UseNativeDialog) {
-    <div class="modal-backdrop" @onclick="OnBackdropClick">
-        <div class="modal-card" @onclick:stopPropagation="true">
+    <div class="modal-backdrop" @ref="_rootRef" tabindex="-1" @onkeydown="OnKeyDown" @onclick="OnBackdropClick">
+        <div class="modal-card @ContainerClass" @onclick:stopPropagation="true">
             @ChildContent
         </div>
     </div>
 }
 @if (_isOpen && UseNativeDialog) {
-    <dialog class="modal-backdrop" open @onclick="OnBackdropClick">
-        <div class="modal-card" @onclick:stopPropagation="true">
+    <dialog class="modal-backdrop" @ref="_rootRef" tabindex="-1" open @onkeydown="OnKeyDown" @onclick="OnBackdropClick">
+        <div class="modal-card @ContainerClass" @onclick:stopPropagation="true">
             @ChildContent
         </div>
     </dialog>
@@ -15,24 +15,43 @@
 
 @code {
     private bool _isOpen;
+    private ElementReference _rootRef;
 
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public bool CloseOnBackdropClick { get; set; } = true;
     [Parameter] public bool UseNativeDialog { get; set; }
+    [Parameter] public string? ContainerClass { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
 
     public void Open() {
         _isOpen = true;
         StateHasChanged();
+        _ = FocusRootAsync();
     }
 
     public void Close() {
+        if (!_isOpen) return;
         _isOpen = false;
         StateHasChanged();
+        _ = OnClose.InvokeAsync();
     }
 
     private void OnBackdropClick() {
         if (CloseOnBackdropClick) {
             Close();
+        }
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e) {
+        if (e.Key == "Escape") {
+            Close();
+        }
+    }
+
+    private async Task FocusRootAsync() {
+        try {
+            await _rootRef.FocusAsync();
+        } catch (Exception) {
         }
     }
 

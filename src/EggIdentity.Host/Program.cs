@@ -66,6 +66,7 @@ if (sponsorConfig is not null) {
     builder.Services.AddSingleton<IDiscordRoleClient>(sp =>
         new DiscordRoleClient(sp.GetRequiredService<IHttpClientFactory>(), sponsorConfig.DiscordBotToken));
     builder.Services.AddSingleton<SponsorSyncService>();
+    builder.Services.AddSingleton<SupporterStatusService>();
 }
 if (loginWidgetEnabled)
     builder.Services.AddSingleton(sp => new IconCache(sp.GetRequiredService<IHttpClientFactory>(), authentikAuthority!));
@@ -436,6 +437,26 @@ if (sponsorEnabled) {
         });
     });
 
+    app.MapPost("/profile/supporter/refresh", async (HttpContext ctx) => {
+        var userId = await ProfileAuth.TryGetUserIdAsync(ctx, sessionOptions!, sponsorRevocations.IsRevokedAsync, ctx.RequestAborted);
+        if (userId is null) return Results.Unauthorized();
+
+        var supporterStatus = app.Services.GetRequiredService<SupporterStatusService>();
+        bool? refreshed;
+        try {
+            refreshed = await supporterStatus.RefreshAsync(userId.Value, ctx.RequestAborted);
+        } catch (Exception exc) when (exc is not OperationCanceledException) {
+            Console.Error.WriteLine($"supporter refresh failed for {userId}: {exc.Message}");
+            return Results.StatusCode(StatusCodes.Status502BadGateway);
+        }
+        if (refreshed is null) {
+            ctx.Response.Headers.RetryAfter = "30";
+            return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+        }
+
+        return Results.Ok(new SupporterStatusResponse { IsSupporter = refreshed.Value });
+    });
+
     app.MapPost("/webhooks/github/sponsorship", async (HttpContext ctx) => {
         using var bodyStream = new MemoryStream();
         await ctx.Request.Body.CopyToAsync(bodyStream, ctx.RequestAborted);
@@ -504,6 +525,11 @@ if (sponsorConfig is not null) {
             IsSponsor = status?.IsSponsor ?? false,
             LastSyncedAt = status?.LastSyncedAt,
         });
+    });
+
+    app.MapGet("/identity/{userId:guid}/supporter", async (Guid userId, SupporterStatusService supporterStatus, CancellationToken ct) => {
+        var isSupporter = await supporterStatus.IsSupporterAsync(userId, ct);
+        return Results.Ok(new SupporterStatusResponse { IsSupporter = isSupporter });
     });
 }
 

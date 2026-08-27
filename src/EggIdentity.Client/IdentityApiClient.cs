@@ -25,6 +25,21 @@ public sealed class IdentityApiClient(HttpClient http) {
         return (await resp.Content.ReadFromJsonAsync<SponsorStatusResponse>(cancellationToken: ct))!;
     }
 
+    public async Task<SupporterStatusResponse> GetSupporterStatusAsync(Guid userId, CancellationToken ct) {
+        var resp = await http.GetAsync($"/identity/{userId}/supporter", ct);
+        resp.EnsureSuccessStatusCode();
+        return (await resp.Content.ReadFromJsonAsync<SupporterStatusResponse>(cancellationToken: ct))!;
+    }
+
+    public async Task<SupporterStatusResponse?> RefreshSupporterStatusAsync(string sessionToken, CancellationToken ct) {
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/profile/supporter/refresh");
+        req.Headers.Add("X-EggIdentity-Session", sessionToken);
+        var resp = await http.SendAsync(req, ct);
+        if (resp.StatusCode == System.Net.HttpStatusCode.TooManyRequests) return null;
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<SupporterStatusResponse>(cancellationToken: ct);
+    }
+
     public async Task<IReadOnlyList<IdentityUserResponse>> ListAdminUsersAsync(CancellationToken ct) {
         var resp = await http.GetAsync("/identity/admin/users", ct);
         resp.EnsureSuccessStatusCode();
@@ -97,6 +112,15 @@ public sealed class IdentityApiClient(HttpClient http) {
         fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
         form.Add(fileContent, "file", fileName);
         using var req = new HttpRequestMessage(HttpMethod.Post, "/profile/avatar") { Content = form };
+        req.Headers.Add("X-EggIdentity-Session", sessionToken);
+        var resp = await http.SendAsync(req, ct);
+        return resp.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> SetPreferencesAsync(string sessionToken, string? timezone, string? language, string? theme, CancellationToken ct) {
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/profile/preferences") {
+            Content = JsonContent.Create(new ProfilePreferencesRequest { Timezone = timezone, Language = language, Theme = theme }),
+        };
         req.Headers.Add("X-EggIdentity-Session", sessionToken);
         var resp = await http.SendAsync(req, ct);
         return resp.IsSuccessStatusCode;

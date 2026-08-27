@@ -151,6 +151,26 @@ public sealed class ProfileResponse {
 
     [JsonPropertyName("identities")]
     public List<ProfileIdentityResponse> Identities { get; set; } = [];
+
+    [JsonPropertyName("timezone")]
+    public string? Timezone { get; set; }
+
+    [JsonPropertyName("language")]
+    public string? Language { get; set; }
+
+    [JsonPropertyName("theme")]
+    public string? Theme { get; set; }
+}
+
+public sealed class ProfilePreferencesRequest {
+    [JsonPropertyName("timezone")]
+    public string? Timezone { get; set; }
+
+    [JsonPropertyName("language")]
+    public string? Language { get; set; }
+
+    [JsonPropertyName("theme")]
+    public string? Theme { get; set; }
 }
 
 public sealed class LinkResultResponse {
@@ -181,4 +201,9 @@ public sealed class SponsorStatusResponse {
 
     [JsonPropertyName("lastSyncedAt")]
     public DateTimeOffset? LastSyncedAt { get; set; }
+}
+
+public sealed class SupporterStatusResponse {
+    [JsonPropertyName("isSupporter")]
+    public bool IsSupporter { get; set; }
 }

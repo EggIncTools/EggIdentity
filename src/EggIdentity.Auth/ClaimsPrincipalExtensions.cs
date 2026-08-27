@@ -16,4 +16,7 @@ public static class ClaimsPrincipalExtensions {
 
     public static bool IsAtLeast(this ClaimsPrincipal principal, UserRole need) =>
         UserRoles.IsAtLeast(principal.EggIdentityRole(), need);
+
+    public static bool IsSupporter(this ClaimsPrincipal principal) =>
+        principal.FindFirstValue(SessionClaims.Supporter) == "true";
 }

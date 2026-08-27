@@ -50,6 +50,23 @@ public sealed class ProfileService(NpgsqlDataSource dataSource) {
         return affected > 0 ? UnlinkResult.Unlinked : UnlinkResult.NotFound;
     }
 
+    public async Task SetPreferencesAsync(Guid userId, string? timezone, string? language, string? theme, CancellationToken ct) {
+        await using var conn = await dataSource.OpenConnectionAsync(ct);
+        await using var cmd = new NpgsqlCommand(
+            """
+            UPDATE users SET
+                timezone = COALESCE($2, timezone),
+                language = COALESCE($3, language),
+                theme = COALESCE($4::jsonb, theme)
+            WHERE user_id = $1
+            """, conn);
+        cmd.Parameters.AddWithValue(userId);
+        cmd.Parameters.AddWithValue((object?)timezone ?? DBNull.Value);
+        cmd.Parameters.AddWithValue((object?)language ?? DBNull.Value);
+        cmd.Parameters.AddWithValue((object?)theme ?? DBNull.Value);
+        await cmd.ExecuteNonQueryAsync(ct);
+    }
+
     public async Task SetCustomAvatarAsync(Guid userId, string avatarUrl, CancellationToken ct) {
         await using var conn = await dataSource.OpenConnectionAsync(ct);
         await using var cmd = new NpgsqlCommand(

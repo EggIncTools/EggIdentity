@@ -33,7 +33,18 @@ public static class ProfileRoutes {
                         Avatar = i.Avatar,
                         LinkedAt = i.LinkedAt,
                     })],
+                Timezone = user.Timezone,
+                Language = user.Language,
+                Theme = user.Theme,
             });
+        });
+
+        profileRoutes.MapPost("/preferences", async (HttpContext ctx, ProfilePreferencesRequest req) => {
+            var userId = await ProfileAuth.TryGetUserIdAsync(ctx, sessionOptions, isRevoked, ctx.RequestAborted);
+            if (userId is null) return Results.Unauthorized();
+
+            await profiles.SetPreferencesAsync(userId.Value, req.Timezone, req.Language, req.Theme, ctx.RequestAborted);
+            return Results.NoContent();
         });
 
         profileRoutes.MapPost("/identities/{provider}/{subject}/unlink", async (HttpContext ctx, string provider, string subject) => {

@@ -6,4 +6,5 @@ public static class SessionClaims {
     public const string Avatar = "avatar";
     public const string DiscordId = "discord_id";
     public const string SessionId = "sid";
+    public const string Supporter = "eggidentity:supporter";
 }

@@ -9,4 +9,7 @@ public sealed class User {
     public string Role { get; set; } = "viewer";
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset LastLoginAt { get; set; }
+    public string? Timezone { get; set; }
+    public string? Language { get; set; }
+    public string? Theme { get; set; }
 }
