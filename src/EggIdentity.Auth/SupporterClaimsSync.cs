@@ -7,7 +7,10 @@ namespace EggIdentity.Auth;
 
 public static class SupporterClaimsSync {
     public static Task OnValidated(ClaimsPrincipal principal, HttpContext ctx, CancellationToken ct) =>
-        SyncAsync(principal, ctx, ct);
+        SyncAsync(principal, ctx, ct, idClaimType: null);
+
+    public static Func<ClaimsPrincipal, HttpContext, CancellationToken, Task> Create(string idClaimType) =>
+        (principal, ctx, ct) => SyncAsync(principal, ctx, ct, idClaimType);
 
     public static void Stamp(ClaimsIdentity? identity, bool isSupporter) {
         if (identity is null) return;
@@ -15,9 +18,9 @@ public static class SupporterClaimsSync {
         identity.AddClaim(new Claim(SessionClaims.Supporter, isSupporter ? "true" : "false"));
     }
 
-    private static async Task SyncAsync(ClaimsPrincipal principal, HttpContext ctx, CancellationToken ct) {
+    private static async Task SyncAsync(ClaimsPrincipal principal, HttpContext ctx, CancellationToken ct, string? idClaimType) {
         if (principal.Identity is not ClaimsIdentity claimsIdentity) return;
-        if (principal.EggIdentityUserId() is not Guid userId) return;
+        if (ResolveUserId(principal, idClaimType) is not Guid userId) return;
 
         var client = ctx.RequestServices.GetService<IdentityApiClient>();
         if (client is null) return;
@@ -31,5 +34,10 @@ public static class SupporterClaimsSync {
         }
 
         Stamp(claimsIdentity, isSupporter);
+    }
+
+    private static Guid? ResolveUserId(ClaimsPrincipal principal, string? idClaimType) {
+        if (idClaimType is not null && Guid.TryParse(principal.FindFirstValue(idClaimType), out var claimId)) return claimId;
+        return principal.EggIdentityUserId();
     }
 }
