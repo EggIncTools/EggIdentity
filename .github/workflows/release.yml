@@ -15,29 +15,29 @@ jobs:
     with:
       dotnet-version: "10.0.x"
       pack-targets: |
-        src/EggIdentity.Contract/EggIdentity.Contract.csproj
-        src/EggIdentity.Db/EggIdentity.Db.csproj
-        src/EggIdentity.Auth/EggIdentity.Auth.csproj
-        src/EggIdentity.Bot/EggIdentity.Bot.csproj
-        src/EggIdentity.Bot.AdminUi/EggIdentity.Bot.AdminUi.csproj
-        src/EggIdentity.CodeStyle/EggIdentity.CodeStyle.csproj
-        src/EggIdentity.Config/EggIdentity.Config.csproj
-        src/EggIdentity.Fallback/EggIdentity.Fallback.csproj
-        src/EggIdentity/EggIdentity.csproj
-        src/EggIdentity.Client/EggIdentity.Client.csproj
-        src/EggIdentity.AdminUi/EggIdentity.AdminUi.csproj
-        src/EggIdentity.Metrics/EggIdentity.Metrics.csproj
-        src/EggIdentity.Metrics.AdminUi/EggIdentity.Metrics.AdminUi.csproj
-        src/EggIdentity.Styles/EggIdentity.Styles.csproj
-        src/EggIdentity.StyleVerify/EggIdentity.StyleVerify.csproj
-        src/EggIdentity.UI/EggIdentity.UI.csproj
+        EggIdentity.Contract/EggIdentity.Contract.csproj
+        EggIdentity.Db/EggIdentity.Db.csproj
+        EggIdentity.Auth/EggIdentity.Auth.csproj
+        EggIdentity.Bot/EggIdentity.Bot.csproj
+        EggIdentity.Bot.AdminUi/EggIdentity.Bot.AdminUi.csproj
+        EggIdentity.CodeStyle/EggIdentity.CodeStyle.csproj
+        EggIdentity.Config/EggIdentity.Config.csproj
+        EggIdentity.Fallback/EggIdentity.Fallback.csproj
+        EggIdentity/EggIdentity.csproj
+        EggIdentity.Client/EggIdentity.Client.csproj
+        EggIdentity.AdminUi/EggIdentity.AdminUi.csproj
+        EggIdentity.Metrics/EggIdentity.Metrics.csproj
+        EggIdentity.Metrics.AdminUi/EggIdentity.Metrics.AdminUi.csproj
+        EggIdentity.Styles/EggIdentity.Styles.csproj
+        EggIdentity.StyleVerify/EggIdentity.StyleVerify.csproj
+        EggIdentity.UI/EggIdentity.UI.csproj
 
   docker-identity-host:
     uses: ./.github/workflows/docker-publish.yml
     with:
       image-suffix: ""
       context: .
-      dockerfile: src/EggIdentity.Host/Dockerfile
+      dockerfile: EggIdentity.Host/Dockerfile
       cache-scope: identity-host
 
   docker-agent:
@@ -45,7 +45,7 @@ jobs:
     with:
       image-suffix: "-agent"
       context: .
-      dockerfile: src/EggIdentity.Agent/Dockerfile
+      dockerfile: EggIdentity.Agent/Dockerfile
       cache-scope: agent
 
   fast-deploy-identity:

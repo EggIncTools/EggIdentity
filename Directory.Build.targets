@@ -1,0 +1,8 @@
+<Project>
+  <ItemGroup>
+    <Compile Remove="$(MSBuildProjectDirectory)\Tests\**" />
+    <EmbeddedResource Remove="$(MSBuildProjectDirectory)\Tests\**" />
+    <None Remove="$(MSBuildProjectDirectory)\Tests\**" />
+    <Content Remove="$(MSBuildProjectDirectory)\Tests\**" />
+  </ItemGroup>
+</Project>

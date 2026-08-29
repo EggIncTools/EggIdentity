@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Description>Shared CSS/design-system library for EggLedger and EggIncognito - component shape layer, skinned per app via CSS custom properties.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonorailCss" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EggIdentity.Styles.Tests" />
+  </ItemGroup>
+
+</Project>

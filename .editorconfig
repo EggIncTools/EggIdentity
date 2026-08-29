@@ -20,6 +20,8 @@ csharp_new_line_before_finally = false
 
 # Namespaces, usings, var
 csharp_style_namespace_declarations = file_scoped:error
+dotnet_style_namespace_match_folder = true
+dotnet_diagnostic.IDE0130.severity = error
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
 csharp_using_directive_placement = outside_namespace:warning
@@ -95,7 +97,7 @@ dotnet_diagnostic.CA1873.severity = suggestion # "expensive" log arg evaluation:
 dotnet_diagnostic.IDE0005.severity = none
 resharper_razor_always_use_end_of_line_brace_style = true
 
-[tests/**/*.cs]
+[*/Tests/*.cs]
 # Test conventions: underscore method names, instance methods, inline arrays, per-call options fine.
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1822.severity = none

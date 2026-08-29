@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Description>Shared identity/auth data model and resolver for eggidentity: users, identities, role, revoked sessions. Raw Npgsql, migrated via EggIdentity.Db.Migrator (no EF Core, matching the rest of the solution).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EggIdentity.Contract\EggIdentity.Contract.csproj" />
+    <ProjectReference Include="..\EggIdentity.Db\EggIdentity.Db.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Migrations\*.up.sql" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Description>Minimal API host exposing EggIdentity over HTTP: resolve/get/merge/revoke/admin-role. Bearer-secret-gated, server-to-server only.</Description>
+    <RootNamespace>EggIdentity.Host</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EggIdentity\EggIdentity.csproj" />
+    <ProjectReference Include="..\EggIdentity.Db\EggIdentity.Db.csproj" />
+    <ProjectReference Include="..\EggIdentity.Contract\EggIdentity.Contract.csproj" />
+    <ProjectReference Include="..\EggIdentity.Auth\EggIdentity.Auth.csproj" />
+    <ProjectReference Include="..\EggIdentity.Bot\EggIdentity.Bot.csproj" />
+    <ProjectReference Include="..\EggIdentity.Client\EggIdentity.Client.csproj" />
+    <ProjectReference Include="..\EggIdentity.Config\EggIdentity.Config.csproj" />
+    <ProjectReference Include="..\EggIdentity.Fallback\EggIdentity.Fallback.csproj" />
+    <ProjectReference Include="..\EggIdentity.Bot.AdminUi\EggIdentity.Bot.AdminUi.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\EggIdentity\Migrations\*.up.sql" Link="Migrations\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\EggIdentity.Bot\Migrations\*.up.sql" Link="BotMigrations\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

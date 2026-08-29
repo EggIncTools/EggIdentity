@@ -17,7 +17,7 @@ on:
         default: false
       razor-include:
         type: string
-        default: "src/**/*.razor"
+        default: "**/*.razor"
     secrets:
       PACKAGES_PAT:
         required: false
