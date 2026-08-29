@@ -21,6 +21,7 @@
     <Project Path="src/EggIdentity.UI/EggIdentity.UI.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/EggIdentity.UI.Tests/EggIdentity.UI.Tests.csproj" />
     <Project Path="tests/EggIdentity.Agent.Tests/EggIdentity.Agent.Tests.csproj" />
     <Project Path="tests/EggIdentity.Auth.Tests/EggIdentity.Auth.Tests.csproj" />
     <Project Path="tests/EggIdentity.Bot.Tests/EggIdentity.Bot.Tests.csproj" />
