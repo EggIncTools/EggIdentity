@@ -1,0 +1,24 @@
+<ComboBoxPicker Value="@Value" ValueChanged="ValueChanged" Options="Zones" Placeholder="@(Placeholder ?? "Search timezone...")"/>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+
+    static readonly IReadOnlyList<ComboOption> Zones = BuildZones();
+
+    static List<ComboOption> BuildZones() {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var zones = new List<ComboOption>();
+        foreach (var tz in TimeZoneInfo.GetSystemTimeZones()) {
+            var ianaId = tz.HasIanaId
+                ? tz.Id
+                : (TimeZoneInfo.TryConvertWindowsIdToIanaId(tz.Id, out var converted) ? converted : null);
+            if (ianaId is null || !seen.Add(ianaId)) continue;
+            var offset = tz.BaseUtcOffset;
+            var sign = offset < TimeSpan.Zero ? "-" : "+";
+            zones.Add(new ComboOption(ianaId, $"{ianaId} (UTC{sign}{offset:hh\\:mm})"));
+        }
+        return zones.OrderBy(z => z.Value, StringComparer.Ordinal).ToList();
+    }
+}

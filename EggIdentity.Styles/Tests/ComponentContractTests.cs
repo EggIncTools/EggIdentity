@@ -10,7 +10,7 @@ public class ComponentContractTests {
             ".btn-primary", ".btn-primary:disabled", ".btn-primary:hover:not(:disabled)", ".btn-secondary", ".btn-secondary:hover", ".btn-accent", ".btn-accent:disabled", ".btn-accent:hover:not(:disabled)", ".btn-mini", ".btn-mini:hover", ".btn-danger.btn-danger", ".btn-danger.btn-danger:hover", ".icon-btn", ".icon-btn:hover", ".icon-btn.active",
             ".panel", ".panel-head", ".panel-title",
             ".segmented", ".segmented-opt", ".segmented-opt.active", ".segmented-opt:disabled",
-            ".popover-wrap", ".popover", ".popover.open", ".popover.popover-sm", ".popover.popover-lg", ".popover.popover-combo", ".popover-combo-opt", ".popover-combo-opt:hover",
+            ".popover-wrap", ".popover", ".popover.open", ".popover.popover-sm", ".popover.popover-lg", ".popover.popover-combo", ".popover-combo-opt", ".popover-combo-opt:hover", ".popover-combo-opt.combo-highlighted",
             ".modal-backdrop", ".modal-card", ".modal-head", ".modal-title", ".modal-body",
             ".fab-bubble", ".fab-bubble:hover",
             ".form-input", ".form-input:focus", ".form-select", ".form-select:focus", ".form-check",

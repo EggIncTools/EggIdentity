@@ -1,0 +1,141 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div @ref="_root">
+    <input @ref="_input" type="text" class="form-input" placeholder="@Placeholder" value="@_query"
+           @oninput="OnInput" @onfocus="OnFocus" @onkeydown="OnKeyDown" @onkeydown:preventDefault="@_preventDefault"
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+    <div popover="manual" class="popover popover-combo" @ref="_listbox">
+        @if (_filtered.Count == 0) {
+            <div class="popover-combo-opt">No matches</div>
+        } else {
+            @for (var i = 0; i < _filtered.Count; i++) {
+                var index = i;
+                var option = _filtered[index];
+                <button type="button" class="@OptionCss(index)" @onmousedown:preventDefault="true" @onclick="() => SelectAsync(option)">@option.Label</button>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] [EditorRequired] public IReadOnlyList<ComboOption> Options { get; set; } = [];
+    [Parameter] public string? Placeholder { get; set; }
+
+    readonly string _id = Guid.NewGuid().ToString("N");
+    ElementReference _root;
+    ElementReference _input;
+    ElementReference _listbox;
+    OutsideClickInterop? _outsideClick;
+    DotNetObjectReference<ComboBoxPicker>? _selfRef;
+    List<ComboOption> _filtered = [];
+    string _query = "";
+    string? _selectedValue;
+    bool _open;
+    bool _wasOpen;
+    bool _preventDefault;
+    int _highlight;
+
+    protected override void OnParametersSet() {
+        if (Value == _selectedValue) return;
+        _selectedValue = Value;
+        _query = Options.FirstOrDefault(o => o.Value == Value)?.Label ?? "";
+    }
+
+    void OnFocus() {
+        _filtered = FilterOptions(_query);
+        _highlight = 0;
+        _open = true;
+    }
+
+    void OnInput(ChangeEventArgs e) {
+        _query = e.Value?.ToString() ?? "";
+        _filtered = FilterOptions(_query);
+        _highlight = 0;
+        _open = true;
+    }
+
+    List<ComboOption> FilterOptions(string query) {
+        if (string.IsNullOrWhiteSpace(query)) return Options.ToList();
+        return Options.Where(o => o.Label.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    async Task OnKeyDown(KeyboardEventArgs e) {
+        _preventDefault = false;
+        if (!_open) {
+            if (e.Key is "ArrowDown" or "ArrowUp") OnFocus();
+            return;
+        }
+
+        switch (e.Key) {
+            case "ArrowDown":
+                _preventDefault = true;
+                if (_filtered.Count > 0) _highlight = (_highlight + 1) % _filtered.Count;
+                break;
+            case "ArrowUp":
+                _preventDefault = true;
+                if (_filtered.Count > 0) _highlight = (_highlight - 1 + _filtered.Count) % _filtered.Count;
+                break;
+            case "Enter":
+                _preventDefault = true;
+                if (_highlight >= 0 && _highlight < _filtered.Count) await SelectAsync(_filtered[_highlight]);
+                break;
+            case "Escape":
+                _preventDefault = true;
+                _query = Options.FirstOrDefault(o => o.Value == Value)?.Label ?? "";
+                _open = false;
+                break;
+        }
+    }
+
+    async Task SelectAsync(ComboOption option) {
+        _selectedValue = option.Value;
+        _query = option.Label;
+        _open = false;
+        await ValueChanged.InvokeAsync(option.Value);
+    }
+
+    string OptionCss(int index) {
+        return index == _highlight ? "popover-combo-opt combo-highlighted" : "popover-combo-opt";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender) {
+            _selfRef = DotNetObjectReference.Create(this);
+            _outsideClick = new OutsideClickInterop(JS);
+            await _outsideClick.RegisterAsync(_id, _root, _selfRef);
+        }
+
+        if (_open && !_wasOpen) {
+            await JS.InvokeVoidAsync("comboBoxPickerPosition", _listbox, _input);
+            await JS.InvokeVoidAsync("comboBoxPickerShow", _listbox);
+        } else if (!_open && _wasOpen) {
+            await HidePopoverAsync();
+        }
+
+        _wasOpen = _open;
+    }
+
+    async Task HidePopoverAsync() {
+        try {
+            await JS.InvokeVoidAsync("comboBoxPickerHide", _listbox);
+        }
+        catch (JSDisconnectedException) {
+        }
+    }
+
+    [JSInvokable]
+    public void OnOutsideClick() {
+        if (!_open) return;
+        _query = Options.FirstOrDefault(o => o.Value == Value)?.Label ?? "";
+        _open = false;
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync() {
+        if (_outsideClick is not null) await _outsideClick.UnregisterAsync(_id);
+        _selfRef?.Dispose();
+    }
+}

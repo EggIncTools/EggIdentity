@@ -12,5 +12,6 @@ internal static class Popovers {
         { ".popover.popover-combo", "w-full max-h-[240px] overflow-auto bg-panel0 p-0 py-1 [box-shadow:0_8px_24px_rgba(0,0,0,.55)]" },
         { ".popover-combo-opt", "block w-full text-left px-2.5 py-1.5 text-xs text-fg bg-transparent border-0 cursor-pointer truncate [font-family:inherit]" },
         { ".popover-combo-opt:hover", "bg-accent text-bg" },
+        { ".popover-combo-opt.combo-highlighted", "bg-accent text-bg" },
     }.ToImmutableDictionary();
 }

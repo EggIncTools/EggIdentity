@@ -1,0 +1,19 @@
+<ComboBoxPicker Value="@Value" ValueChanged="ValueChanged" Options="Languages" Placeholder="@(Placeholder ?? "Search language...")"/>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+
+    static readonly IReadOnlyList<ComboOption> Languages = BuildLanguages();
+
+    static List<ComboOption> BuildLanguages() {
+        return CultureInfo.GetCultures(CultureTypes.NeutralCultures)
+            .Where(c => c.TwoLetterISOLanguageName.Length == 2 && c.TwoLetterISOLanguageName != "iv")
+            .Select(c => new ComboOption(c.TwoLetterISOLanguageName, $"{c.EnglishName} ({c.TwoLetterISOLanguageName})"))
+            .GroupBy(x => x.Value, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .OrderBy(x => x.Label, StringComparer.Ordinal)
+            .ToList();
+    }
+}
