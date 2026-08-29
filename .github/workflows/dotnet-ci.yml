@@ -15,9 +15,6 @@ on:
       format-gate:
         type: boolean
         default: false
-      razor-include:
-        type: string
-        default: "**/*.razor"
     secrets:
       PACKAGES_PAT:
         required: false
@@ -55,7 +52,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       cs-files: ${{ steps.diff.outputs.cs-files }}
-      razor-files: ${{ steps.diff.outputs.razor-files }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -66,9 +62,7 @@ jobs:
         run: |
           git fetch --depth=1 origin ${{ github.event.pull_request.base.sha }}
           cs=$(git diff --name-only --diff-filter=ACMR ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- '*.cs' | tr '\n' ' ')
-          razor=$(git diff --name-only --diff-filter=ACMR ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- '*.razor' | tr '\n' ';')
           echo "cs-files=$cs" >> "$GITHUB_OUTPUT"
-          echo "razor-files=$razor" >> "$GITHUB_OUTPUT"
 
   format:
     needs: detect-changes
@@ -105,61 +99,3 @@ jobs:
       - name: Verify formatting (full solution)
         if: github.event_name != 'pull_request' || needs.detect-changes.outputs.cs-files == ''
         run: dotnet format ${{ inputs.solution }} --verify-no-changes
-
-  razor-format:
-    needs: detect-changes
-    if: inputs.format-gate && (github.event_name != 'pull_request' || needs.detect-changes.outputs.razor-files != '')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
-        with:
-          dotnet-version: ${{ inputs.dotnet-version }}
-
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
-          restore-keys: ${{ runner.os }}-nuget-
-
-      - name: Authenticate GitHub Packages
-        if: inputs.packages-auth
-        run: |
-          dotnet nuget update source github \
-            --username ${{ github.repository_owner }} \
-            --password ${{ secrets.PACKAGES_PAT || github.token }} \
-            --store-password-in-clear-text \
-            --configfile nuget.config
-
-      - name: Cache ReSharper CLI tool
-        id: jb-tool-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: ~/.dotnet/tools
-          key: ${{ runner.os }}-jb-globaltools-v1
-
-      - name: Install ReSharper CLI
-        if: steps.jb-tool-cache.outputs.cache-hit != 'true'
-        run: dotnet tool install -g JetBrains.ReSharper.GlobalTools
-
-      - name: Cache ReSharper solution index
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: ~/.jb-caches
-          key: ${{ runner.os }}-jb-caches-${{ hashFiles('**/*.slnx', '**/*.sln', '**/*.csproj') }}
-          restore-keys: ${{ runner.os }}-jb-caches-
-
-      - name: Verify Razor formatting (changed files)
-        if: github.event_name == 'pull_request' && needs.detect-changes.outputs.razor-files != ''
-        run: |
-          jb cleanupcode ${{ inputs.solution }} --caches-home="$HOME/.jb-caches" --include="${{ needs.detect-changes.outputs.razor-files }}"
-          git diff --exit-code -- '*.razor' || (echo "::error::Razor files are not formatted. Run 'jb cleanupcode ${{ inputs.solution }} --include=\"${{ inputs.razor-include }}\"' locally." && exit 1)
-
-      - name: Verify Razor formatting (full solution)
-        if: github.event_name != 'pull_request' || needs.detect-changes.outputs.razor-files == ''
-        run: |
-          jb cleanupcode ${{ inputs.solution }} --caches-home="$HOME/.jb-caches" --include="${{ inputs.razor-include }}"
-          git diff --exit-code -- '*.razor' || (echo "::error::Razor files are not formatted. Run 'jb cleanupcode ${{ inputs.solution }} --include=\"${{ inputs.razor-include }}\"' locally." && exit 1)

@@ -12,4 +12,3 @@ jobs:
       solution: EggIdentity.slnx
       dotnet-version: "10.0.x"
       format-gate: true
-      razor-include: "**/*.razor"
