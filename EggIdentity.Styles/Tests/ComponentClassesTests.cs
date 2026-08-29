@@ -16,6 +16,7 @@ public class ComponentClassesTests {
         Assert.True(ComponentClasses.All.ContainsKey(".tooltip-floating"));
         Assert.True(ComponentClasses.All.ContainsKey(".prose-legal"));
         Assert.True(ComponentClasses.All.ContainsKey(".modal-card.wb-card"));
+        Assert.True(ComponentClasses.All.ContainsKey(".filter-panel"));
     }
 
     [Fact]
@@ -32,7 +33,8 @@ public class ComponentClassesTests {
             + Components.Toasts.Applies.Count
             + Components.Tooltips.Applies.Count
             + Components.Prose.Applies.Count
-            + Components.Workbench.Applies.Count;
+            + Components.Workbench.Applies.Count
+            + Components.Filters.Applies.Count;
 
         Assert.Equal(expected, ComponentClasses.All.Count);
     }

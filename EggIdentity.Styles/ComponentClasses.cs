@@ -17,5 +17,6 @@ public static class ComponentClasses {
         .AddRange(Toasts.Applies)
         .AddRange(Tooltips.Applies)
         .AddRange(Prose.Applies)
-        .AddRange(Workbench.Applies);
+        .AddRange(Workbench.Applies)
+        .AddRange(Filters.Applies);
 }

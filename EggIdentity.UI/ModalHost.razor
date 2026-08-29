@@ -3,7 +3,7 @@
 
 @if (Open && !UseNativeDialog) {
     <div class="modal-backdrop" @ref="_root" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="@TitleId"
-         @onkeydown="OnKeyDown" @onclick="OnBackdropClick">
+         @onkeydown="HandleKeyDown" @onkeydown:preventDefault="PreventKeyDefault" @onclick="OnBackdropClick">
         <div class="@CardCss" tabindex="-1" @onclick:stopPropagation="true">
             <div class="modal-head">
                 <h3 class="modal-title" id="@TitleId">@Title</h3>
@@ -20,7 +20,7 @@
 }
 @if (Open && UseNativeDialog) {
     <dialog class="modal-backdrop" @ref="_root" tabindex="-1" open aria-labelledby="@TitleId"
-            @onkeydown="OnKeyDown" @onclick="OnBackdropClick">
+            @onkeydown="HandleKeyDown" @onkeydown:preventDefault="PreventKeyDefault" @onclick="OnBackdropClick">
         <div class="@CardCss" tabindex="-1" @onclick:stopPropagation="true">
             <div class="modal-head">
                 <h3 class="modal-title" id="@TitleId">@Title</h3>
@@ -47,7 +47,9 @@
     [Parameter] public bool CloseOnBackdrop { get; set; } = true;
     [Parameter] public bool HideClose { get; set; }
     [Parameter] public bool UseNativeDialog { get; set; }
+    [Parameter] public bool PreventKeyDefault { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
     [Parameter] public RenderFragment? HeadTools { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -91,8 +93,12 @@
         return CloseOnBackdrop ? Close() : Task.CompletedTask;
     }
 
-    Task OnKeyDown(KeyboardEventArgs e) {
-        return CloseOnEscape && e.Key == "Escape" ? Close() : Task.CompletedTask;
+    async Task HandleKeyDown(KeyboardEventArgs e) {
+        if (CloseOnEscape && e.Key == "Escape") {
+            await Close();
+            return;
+        }
+        await OnKeyDown.InvokeAsync(e);
     }
 
     Task Close() {

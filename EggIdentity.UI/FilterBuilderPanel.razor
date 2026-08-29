@@ -1,0 +1,60 @@
+@typeparam TCondition
+
+<div class="filter-panel">
+    @for (var b = 0; b < Buckets.Count; b++) {
+        var bucketIndex = b;
+        if (bucketIndex > 0) {
+            <div class="filter-glue filter-glue-outer">@OuterGlue</div>
+        }
+        <div class="filter-bucket">
+            @{ var bucket = Buckets[bucketIndex]; }
+            @for (var r = 0; r < bucket.Count; r++) {
+                var rowIndex = r;
+                if (rowIndex > 0) {
+                    <div class="filter-glue filter-glue-inner">@InnerGlue</div>
+                }
+                <div class="filter-row">
+                    @RowContent(bucket[rowIndex])
+                    @if (IsIncomplete?.Invoke(bucket[rowIndex]) == true) {
+                        <span class="filter-warn" aria-label="Incomplete condition">
+                            <Icon Name="warning"/>
+                        </span>
+                    }
+                    @if (bucket.Count > MinRowsPerBucket || Buckets.Count > 1) {
+                        <button type="button" class="filter-remove-btn" aria-label="Remove condition"
+                                @onclick="() => OnRemoveRow.InvokeAsync((bucketIndex, rowIndex))">
+                            <Icon Name="close"/>
+                        </button>
+                    }
+                </div>
+            }
+            @if (ShowAddToBucket) {
+                <button type="button" class="filter-add-btn filter-add-inner"
+                        @onclick="() => OnAddToBucket.InvokeAsync(bucketIndex)">
+                    @AddToBucketLabel
+                </button>
+            }
+        </div>
+    }
+    @if (ShowAddBucket) {
+        <button type="button" class="filter-add-btn filter-add-outer" @onclick="OnAddBucket">
+            @AddBucketLabel
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<IReadOnlyList<TCondition>> Buckets { get; set; } = [];
+    [Parameter, EditorRequired] public RenderFragment<TCondition> RowContent { get; set; } = null!;
+    [Parameter] public string OuterGlue { get; set; } = "OR";
+    [Parameter] public string InnerGlue { get; set; } = "AND";
+    [Parameter] public Func<TCondition, bool>? IsIncomplete { get; set; }
+    [Parameter] public int MinRowsPerBucket { get; set; } = 1;
+    [Parameter] public bool ShowAddToBucket { get; set; } = true;
+    [Parameter] public bool ShowAddBucket { get; set; } = true;
+    [Parameter] public string AddToBucketLabel { get; set; } = "+ Add condition";
+    [Parameter] public string AddBucketLabel { get; set; } = "+ Add group";
+    [Parameter] public EventCallback<(int BucketIndex, int RowIndex)> OnRemoveRow { get; set; }
+    [Parameter] public EventCallback<int> OnAddToBucket { get; set; }
+    [Parameter] public EventCallback OnAddBucket { get; set; }
+}
