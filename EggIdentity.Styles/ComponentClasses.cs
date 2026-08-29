@@ -16,5 +16,6 @@ public static class ComponentClasses {
         .AddRange(DataTables.Applies)
         .AddRange(Toasts.Applies)
         .AddRange(Tooltips.Applies)
-        .AddRange(Prose.Applies);
+        .AddRange(Prose.Applies)
+        .AddRange(Workbench.Applies);
 }

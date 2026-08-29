@@ -18,6 +18,11 @@ public class ComponentContractTests {
             ".toast-container", ".toast", ".toast.show", ".toast.leaving", ".toast-msg", ".toast-time", ".toast.toast-ok", ".toast.toast-err", ".toast.toast-info",
             ".tooltip-floating", ".tooltip-anchored", ".tooltip-floating::before", ".tooltip-floating::after",
             ".prose-legal", ".prose-legal h2", ".prose-legal p", ".prose-legal ul", ".prose-legal a", ".prose-legal a:hover",
+            ".modal-card.wb-card", ".wb-card.wb-card-wide", ".wb-body", ".wb-main", ".wb-notice", ".wb-head-tools",
+            ".wb-rail", ".wb-entry", ".wb-entry:hover", ".wb-entry:focus-visible", ".wb-entry.selected",
+            ".wb-entry.compare", ".wb-entry.tone-muted", ".wb-entry.tone-warn", ".wb-entry.tone-bad",
+            ".wb-entry-head", ".wb-entry-name", ".wb-entry-meta", ".wb-entry-foot", ".wb-sec",
+            ".wb-sec-head", ".wb-sec-tools", ".wb-sec-body", ".wb-scroll", ".wb-note", ".wb-seg-count",
         };
 
         Assert.Equal(expected, [.. ComponentClasses.All.Keys]);

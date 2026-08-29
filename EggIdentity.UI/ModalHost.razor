@@ -1,59 +1,107 @@
-@if (_isOpen && !UseNativeDialog) {
-    <div class="modal-backdrop" @ref="_rootRef" tabindex="-1" @onkeydown="OnKeyDown" @onclick="OnBackdropClick">
-        <div class="modal-card @ContainerClass" @onclick:stopPropagation="true">
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@if (Open && !UseNativeDialog) {
+    <div class="modal-backdrop" @ref="_root" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="@TitleId"
+         @onkeydown="OnKeyDown" @onclick="OnBackdropClick">
+        <div class="@CardCss" tabindex="-1" @onclick:stopPropagation="true">
+            <div class="modal-head">
+                <h3 class="modal-title" id="@TitleId">@Title</h3>
+                @HeadTools
+                @if (!HideClose) {
+                    <button type="button" class="icon-btn" aria-label="Close" @onclick="Close">
+                        <Icon Name="close"/>
+                    </button>
+                }
+            </div>
             @ChildContent
         </div>
     </div>
 }
-@if (_isOpen && UseNativeDialog) {
-    <dialog class="modal-backdrop" @ref="_rootRef" tabindex="-1" open @onkeydown="OnKeyDown" @onclick="OnBackdropClick">
-        <div class="modal-card @ContainerClass" @onclick:stopPropagation="true">
+@if (Open && UseNativeDialog) {
+    <dialog class="modal-backdrop" @ref="_root" tabindex="-1" open aria-labelledby="@TitleId"
+            @onkeydown="OnKeyDown" @onclick="OnBackdropClick">
+        <div class="@CardCss" tabindex="-1" @onclick:stopPropagation="true">
+            <div class="modal-head">
+                <h3 class="modal-title" id="@TitleId">@Title</h3>
+                @HeadTools
+                @if (!HideClose) {
+                    <button type="button" class="icon-btn" aria-label="Close" @onclick="Close">
+                        <Icon Name="close"/>
+                    </button>
+                }
+            </div>
             @ChildContent
         </div>
     </dialog>
 }
 
 @code {
-    private bool _isOpen;
-    private ElementReference _rootRef;
 
-    [Parameter] public RenderFragment? ChildContent { get; set; }
-    [Parameter] public bool CloseOnBackdropClick { get; set; } = true;
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? TitleId { get; set; }
+    [Parameter] public string? CardClass { get; set; }
+    [Parameter] public ModalWidth Width { get; set; } = ModalWidth.Regular;
+    [Parameter] public bool CloseOnEscape { get; set; } = true;
+    [Parameter] public bool CloseOnBackdrop { get; set; } = true;
+    [Parameter] public bool HideClose { get; set; }
     [Parameter] public bool UseNativeDialog { get; set; }
-    [Parameter] public string? ContainerClass { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? HeadTools { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    public void Open() {
-        _isOpen = true;
-        StateHasChanged();
-        _ = FocusRootAsync();
-    }
+    ElementReference _root;
+    bool _wasOpen;
+    bool _pendingFocus;
 
-    public void Close() {
-        if (!_isOpen) return;
-        _isOpen = false;
-        StateHasChanged();
-        _ = OnClose.InvokeAsync();
-    }
-
-    private void OnBackdropClick() {
-        if (CloseOnBackdropClick) {
-            Close();
+    string CardCss {
+        get {
+            var css = "modal-card" + Width switch {
+                ModalWidth.Small => " modal-card-sm",
+                ModalWidth.Large => " modal-card-lg",
+                _ => ""
+            };
+            return string.IsNullOrEmpty(CardClass) ? css : $"{css} {CardClass}";
         }
     }
 
-    private void OnKeyDown(KeyboardEventArgs e) {
-        if (e.Key == "Escape") {
-            Close();
-        }
+    protected override void OnParametersSet() {
+        if (Open && !_wasOpen) _pendingFocus = true;
+        if (!Open && _wasOpen) _ = SetScrollLockAsync(false);
+        _wasOpen = Open;
     }
 
-    private async Task FocusRootAsync() {
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (!_pendingFocus) return;
+        _pendingFocus = false;
+        await _root.FocusAsync();
+        await SetScrollLockAsync(true);
+    }
+
+    async Task SetScrollLockAsync(bool locked) {
         try {
-            await _rootRef.FocusAsync();
+            await JS.InvokeVoidAsync(locked ? "modalScrollLock" : "modalScrollUnlock");
         }
-        catch (Exception) {
+        catch (JSDisconnectedException) {
         }
+    }
+
+    Task OnBackdropClick() {
+        return CloseOnBackdrop ? Close() : Task.CompletedTask;
+    }
+
+    Task OnKeyDown(KeyboardEventArgs e) {
+        return CloseOnEscape && e.Key == "Escape" ? Close() : Task.CompletedTask;
+    }
+
+    Task Close() {
+        return OnClose.InvokeAsync();
+    }
+
+    public async ValueTask DisposeAsync() {
+        if (!_wasOpen) return;
+        await SetScrollLockAsync(false);
     }
 
 }
