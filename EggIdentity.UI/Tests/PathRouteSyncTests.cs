@@ -1,19 +1,31 @@
 using EggIdentity.UI;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace EggIdentity.UI.Tests;
 
 internal sealed class FakeNavigationManager : NavigationManager {
-    public readonly List<(string Uri, bool Replace)> Calls = [];
-
     public FakeNavigationManager(string baseUri, string uri) {
         Initialize(baseUri, uri);
     }
 
     protected override void NavigateToCore(string uri, NavigationOptions options) {
-        Calls.Add((uri, options.ReplaceHistoryEntry));
         Uri = ToAbsoluteUri(uri).ToString();
         NotifyLocationChanged(false);
+    }
+}
+
+internal sealed class FakeJSRuntime : IJSRuntime {
+    public readonly List<(string Identifier, object?[]? Args)> Calls = [];
+
+    public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args) {
+        Calls.Add((identifier, args));
+        return ValueTask.FromResult<TValue>(default!);
+    }
+
+    public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args) {
+        Calls.Add((identifier, args));
+        return ValueTask.FromResult<TValue>(default!);
     }
 }
 
@@ -23,76 +35,130 @@ public class PathRouteSyncTests {
     }
 
     [Fact]
-    public void Segments_SplitsAndDropsEmptyAndPreservesCase() {
+    public async Task StartAsync_SeedsSegmentsAndCallsListen() {
         var nav = MakeNav("/Missions/List/Home?x=1#frag");
-        var sync = new PathRouteSync(nav);
+        var jsRuntime = new FakeJSRuntime();
+        var sync = new PathRouteSync(jsRuntime, nav, "/missions");
+
+        await sync.StartAsync();
 
         Assert.Equal(["Missions", "List", "Home"], sync.Segments);
+        var call = Assert.Single(jsRuntime.Calls);
+        Assert.Equal("pathRouteSyncListen", call.Identifier);
+        Assert.Equal("/missions", call.Args?[0]);
     }
 
     [Fact]
-    public void Segments_EmptyAtRoot() {
+    public async Task Segments_EmptyAtRoot() {
         var nav = MakeNav("/");
-        var sync = new PathRouteSync(nav);
+        var jsRuntime = new FakeJSRuntime();
+        var sync = new PathRouteSync(jsRuntime, nav, "/");
+
+        await sync.StartAsync();
 
         Assert.Empty(sync.Segments);
     }
 
     [Fact]
-    public void Push_NoOpsWhenPathMatchesIgnoringTrailingSlashAndQuery() {
+    public async Task Push_NoOpsWhenPathMatchesIgnoringTrailingSlashAndQuery() {
         var nav = MakeNav("/missions/list/all");
-        var sync = new PathRouteSync(nav);
+        var jsRuntime = new FakeJSRuntime();
+        var sync = new PathRouteSync(jsRuntime, nav, "/missions");
+        await sync.StartAsync();
+        jsRuntime.Calls.Clear();
 
-        sync.Push("/missions/list/all/?x=1");
+        await sync.Push("/missions/list/all/?x=1");
 
-        Assert.Empty(nav.Calls);
+        Assert.Empty(jsRuntime.Calls);
     }
 
     [Fact]
-    public void Push_NavigatesWhenPathDiffers() {
+    public async Task Push_NavigatesWhenPathDiffers() {
         var nav = MakeNav("/missions/list/all");
-        var sync = new PathRouteSync(nav);
+        var jsRuntime = new FakeJSRuntime();
+        var sync = new PathRouteSync(jsRuntime, nav, "/missions");
+        await sync.StartAsync();
+        jsRuntime.Calls.Clear();
 
-        sync.Push("/missions/calendar/home");
+        await sync.Push("/missions/calendar/home");
 
-        var call = Assert.Single(nav.Calls);
-        Assert.Equal("/missions/calendar/home", call.Uri);
-        Assert.False(call.Replace);
+        var call = Assert.Single(jsRuntime.Calls);
+        Assert.Equal("pathRouteSyncPush", call.Identifier);
+        Assert.Equal("/missions/calendar/home", call.Args?[0]);
+        Assert.False((bool)call.Args![1]!);
+        Assert.Equal(["missions", "calendar", "home"], sync.Segments);
     }
 
     [Fact]
-    public void Replace_PassesReplaceFlag() {
+    public async Task Replace_PassesReplaceFlag() {
         var nav = MakeNav("/protos");
-        var sync = new PathRouteSync(nav);
+        var jsRuntime = new FakeJSRuntime();
+        var sync = new PathRouteSync(jsRuntime, nav, "/protos");
+        await sync.StartAsync();
+        jsRuntime.Calls.Clear();
 
-        sync.Replace("/protos/terms");
+        await sync.Replace("/protos/terms");
 
-        var call = Assert.Single(nav.Calls);
-        Assert.True(call.Replace);
+        var call = Assert.Single(jsRuntime.Calls);
+        Assert.Equal("pathRouteSyncPush", call.Identifier);
+        Assert.True((bool)call.Args![1]!);
     }
 
     [Fact]
-    public void Changed_FiresOnLocationChanged() {
+    public async Task OnPathChanged_UpdatesSegmentsAndRaisesChangedOnce() {
         var nav = MakeNav("/protos");
-        var sync = new PathRouteSync(nav);
+        var jsRuntime = new FakeJSRuntime();
+        var sync = new PathRouteSync(jsRuntime, nav, "/protos");
+        await sync.StartAsync();
         var fired = 0;
         sync.Changed += () => fired++;
 
-        sync.Push("/protos/terms");
+        sync.OnPathChanged("/protos/terms");
 
+        Assert.Equal(["protos", "terms"], sync.Segments);
         Assert.Equal(1, fired);
     }
 
     [Fact]
-    public void Dispose_UnsubscribesFromLocationChanged() {
+    public async Task Push_DoesNotRaiseChanged() {
         var nav = MakeNav("/protos");
-        var sync = new PathRouteSync(nav);
+        var jsRuntime = new FakeJSRuntime();
+        var sync = new PathRouteSync(jsRuntime, nav, "/protos");
+        await sync.StartAsync();
         var fired = 0;
         sync.Changed += () => fired++;
 
-        sync.Dispose();
-        sync.Push("/protos/terms");
+        await sync.Push("/protos/terms");
 
         Assert.Equal(0, fired);
+    }
+
+    [Fact]
+    public async Task Replace_DoesNotRaiseChanged() {
+        var nav = MakeNav("/protos");
+        var jsRuntime = new FakeJSRuntime();
+        var sync = new PathRouteSync(jsRuntime, nav, "/protos");
+        await sync.StartAsync();
+        var fired = 0;
+        sync.Changed += () => fired++;
+
+        await sync.Replace("/protos/terms");
+
+        Assert.Equal(0, fired);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_CallsUnlisten() {
+        var nav = MakeNav("/protos");
+        var jsRuntime = new FakeJSRuntime();
+        var sync = new PathRouteSync(jsRuntime, nav, "/protos");
+        await sync.StartAsync();
+        jsRuntime.Calls.Clear();
+
+        await sync.DisposeAsync();
+
+        var call = Assert.Single(jsRuntime.Calls);
+        Assert.Equal("pathRouteSyncUnlisten", call.Identifier);
+        Assert.Equal("/protos", call.Args?[0]);
     }
 }
