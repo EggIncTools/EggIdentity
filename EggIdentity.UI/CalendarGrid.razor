@@ -1,0 +1,63 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@typeparam TItem
+
+<div class="cal-viewport" @ref="_viewport">
+    <div class="cal-strip">
+        @foreach (var period in Periods) {
+            <div class="cal-period">
+                <div class="cal-canvas">
+                    @{ var isFixed = period.Rows.Count > 1; }
+                    @foreach (var row in period.Rows) {
+                        <div class="cal-row @(isFixed ? "cal-row-fixed" : "")" style="@(isFixed ? $"--row-h:{RowHeightRem(row):0.###}rem" : "")">
+                            @foreach (var cell in row.CellLabels) {
+                                <div class="cal-cell-label @(cell.Muted ? "cal-cell-muted" : "")" style="left:@(cell.PositionPercent.ToString("0.###"))%">@cell.Text</div>
+                            }
+                            @foreach (var gridLine in row.GridLinePositions) {
+                                <div class="cal-gridline" style="left:@(gridLine.ToString("0.###"))%"></div>
+                            }
+                            @if (ShowHourTicks) {
+                                @foreach (var tick in row.HourTickPositions) {
+                                    <div class="cal-hour-tick" style="left:@(tick.ToString("0.###"))%"></div>
+                                }
+                            }
+                            @if (row.NowLinePosition is { } nowPos) {
+                                <div class="cal-now" style="left:@(nowPos.ToString("0.###"))%"></div>
+                            }
+                            @for (var g = 0; g < LaneGroups.Length && g < row.LaneGroups.Count; g++) {
+                                var group = LaneGroups[g];
+                                var groupRow = row.LaneGroups[g];
+                                <div class="cal-lane-group" style="gap:@(group.LaneGapRem.ToString("0.###"))rem; padding-top:@(group.HeaderRem.ToString("0.###"))rem;">
+                                    @foreach (var lane in groupRow.Lanes) {
+                                        <div class="cal-lane" style="min-height:@(group.LaneMinRem.ToString("0.###"))rem">
+                                            @foreach (var item in lane) {
+                                                @group.ItemTemplate(item)
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] [EditorRequired] public IReadOnlyList<PeriodSlot<TItem>> Periods { get; set; } = [];
+    [Parameter] [EditorRequired] public LaneGroupDef<TItem>[] LaneGroups { get; set; } = [];
+    [Parameter] public bool ShowHourTicks { get; set; }
+    [Parameter] public double RowInsetRem { get; set; } = 0.2;
+    [Parameter] public EventCallback<int> OnCommitScrollPan { get; set; }
+
+    double RowHeightRem(CalendarRow<TItem> row) {
+        var sizingGroups = new CalendarLaneGroupSizing[LaneGroups.Length];
+        for (var i = 0; i < LaneGroups.Length; i++) {
+            var laneCount = i < row.LaneGroups.Count ? row.LaneGroups[i].Lanes.Count : 0;
+            sizingGroups[i] = new CalendarLaneGroupSizing(laneCount, LaneGroups[i].LaneMinRem, LaneGroups[i].LaneGapRem, LaneGroups[i].HeaderRem);
+        }
+        return EggIdentity.UI.CalendarRowSizing.RowHeightRem(sizingGroups, RowInsetRem);
+    }
+}

@@ -26,6 +26,9 @@ public class ComponentContractTests {
             ".filter-panel", ".filter-bucket", ".filter-row", ".filter-glue", ".filter-glue-outer",
             ".filter-glue-inner", ".filter-warn", ".filter-add-btn", ".filter-add-inner", ".filter-add-outer",
             ".filter-remove-btn",
+            ".cal-viewport", ".cal-strip", ".cal-period", ".cal-canvas", ".cal-row", ".cal-row.cal-row-fixed", ".cal-row.cal-row-context",
+            ".cal-cell-label", ".cal-cell-label.cal-cell-muted", ".cal-gridline", ".cal-hour-tick", ".cal-now", ".cal-lane-group", ".cal-lane",
+            ".cal-range-trigger", ".cal-range-trigger:hover", ".cal-range-backdrop", ".cal-range-panel",
         };
 
         Assert.Equal(expected, [.. ComponentClasses.All.Keys]);
