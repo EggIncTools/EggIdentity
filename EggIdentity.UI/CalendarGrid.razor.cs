@@ -20,8 +20,7 @@ public sealed partial class CalendarGrid<TItem> : IAsyncDisposable {
         if (!_initialized) return;
         try {
             await JS.InvokeVoidAsync("calendarGridReset", _viewport);
-        }
-        catch (JSDisconnectedException) {
+        } catch (JSDisconnectedException) {
         }
     }
 
@@ -34,8 +33,7 @@ public sealed partial class CalendarGrid<TItem> : IAsyncDisposable {
         if (_initialized) {
             try {
                 await JS.InvokeVoidAsync("calendarGridDestroy", _viewport);
-            }
-            catch (JSDisconnectedException) {
+            } catch (JSDisconnectedException) {
             }
         }
         _selfRef?.Dispose();

@@ -34,16 +34,19 @@ if (!commit) {
     return 0;
 }
 
-Console.WriteLine("cutover: applying migrations to target..."); {
-    await using var targetDb = NpgsqlDataSource.Create(targetConn);
-    await using var conn = await targetDb.OpenConnectionAsync();
-    await Migrator.MigrateAsync(conn, Path.Combine(AppContext.BaseDirectory, "Migrations"));
-}
+Console.WriteLine("cutover: applying migrations to target...");
+await ApplyMigrationsAsync();
 
 Console.WriteLine("cutover: writing merged users/identities to target...");
 await CutoverWriter.WriteAsync(targetConn, merge, CancellationToken.None);
 Console.WriteLine("cutover: done. Source databases were not modified.");
 return 0;
+
+async Task ApplyMigrationsAsync() {
+    await using var targetDb = NpgsqlDataSource.Create(targetConn);
+    await using var conn = await targetDb.OpenConnectionAsync();
+    await Migrator.MigrateAsync(conn, Path.Combine(AppContext.BaseDirectory, "Migrations"));
+}
 
 static string? RequireEnv(string name) {
     var value = Environment.GetEnvironmentVariable(name);
