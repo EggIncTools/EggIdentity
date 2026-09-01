@@ -51,6 +51,15 @@ public class FiltersTests {
     }
 
     [Fact]
+    public void FilterRemoveBtn_UsesErrColor() {
+        var css = BuildFramework().Process("filter-remove-btn");
+        var flat = css.Replace(" ", "").Replace("\n", "");
+
+        Assert.Contains(".filter-remove-btn{", flat);
+        Assert.Contains("color:var(--color-err)", flat);
+    }
+
+    [Fact]
     public void AllCoreSelectors_ProcessWithoutError() {
         var css = BuildFramework().Process(
             "filter-panel filter-bucket filter-row filter-glue filter-glue-outer filter-glue-inner " +

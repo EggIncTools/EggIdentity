@@ -52,9 +52,54 @@ public class CalendarTests {
     }
 
     [Fact]
+    public void CalLaneGroupSibling_HasMarginTop() {
+        var css = BuildFramework().Process("cal-lane-group");
+        var flat = css.Replace(" ", "").Replace("\n", "");
+
+        Assert.Contains(".cal-lane-group+.cal-lane-group{", flat);
+        Assert.Contains("margin-top:calc(var(--spacing)*2)", flat);
+    }
+
+    [Fact]
+    public void CalRow_IsFlexColumn() {
+        var css = BuildFramework().Process("cal-row");
+        var flat = css.Replace(" ", "").Replace("\n", "");
+
+        Assert.Contains(".cal-row{", flat);
+        Assert.Contains("flex-direction:column", flat);
+    }
+
+    [Fact]
+    public void CalLaneGroupLastChild_GrowsToFillRow() {
+        var css = BuildFramework().Process("cal-lane-group");
+        var flat = css.Replace(" ", "").Replace("\n", "");
+
+        Assert.Contains(".cal-lane-group:last-child{", flat);
+        Assert.Contains("flex:1", flat);
+    }
+
+    [Fact]
+    public void CalPeriodContext_UsesReducedOpacity() {
+        var css = BuildFramework().Process("cal-period-context");
+        var flat = css.Replace(" ", "").Replace("\n", "");
+
+        Assert.Contains(".cal-period-context{", flat);
+        Assert.Contains("opacity:0.55", flat);
+    }
+
+    [Fact]
+    public void CalCellLabel_SitsAboveLaneContent() {
+        var css = BuildFramework().Process("cal-cell-label");
+        var flat = css.Replace(" ", "").Replace("\n", "");
+
+        Assert.Contains(".cal-cell-label{", flat);
+        Assert.Contains("z-index:5", flat);
+    }
+
+    [Fact]
     public void AllCoreSelectors_ProcessWithoutError() {
         var css = BuildFramework().Process(
-            "cal-viewport cal-strip cal-period cal-canvas cal-row cal-row-fixed cal-row-context " +
+            "cal-viewport cal-strip cal-period cal-period-context cal-canvas cal-row cal-row-fixed cal-row-context " +
             "cal-cell-label cal-cell-muted cal-gridline cal-hour-tick cal-now cal-lane-group cal-lane " +
             "cal-range-trigger cal-range-backdrop cal-range-panel");
         var flat = css.Replace(" ", "").Replace("\n", "");

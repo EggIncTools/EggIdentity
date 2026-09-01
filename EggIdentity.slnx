@@ -20,6 +20,8 @@
   <Project Path="EggIdentity.Db/Tests/EggIdentity.Db.Tests.csproj" />
   <Project Path="EggIdentity.Fallback/EggIdentity.Fallback.csproj" />
   <Project Path="EggIdentity.Fallback/Tests/EggIdentity.Fallback.Tests.csproj" />
+  <Project Path="EggIdentity.Filtering/EggIdentity.Filtering.csproj" />
+  <Project Path="EggIdentity.Filtering/Tests/EggIdentity.Filtering.Tests.csproj" />
   <Project Path="EggIdentity.Host/EggIdentity.Host.csproj" />
   <Project Path="EggIdentity.Host/Tests/EggIdentity.Host.Tests.csproj" />
   <Project Path="EggIdentity.Metrics/EggIdentity.Metrics.csproj" />

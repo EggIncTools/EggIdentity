@@ -4,8 +4,10 @@
 
 <div class="cal-viewport" @ref="_viewport">
     <div class="cal-strip">
-        @foreach (var period in Periods) {
-            <div class="cal-period">
+        @{ var centerIndex = Periods.Count / 2; }
+        @for (var p = 0; p < Periods.Count; p++) {
+            var period = Periods[p];
+            <div class="cal-period @(p == centerIndex ? "" : "cal-period-context")">
                 <div class="cal-canvas">
                     @{ var isFixed = period.Rows.Count > 1; }
                     @foreach (var row in period.Rows) {
