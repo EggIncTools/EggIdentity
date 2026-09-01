@@ -11,8 +11,8 @@ public sealed record SponsorConfig(
     public static SponsorConfig? FromEnvironment() {
         var pat = Environment.GetEnvironmentVariable("GITHUB_SPONSOR_PAT");
         var webhookSecret = Environment.GetEnvironmentVariable("GITHUB_SPONSOR_WEBHOOK_SECRET");
-        var botToken = Environment.GetEnvironmentVariable("DISCORD_SPONSOR_BOT_TOKEN");
-        var guildId = Environment.GetEnvironmentVariable("DISCORD_SPONSOR_GUILD_ID");
+        var botToken = Environment.GetEnvironmentVariable("DISCORD_TOKEN");
+        var guildId = Environment.GetEnvironmentVariable("DISCORD_GUILD_ID");
         var roleId = Environment.GetEnvironmentVariable("DISCORD_SPONSOR_ROLE_ID");
         if (string.IsNullOrEmpty(pat) || string.IsNullOrEmpty(webhookSecret) || string.IsNullOrEmpty(botToken)
             || string.IsNullOrEmpty(guildId) || string.IsNullOrEmpty(roleId)) {

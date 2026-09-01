@@ -6,7 +6,7 @@ namespace EggIdentity.Host.Tests;
 public class SponsorConfigTests {
     private static readonly string[] AllVars = [
         "GITHUB_SPONSOR_PAT", "GITHUB_SPONSOR_TARGET", "GITHUB_SPONSOR_WEBHOOK_SECRET",
-        "DISCORD_SPONSOR_BOT_TOKEN", "DISCORD_SPONSOR_GUILD_ID", "DISCORD_SPONSOR_ROLE_ID",
+        "DISCORD_TOKEN", "DISCORD_GUILD_ID", "DISCORD_SPONSOR_ROLE_ID",
     ];
 
     private static void ClearAll() {
@@ -19,8 +19,8 @@ public class SponsorConfigTests {
         try {
             Environment.SetEnvironmentVariable("GITHUB_SPONSOR_PAT", "pat-1");
             Environment.SetEnvironmentVariable("GITHUB_SPONSOR_WEBHOOK_SECRET", "whsecret");
-            Environment.SetEnvironmentVariable("DISCORD_SPONSOR_BOT_TOKEN", "bottoken");
-            Environment.SetEnvironmentVariable("DISCORD_SPONSOR_GUILD_ID", "guild-1");
+            Environment.SetEnvironmentVariable("DISCORD_TOKEN", "bottoken");
+            Environment.SetEnvironmentVariable("DISCORD_GUILD_ID", "guild-1");
             Environment.SetEnvironmentVariable("DISCORD_SPONSOR_ROLE_ID", "role-1");
 
             var config = SponsorConfig.FromEnvironment();
@@ -44,8 +44,8 @@ public class SponsorConfigTests {
             Environment.SetEnvironmentVariable("GITHUB_SPONSOR_PAT", "pat-1");
             Environment.SetEnvironmentVariable("GITHUB_SPONSOR_TARGET", "SomeOtherOrg");
             Environment.SetEnvironmentVariable("GITHUB_SPONSOR_WEBHOOK_SECRET", "whsecret");
-            Environment.SetEnvironmentVariable("DISCORD_SPONSOR_BOT_TOKEN", "bottoken");
-            Environment.SetEnvironmentVariable("DISCORD_SPONSOR_GUILD_ID", "guild-1");
+            Environment.SetEnvironmentVariable("DISCORD_TOKEN", "bottoken");
+            Environment.SetEnvironmentVariable("DISCORD_GUILD_ID", "guild-1");
             Environment.SetEnvironmentVariable("DISCORD_SPONSOR_ROLE_ID", "role-1");
 
             var config = SponsorConfig.FromEnvironment();
