@@ -1,25 +1,22 @@
 @typeparam TZoom where TZoom : struct, Enum
 
 <div class="relative shrink-0">
-    <button type="button" class="cal-range-trigger" @onclick="Toggle">
+    <button type="button" class="cal-range-trigger" popovertarget="@_panelId">
         @RangeLabel &#9662;
     </button>
-    @if (_open) {
-        <div class="cal-range-backdrop" @onclick="Close"></div>
-        <div class="cal-range-panel" @onclick:stopPropagation="true">
-            <div class="segmented w-full">
-                @foreach (var z in AvailableZooms) {
-                    <button type="button" class="segmented-opt flex-1 @(EqualityComparer<TZoom>.Default.Equals(Zoom, z) ? "active" : "")" @onclick="@(() => ZoomChanged.InvokeAsync(z))">@ZoomLabel(z)</button>
-                }
-            </div>
-            <div class="flex items-center justify-between w-full">
-                <button type="button" class="btn-mini" disabled="@PrevDisabled" @onclick="@(() => OnPan.InvokeAsync(-1))">&larr; Prev</button>
-                <button type="button" class="btn-mini" @onclick="@(() => OnToday.InvokeAsync())">Today</button>
-                <button type="button" class="btn-mini" disabled="@NextDisabled" @onclick="@(() => OnPan.InvokeAsync(1))">Next &rarr;</button>
-            </div>
-            <input type="date" class="form-input" value="@DateValue" @onchange="DateChanged"/>
+    <div popover="auto" id="@_panelId" class="cal-range-panel">
+        <div class="segmented w-full">
+            @foreach (var z in AvailableZooms) {
+                <button type="button" class="segmented-opt flex-1 @(EqualityComparer<TZoom>.Default.Equals(Zoom, z) ? "active" : "")" @onclick="@(() => ZoomChanged.InvokeAsync(z))">@ZoomLabel(z)</button>
+            }
         </div>
-    }
+        <div class="flex items-center justify-between w-full">
+            <button type="button" class="btn-mini" disabled="@PrevDisabled" @onclick="@(() => OnPan.InvokeAsync(-1))">&larr; Prev</button>
+            <button type="button" class="btn-mini" @onclick="@(() => OnToday.InvokeAsync())">Today</button>
+            <button type="button" class="btn-mini" disabled="@NextDisabled" @onclick="@(() => OnPan.InvokeAsync(1))">Next &rarr;</button>
+        </div>
+        <input type="date" class="form-input" value="@DateValue" @onchange="DateChanged"/>
+    </div>
 </div>
 
 @code {
@@ -35,7 +32,5 @@
     [Parameter] public EventCallback OnToday { get; set; }
     [Parameter] public EventCallback<ChangeEventArgs> DateChanged { get; set; }
 
-    bool _open;
-    void Toggle() { _open = !_open; }
-    void Close() { _open = false; }
+    private readonly string _panelId = "cal-range-" + Guid.NewGuid().ToString("N");
 }

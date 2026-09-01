@@ -31,7 +31,7 @@ public class ComponentContractTests {
             ".filter-remove-btn", ".filter-remove-btn:hover",
             ".cal-viewport", ".cal-strip", ".cal-period", ".cal-period-context", ".cal-canvas", ".cal-row", ".cal-row.cal-row-fixed", ".cal-row.cal-row-context",
             ".cal-cell-label", ".cal-cell-label.cal-cell-muted", ".cal-gridline", ".cal-hour-tick", ".cal-now", ".cal-lane-group", ".cal-lane-group + .cal-lane-group", ".cal-lane-group:last-child", ".cal-lane",
-            ".cal-range-trigger", ".cal-range-trigger:hover", ".cal-range-backdrop", ".cal-range-panel",
+            ".cal-range-trigger", ".cal-range-trigger:hover", ".cal-range-panel", ".cal-range-panel:popover-open",
         };
 
         Assert.Equal(expected, [.. ComponentClasses.All.Keys]);

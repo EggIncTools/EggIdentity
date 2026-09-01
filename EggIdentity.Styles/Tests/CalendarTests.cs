@@ -101,7 +101,7 @@ public class CalendarTests {
         var css = BuildFramework().Process(
             "cal-viewport cal-strip cal-period cal-period-context cal-canvas cal-row cal-row-fixed cal-row-context " +
             "cal-cell-label cal-cell-muted cal-gridline cal-hour-tick cal-now cal-lane-group cal-lane " +
-            "cal-range-trigger cal-range-backdrop cal-range-panel");
+            "cal-range-trigger cal-range-panel");
         var flat = css.Replace(" ", "").Replace("\n", "");
 
         Assert.Contains(".cal-viewport{", flat);
