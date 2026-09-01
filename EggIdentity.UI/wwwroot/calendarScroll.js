@@ -22,10 +22,11 @@
 
   function visibleCanvasOf(viewport) {
     const vpRect = viewport.getBoundingClientRect();
+    const midY = (vpRect.top + vpRect.bottom) / 2;
     const periods = viewport.querySelectorAll(".cal-period");
     for (const period of periods) {
       const r = period.getBoundingClientRect();
-      if (r.bottom > vpRect.top && r.top < vpRect.bottom) {
+      if (r.top <= midY && midY < r.bottom) {
         return period.querySelector(".cal-canvas");
       }
     }
