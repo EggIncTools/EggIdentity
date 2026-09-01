@@ -23,6 +23,7 @@ jobs:
         EggIdentity.CodeStyle/EggIdentity.CodeStyle.csproj
         EggIdentity.Config/EggIdentity.Config.csproj
         EggIdentity.Fallback/EggIdentity.Fallback.csproj
+        EggIdentity.Filtering/EggIdentity.Filtering.csproj
         EggIdentity/EggIdentity.csproj
         EggIdentity.Client/EggIdentity.Client.csproj
         EggIdentity.AdminUi/EggIdentity.AdminUi.csproj
