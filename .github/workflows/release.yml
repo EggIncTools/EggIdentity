@@ -29,6 +29,9 @@ jobs:
         EggIdentity.AdminUi/EggIdentity.AdminUi.csproj
         EggIdentity.Metrics/EggIdentity.Metrics.csproj
         EggIdentity.Metrics.AdminUi/EggIdentity.Metrics.AdminUi.csproj
+        EggIdentity.Settings/EggIdentity.Settings.csproj
+        EggIdentity.Settings.Store/EggIdentity.Settings.Store.csproj
+        EggIdentity.Settings.AdminUi/EggIdentity.Settings.AdminUi.csproj
         EggIdentity.Styles/EggIdentity.Styles.csproj
         EggIdentity.StyleVerify/EggIdentity.StyleVerify.csproj
         EggIdentity.UI/EggIdentity.UI.csproj

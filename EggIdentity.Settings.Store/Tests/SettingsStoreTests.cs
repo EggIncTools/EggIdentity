@@ -11,13 +11,37 @@ public class SettingsStoreTests {
     private static readonly SettingDescriptor Secret =
         new("t.secret", "T_SECRET", "Secret", "Core", SettingKind.Secret, ApplyTier.RestartRequired, Sensitivity.Secret);
 
+    private const string MigrationPrefix = "EggIdentity.Settings.Store.Migrations.";
+
     [Fact]
     public void EmbeddedMigrations_AreShippedInsideThePackage() {
-        var names = Migrator.EmbeddedMigrations(
-            typeof(SettingsStore).Assembly, "EggIdentity.Settings.Store.Migrations.");
+        var names = Migrator.EmbeddedMigrations(typeof(SettingsStore).Assembly, MigrationPrefix);
 
         Assert.NotEmpty(names);
         Assert.Contains(names, n => n.EndsWith("1_app_settings.up.sql", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void EmbeddedMigrations_AreOrderedNumerically() {
+        var names = Migrator.EmbeddedMigrations(typeof(SettingsStore).Assembly, MigrationPrefix);
+
+        var versions = names.Select(n => Migrator.PrefixNum(n[MigrationPrefix.Length..])).ToList();
+
+        Assert.Equal(versions.Order(), versions);
+        Assert.Equal(versions.Distinct(), versions);
+    }
+
+    [Fact]
+    public void AddingUpdatedBy_ShipsAsAnAlterNotAFreshCreate() {
+        var names = Migrator.EmbeddedMigrations(typeof(SettingsStore).Assembly, MigrationPrefix);
+        var updatedBy = Assert.Single(names, n => n.Contains("updated_by", StringComparison.Ordinal));
+
+        using var stream = typeof(SettingsStore).Assembly.GetManifestResourceStream(updatedBy)!;
+        using var reader = new StreamReader(stream);
+        var sql = reader.ReadToEnd();
+
+        Assert.Contains("ALTER TABLE app_settings", sql, StringComparison.Ordinal);
+        Assert.Contains("ADD COLUMN IF NOT EXISTS updated_by", sql, StringComparison.Ordinal);
     }
 
     [Fact]
