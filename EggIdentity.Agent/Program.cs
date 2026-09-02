@@ -26,6 +26,7 @@ try { interval = AgentConfig.ParseDuration(intervalStr); } catch (Exception e) {
 var orchestrator = new AgentOrchestrator(registry, interval, notifySecret);
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddHttpClient();
 if (sessionOptions is not null) {
     builder.Services.AddAuthentication(EggIdentitySessionDefaults.Scheme)
         .AddEggIdentitySession(sessionOptions);
@@ -53,6 +54,8 @@ if (sessionOptions is not null) {
         var output = await DockerLogReader.TailAsync(appName, clampedLines, ctx.RequestAborted);
         return Results.Text(output, "text/plain");
     });
+
+    app.MapStackRoutes(registry);
 }
 
 static bool IsAuthorized(AgentConfig cfg, HttpRequest req) {

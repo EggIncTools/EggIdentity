@@ -8,12 +8,16 @@ using EggIdentity;
 using EggIdentity.Auth;
 using EggIdentity.Bot;
 using EggIdentity.Client;
+using EggIdentity.Config;
 using EggIdentity.Contract;
 using EggIdentity.Db;
 using EggIdentity.Fallback;
 using EggIdentity.Host;
 using EggIdentity.Host.Components;
 using EggIdentity.Models;
+using EggIdentity.Settings;
+using EggIdentity.Settings.AdminUi;
+using EggIdentity.Settings.Store;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
@@ -41,6 +45,8 @@ var sponsorConfig = SponsorConfig.FromEnvironment();
 var sponsorEnabled = sponsorConfig is not null && sessionOptions is not null;
 
 var botConfigFilePath = Environment.GetEnvironmentVariable("EGGIDENTITY_BOT_CONFIG_FILE") ?? "/etc/eggidentity/bot.env";
+var sharedFileValues = BotConfigLoader.ParseFile(botConfigFilePath);
+Func<string, string?> sharedConfigLookup = key => sharedFileValues.GetValueOrDefault(key);
 var botEnabled = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISCORD_TOKEN"));
 var adminEnabled = botEnabled && loginWidgetEnabled && sessionOptions is not null;
 
@@ -83,7 +89,23 @@ if (botEnabled) {
     builder.Services.AddScoped(sp => sp.GetRequiredService<BotHostedService>().Bot?.ConfigService!);
 }
 
+var settingsRegistry = new SettingsRegistry([HostSettings.Provider, SessionSettings.Provider]);
+var settingsStore = new SettingsStore(dataSource, SecretProtector.FromEnvironment());
+var settingsCache = new SettingsCache(settingsRegistry, settingsStore, sharedConfigLookup);
+builder.Services.AddSingleton(settingsRegistry);
+builder.Services.AddSingleton(settingsStore);
+builder.Services.AddSingleton(settingsCache);
+builder.Services.AddSingleton(new SettingsAdminService(settingsRegistry, settingsStore, settingsCache));
+
 if (adminEnabled) {
+    var agentUrl = Environment.GetEnvironmentVariable("DEPLOY_AGENT_URL");
+    if (!string.IsNullOrEmpty(agentUrl)) {
+        builder.Services.AddSingleton(sp => new AgentStackClient(
+            sp.GetRequiredService<IHttpClientFactory>(), sessionOptions!, agentUrl, "eggidentity"));
+        builder.Services.AddSingleton<IStackEnvSource>(sp => sp.GetRequiredService<AgentStackClient>());
+        builder.Services.AddSingleton<IRestartTrigger>(sp => sp.GetRequiredService<AgentStackClient>());
+    }
+
     builder.Services.AddHttpClient<IdentityApiClient>(c => {
         c.BaseAddress = new Uri($"http://localhost:{port}");
         c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiSecret);
@@ -107,6 +129,9 @@ app.UseEggIdentityFallback();
 
 await using (var conn = await dataSource.OpenConnectionAsync())
     await Migrator.MigrateAsync(conn, Path.Combine(AppContext.BaseDirectory, "Migrations"));
+
+await settingsStore.MigrateAsync();
+_ = new SettingsChangeListener(dataSource, settingsCache).RunAsync(app.Lifetime.ApplicationStopping);
 
 var sweeper = new ExpiredRowSweeper(dataSource, TimeSpan.FromMinutes(sweepIntervalMinutes));
 _ = sweeper.RunAsync(app.Lifetime.ApplicationStopping);

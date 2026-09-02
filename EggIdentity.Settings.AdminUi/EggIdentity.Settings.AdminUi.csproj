@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <Description>Shared Blazor admin settings panel for EggIdentity: descriptor-driven rows, value provenance, apply-tier badges and env drift.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EggIdentity.Settings.Store\EggIdentity.Settings.Store.csproj" />
+  </ItemGroup>
+
+</Project>

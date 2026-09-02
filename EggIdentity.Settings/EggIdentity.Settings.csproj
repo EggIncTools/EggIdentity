@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Description>Declarative settings model for eggidentity: setting descriptors, composable providers, a cross-assembly registry, DB over file over env over default resolution, validation and env drift detection. No storage, no dependencies.</Description>
+  </PropertyGroup>
+
+</Project>

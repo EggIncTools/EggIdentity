@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Description>Postgres-backed storage for eggidentity settings: app_settings table with embedded migrations, AES-GCM encrypted secrets, TTL cache with LISTEN/NOTIFY invalidation and the admin save path.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EggIdentity.Db\EggIdentity.Db.csproj" />
+    <ProjectReference Include="..\EggIdentity.Settings\EggIdentity.Settings.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\*.up.sql" />
+  </ItemGroup>
+
+</Project>

@@ -8,6 +8,8 @@
 
 @if (_isAdmin) {
     <MessageConfigEditor/>
+    <h2>Settings</h2>
+    <SettingsPanel UpdatedBy="@_userId"/>
 } else if (_checked) {
     <p>Admin access required. <a href="@_loginUrl">Log in</a></p>
 }
@@ -17,6 +19,7 @@
     private bool _isAdmin;
     private bool _checked;
     private string _loginUrl = "";
+    private string? _userId;
 
     protected override async Task OnInitializedAsync() {
         var returnUrl = Uri.EscapeDataString(Nav.ToAbsoluteUri("/admin").ToString());
@@ -25,6 +28,7 @@
         if (AuthStateTask is not null) {
             var state = await AuthStateTask;
             _isAdmin = state.User.IsAtLeast(UserRole.Admin);
+            _userId = state.User.FindFirst("sub")?.Value;
         }
 
         _checked = true;

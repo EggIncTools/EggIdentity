@@ -13,6 +13,9 @@ public sealed record BotConfigValues(
     string? DashboardChannelId);
 
 public static class BotConfigLoader {
+    public static IReadOnlyDictionary<string, string> ParseFile(string path) =>
+        File.Exists(path) ? ParseDotenv(File.ReadAllText(path)) : [];
+
     public static BotConfigValues Load(string path, Func<string, string?> envFallback) {
         var raw = File.Exists(path) ? ParseDotenv(File.ReadAllText(path)) : [];
 

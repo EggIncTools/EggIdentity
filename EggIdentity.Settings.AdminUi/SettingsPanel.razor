@@ -1,0 +1,244 @@
+@rendermode @(RenderMode.InteractiveServer)
+@inject IServiceProvider Services
+@using EggIdentity.Settings.AdminUi
+
+<section class="sks">
+    @if (_admin is null) {
+        <p class="sks-muted">Settings service not configured (register a SettingsAdminService).</p>
+    } else if (_rows is null) {
+        <p class="sks-muted">Loading…</p>
+    } else {
+        @if (_admin.HasPendingRestart) {
+            <div class="sks-banner">
+                <span>@_admin.PendingRestartKeys.Count change(s) need a restart to take effect.</span>
+                @if (_restart is not null) {
+                    <button class="sks-btn" disabled="@_busy" @onclick="RestartAsync">Restart</button>
+                }
+            </div>
+        }
+
+        <div class="sks-toolbar">
+            <input class="sks-search" placeholder="Search settings" value="@_query"
+                   @oninput="e => _query = e.Value?.ToString() ?? string.Empty"/>
+            <select class="sks-select" value="@_category"
+                    @onchange="e => _category = e.Value?.ToString() ?? AllCategories">
+                <option value="@AllCategories">All categories</option>
+                @foreach (var c in Categories) {
+                    <option value="@c">@c</option>
+                }
+            </select>
+            <span class="sks-spacer"></span>
+            <button class="sks-btn" disabled="@_busy" @onclick="LoadAsync">Refresh</button>
+        </div>
+
+        @if (_error is not null) {
+            <p class="sks-error">@_error</p>
+        }
+        @if (_saved is not null) {
+            <p class="sks-ok">@_saved</p>
+        }
+
+        <table class="sks-table">
+            <thead>
+            <tr>
+                <th>Setting</th>
+                <th>Value</th>
+                <th>Source</th>
+                <th>Apply</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var row in Visible) {
+                <tr class="@(row.PendingRestart ? "sks-dirty" : null)">
+                    <td>
+                        <div class="sks-label">@row.Descriptor.Label</div>
+                        <div class="sks-key">@row.Descriptor.EnvKey</div>
+                        @if (row.Descriptor.Description is not null) {
+                            <div class="sks-desc">@row.Descriptor.Description</div>
+                        }
+                    </td>
+                    <td>
+                        @if (IsEditable(row)) {
+                            @if (row.Descriptor.Kind == SettingKind.Bool) {
+                                <select class="sks-input" value="@Draft(row)"
+                                        @onchange="e => SetDraft(row, e.Value?.ToString())">
+                                    <option value="true">true</option>
+                                    <option value="false">false</option>
+                                </select>
+                            } else if (row.Descriptor.Kind == SettingKind.Enum) {
+                                <select class="sks-input" value="@Draft(row)"
+                                        @onchange="e => SetDraft(row, e.Value?.ToString())">
+                                    @foreach (var option in row.Descriptor.EnumValues) {
+                                        <option value="@option">@option</option>
+                                    }
+                                </select>
+                            } else {
+                                <input class="sks-input" type="@InputType(row)"
+                                       placeholder="@Placeholder(row)" value="@Draft(row)"
+                                       @oninput="e => SetDraft(row, e.Value?.ToString())"/>
+                            }
+                        } else {
+                            <span class="sks-readonly">@(row.Display ?? "not set")</span>
+                        }
+                    </td>
+                    <td><span class="sks-badge sks-src-@row.Source.ToString().ToLowerInvariant()">@row.Source</span></td>
+                    <td><span class="sks-badge sks-tier-@row.Descriptor.Tier.ToString().ToLowerInvariant()">@TierLabel(row.Descriptor.Tier)</span></td>
+                    <td>
+                        @if (IsEditable(row)) {
+                            <button class="sks-btn" disabled="@_busy" @onclick="() => SaveAsync(row)">Save</button>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+
+        @if (_drift is not null) {
+            <h3 class="sks-h">Environment drift</h3>
+            @if (_drift.IsClean) {
+                <p class="sks-ok">No drift. Every stack key is read and every required key is set.</p>
+            } else {
+                @if (_drift.SetButUnread.Count > 0) {
+                    <p class="sks-warn">Set in the stack, read by nothing:</p>
+                    <ul class="sks-list">
+                        @foreach (var k in _drift.SetButUnread) {
+                            <li>@k</li>
+                        }
+                    </ul>
+                }
+                @if (_drift.ReadButUnset.Count > 0) {
+                    <p class="sks-warn">Required by code, missing from the stack:</p>
+                    <ul class="sks-list">
+                        @foreach (var k in _drift.ReadButUnset) {
+                            <li>@k</li>
+                        }
+                    </ul>
+                }
+            }
+        }
+    }
+</section>
+
+@code {
+    private const string AllCategories = "*";
+
+    private SettingsAdminService? _admin;
+    private IStackEnvSource? _stack;
+    private IRestartTrigger? _restart;
+
+    private IReadOnlyList<SettingRow>? _rows;
+    private DriftReport? _drift;
+    private readonly Dictionary<string, string?> _drafts = new(StringComparer.Ordinal);
+
+    private string _query = string.Empty;
+    private string _category = AllCategories;
+    private string? _error;
+    private string? _saved;
+    private bool _busy;
+
+    [Parameter] public string? UpdatedBy { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        _admin = Services.GetService<SettingsAdminService>();
+        _stack = Services.GetService<IStackEnvSource>();
+        _restart = Services.GetService<IRestartTrigger>();
+        if (_admin is not null) await LoadAsync();
+    }
+
+    private IEnumerable<string> Categories =>
+        _rows is null ? [] : _rows.Select(r => r.Descriptor.Category).Distinct().Order(StringComparer.Ordinal);
+
+    private IEnumerable<SettingRow> Visible {
+        get {
+            if (_rows is null) return [];
+            var rows = _rows.AsEnumerable();
+            if (!string.Equals(_category, AllCategories, StringComparison.Ordinal))
+                rows = rows.Where(r => string.Equals(r.Descriptor.Category, _category, StringComparison.Ordinal));
+            if (!string.IsNullOrWhiteSpace(_query)) {
+                var q = _query.Trim();
+                rows = rows.Where(r =>
+                    r.Descriptor.Label.Contains(q, StringComparison.OrdinalIgnoreCase)
+                    || r.Descriptor.Key.Contains(q, StringComparison.OrdinalIgnoreCase)
+                    || r.Descriptor.EnvKey.Contains(q, StringComparison.OrdinalIgnoreCase));
+            }
+            return rows;
+        }
+    }
+
+    private async Task LoadAsync() {
+        if (_admin is null) return;
+        _busy = true;
+        _error = null;
+        try {
+            _rows = await _admin.GetRowsAsync(CancellationToken.None);
+            _drafts.Clear();
+            if (_stack is not null) {
+                var keys = await _stack.GetStackKeysAsync(CancellationToken.None);
+                _drift = _admin.Drift(keys);
+            }
+        } catch (InvalidOperationException e) {
+            _error = e.Message;
+        } finally {
+            _busy = false;
+        }
+    }
+
+    private async Task SaveAsync(SettingRow row) {
+        if (_admin is null) return;
+        _busy = true;
+        _error = null;
+        _saved = null;
+        try {
+            var value = _drafts.GetValueOrDefault(row.Descriptor.Key);
+            var result = await _admin.SaveAsync(row.Descriptor.Key, value, UpdatedBy, CancellationToken.None);
+            if (!result.Ok) {
+                _error = result.Error;
+            } else {
+                _saved = result.RestartRequired
+                    ? $"{row.Descriptor.Label} saved. A restart is needed for it to take effect."
+                    : $"{row.Descriptor.Label} saved.";
+                await LoadAsync();
+            }
+        } finally {
+            _busy = false;
+        }
+    }
+
+    private async Task RestartAsync() {
+        if (_restart is null || _admin is null) return;
+        _busy = true;
+        _error = null;
+        try {
+            var failure = await _restart.RestartAsync(CancellationToken.None);
+            if (failure is not null) {
+                _error = failure;
+            } else {
+                _admin.ClearPendingRestart();
+                _saved = "Restart requested.";
+            }
+        } finally {
+            _busy = false;
+        }
+    }
+
+    private static bool IsEditable(SettingRow row) =>
+        row.Descriptor.Kind != SettingKind.ReadOnly
+        && (row.Descriptor.Tier != ApplyTier.Bootstrap || row.Descriptor.AllowBootstrapEdit);
+
+    private string? Draft(SettingRow row) =>
+        _drafts.TryGetValue(row.Descriptor.Key, out var v) ? v : (row.Descriptor.IsSecret ? null : row.Display);
+
+    private void SetDraft(SettingRow row, string? value) => _drafts[row.Descriptor.Key] = value;
+
+    private static string InputType(SettingRow row) => row.Descriptor.IsSecret ? "password" : "text";
+
+    private static string? Placeholder(SettingRow row) =>
+        row.Descriptor.IsSecret && row.Source != SettingSource.Default ? "set, leave blank to keep" : row.Descriptor.Default;
+
+    private static string TierLabel(ApplyTier tier) => tier switch {
+        ApplyTier.Live => "live",
+        ApplyTier.RestartRequired => "restart",
+        _ => "bootstrap",
+    };
+}

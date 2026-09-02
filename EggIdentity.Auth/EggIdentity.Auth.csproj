@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EggIdentity.Client\EggIdentity.Client.csproj" />
+    <ProjectReference Include="..\EggIdentity.Settings\EggIdentity.Settings.csproj" />
   </ItemGroup>
 
 </Project>

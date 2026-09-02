@@ -27,6 +27,11 @@
   <Project Path="EggIdentity.Metrics/EggIdentity.Metrics.csproj" />
   <Project Path="EggIdentity.Metrics/Tests/EggIdentity.Metrics.Tests.csproj" />
   <Project Path="EggIdentity.Metrics.AdminUi/EggIdentity.Metrics.AdminUi.csproj" />
+  <Project Path="EggIdentity.Settings/EggIdentity.Settings.csproj" />
+  <Project Path="EggIdentity.Settings/Tests/EggIdentity.Settings.Tests.csproj" />
+  <Project Path="EggIdentity.Settings.AdminUi/EggIdentity.Settings.AdminUi.csproj" />
+  <Project Path="EggIdentity.Settings.Store/EggIdentity.Settings.Store.csproj" />
+  <Project Path="EggIdentity.Settings.Store/Tests/EggIdentity.Settings.Store.Tests.csproj" />
   <Project Path="EggIdentity.Styles/EggIdentity.Styles.csproj" />
   <Project Path="EggIdentity.Styles/Tests/EggIdentity.Styles.Tests.csproj" />
   <Project Path="EggIdentity.StyleVerify/EggIdentity.StyleVerify.csproj" />

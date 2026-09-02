@@ -24,6 +24,9 @@
     <ProjectReference Include="..\EggIdentity.Config\EggIdentity.Config.csproj" />
     <ProjectReference Include="..\EggIdentity.Fallback\EggIdentity.Fallback.csproj" />
     <ProjectReference Include="..\EggIdentity.Bot.AdminUi\EggIdentity.Bot.AdminUi.csproj" />
+    <ProjectReference Include="..\EggIdentity.Settings\EggIdentity.Settings.csproj" />
+    <ProjectReference Include="..\EggIdentity.Settings.Store\EggIdentity.Settings.Store.csproj" />
+    <ProjectReference Include="..\EggIdentity.Settings.AdminUi\EggIdentity.Settings.AdminUi.csproj" />
   </ItemGroup>
 
   <ItemGroup>
