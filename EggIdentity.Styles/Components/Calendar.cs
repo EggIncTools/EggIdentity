@@ -6,7 +6,7 @@ internal static class Calendar {
     internal static readonly ImmutableDictionary<string, string> Applies = new Dictionary<string, string> {
         { ".cal-viewport", "relative flex-1 min-h-[20rem] overflow-hidden [overscroll-behavior:contain] [touch-action:none] border-t border-border" },
         { ".cal-strip", "absolute inset-x-0 [top:var(--strip-top,-100%)] [height:var(--strip-h,300%)] flex flex-col" },
-        { ".cal-period", "[height:var(--strip-slot-h,calc(100%/3))] shrink-0 flex flex-col" },
+        { ".cal-period", "[height:var(--strip-slot-h,calc(100%/3))] shrink-0 flex flex-col [transition:opacity_.18s_ease-out]" },
         { ".cal-canvas", "flex flex-col flex-1 min-h-0 overflow-y-auto border-b border-border" },
         { ".cal-row", "relative flex-1 min-h-0 overflow-hidden border-b border-border [transition:opacity_.18s_ease-out] flex flex-col" },
         { ".cal-row.cal-row-fixed", "grow shrink-0 [flex-basis:var(--row-h,3.05rem)] [min-height:var(--row-h,3.05rem)]" },

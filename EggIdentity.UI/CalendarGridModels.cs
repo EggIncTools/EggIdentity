@@ -13,6 +13,6 @@ public sealed record CalendarRow<TItem>(
     double? NowLinePosition,
     IReadOnlyList<CalendarLaneGroupRow<TItem>> LaneGroups);
 
-public sealed record PeriodSlot<TItem>(IReadOnlyList<CalendarRow<TItem>> Rows);
+public sealed record PeriodSlot<TItem>(IReadOnlyList<CalendarRow<TItem>> Rows, object? Key = null);
 
 public sealed record LaneGroupDef<TItem>(RenderFragment<TItem> ItemTemplate, double LaneMinRem, double LaneGapRem, double HeaderRem);

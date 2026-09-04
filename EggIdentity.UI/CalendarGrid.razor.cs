@@ -7,6 +7,16 @@ public sealed partial class CalendarGrid<TItem> : IAsyncDisposable {
     private ElementReference _viewport;
     private DotNetObjectReference<CalendarGrid<TItem>>? _selfRef;
     private bool _initialized;
+    private bool _commitPending;
+    private int _commitGeneration;
+    private IReadOnlyList<PeriodSlot<TItem>>? _committedPeriods;
+
+    protected override void OnParametersSet() {
+        if (_commitPending && !ReferenceEquals(Periods, _committedPeriods)) {
+            _commitPending = false;
+            _commitGeneration++;
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (firstRender) {
@@ -18,6 +28,7 @@ public sealed partial class CalendarGrid<TItem> : IAsyncDisposable {
 
     public async Task ResetScrollAsync() {
         if (!_initialized) return;
+        _commitPending = false;
         try {
             await JS.InvokeVoidAsync("calendarGridReset", _viewport);
         } catch (JSDisconnectedException) {
@@ -26,6 +37,8 @@ public sealed partial class CalendarGrid<TItem> : IAsyncDisposable {
 
     [JSInvokable]
     public async Task CommitScrollPan(int direction) {
+        _commitPending = true;
+        _committedPeriods = Periods;
         await OnCommitScrollPan.InvokeAsync(direction);
     }
 

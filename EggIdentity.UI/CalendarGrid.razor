@@ -3,11 +3,11 @@
 @typeparam TItem
 
 <div class="cal-viewport" @ref="_viewport">
-    <div class="cal-strip">
+    <div class="cal-strip" data-commit="@_commitGeneration">
         @{ var centerIndex = Periods.Count / 2; }
         @for (var p = 0; p < Periods.Count; p++) {
             var period = Periods[p];
-            <div class="cal-period @(p == centerIndex ? "" : "cal-period-context")">
+            <div @key="period.Key ?? p" class="cal-period @(p == centerIndex ? "" : "cal-period-context")">
                 <div class="cal-canvas">
                     @{ var isFixed = period.Rows.Count > 1; }
                     @foreach (var row in period.Rows) {

@@ -9,6 +9,7 @@
   const SNAP_MS = 180;
   const REST_CLEAR_MS = 220;
   const IDLE_MS = 140;
+  const COMMIT_WATCHDOG_MS = 2500;
 
   function stripOf(viewport) {
     return viewport.querySelector(".cal-strip");
@@ -57,9 +58,18 @@
     if (state.idleTimer) clearTimeout(state.idleTimer);
     if (state.commitTimer) clearTimeout(state.commitTimer);
     if (state.restTimer) clearTimeout(state.restTimer);
+    if (state.watchdogTimer) clearTimeout(state.watchdogTimer);
     state.idleTimer = null;
     state.commitTimer = null;
     state.restTimer = null;
+    state.watchdogTimer = null;
+  }
+
+  function finishCommit(viewport, state) {
+    clearTimers(state);
+    state.offset = 0;
+    state.committing = false;
+    clearTransform(viewport);
   }
 
   function drag(viewport, state, delta) {
@@ -93,13 +103,17 @@
     state.commitTimer = setTimeout(() => {
       state.commitTimer = null;
       state.dotnet.invokeMethodAsync("CommitScrollPan", direction);
+      state.watchdogTimer = setTimeout(() => {
+        state.watchdogTimer = null;
+        if (state.committing) finishCommit(viewport, state);
+      }, COMMIT_WATCHDOG_MS);
     }, SNAP_MS);
   }
 
   function init(viewport, dotnet) {
     const state = {
       dotnet, offset: 0, committing: false,
-      idleTimer: null, commitTimer: null, restTimer: null, touchY: null
+      idleTimer: null, commitTimer: null, restTimer: null, watchdogTimer: null, touchY: null, observer: null
     };
     states.set(viewport, state);
 
@@ -144,15 +158,28 @@
     viewport.addEventListener("touchmove", state.onTouchMove, { passive: false });
     viewport.addEventListener("touchend", state.onTouchEnd);
     viewport.addEventListener("touchcancel", state.onTouchEnd);
+
+    const strip = stripOf(viewport);
+    if (strip) {
+      state.observer = new MutationObserver(() => {
+        if (state.committing) finishCommit(viewport, state);
+      });
+      state.observer.observe(strip, { attributes: true, attributeFilter: ["data-commit"] });
+    }
   }
 
   function reset(viewport) {
     const state = states.get(viewport);
     if (!state) return;
+    const wasCommitting = state.committing;
     clearTimers(state);
-    state.offset = 0;
     state.committing = false;
     state.touchY = null;
+    if (wasCommitting && state.offset !== 0) {
+      snapBack(viewport, state);
+      return;
+    }
+    state.offset = 0;
     clearTransform(viewport);
   }
 
@@ -160,6 +187,7 @@
     const state = states.get(viewport);
     if (!state) return;
     clearTimers(state);
+    if (state.observer) state.observer.disconnect();
     viewport.removeEventListener("wheel", state.onWheel);
     viewport.removeEventListener("touchstart", state.onTouchStart);
     viewport.removeEventListener("touchmove", state.onTouchMove);
