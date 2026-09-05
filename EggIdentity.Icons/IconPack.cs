@@ -24,7 +24,7 @@ public static class IconPack {
         ["filter"] = "funnel",
         ["swap"] = "arrow-left-right",
         ["refresh"] = "refresh-cw",
-        ["trash"] = "trash-2",
+        ["trash-2"] = "trash",
         ["chevronDown"] = "chevron-down",
         ["chevronUp"] = "chevron-up",
         ["chevronLeft"] = "chevron-left",
@@ -36,7 +36,6 @@ public static class IconPack {
         ["github"] = "brand-github",
         ["discord"] = "brand-discord",
         ["google"] = "brand-google",
-        ["microsoft"] = "brand-microsoft",
         ["postman"] = "send",
     }.ToFrozenDictionary(StringComparer.Ordinal);
 
