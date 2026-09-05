@@ -13,7 +13,7 @@ public sealed record SettingDescriptor(
     public string? Default { get; init; }
     public IReadOnlyList<string> EnumValues { get; init; } = [];
 
-    public bool Editable => Tier != ApplyTier.Bootstrap || AllowBootstrapEdit;
+    public bool Editable => Kind != SettingKind.External && (Tier != ApplyTier.Bootstrap || AllowBootstrapEdit);
 
     public bool AllowBootstrapEdit { get; init; }
 

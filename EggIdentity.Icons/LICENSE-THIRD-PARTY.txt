@@ -1,0 +1,4 @@
+Lucide icons: ISC license, portions derived from Feather under MIT. See licenses/lucide/LICENSE.
+Simple Icons: CC0 1.0 Universal. Brand trademarks remain the property of their respective owners. See licenses/simple-icons/LICENSE.
+Vendored license texts: Vendor/lucide/LICENSE and Vendor/simple-icons/LICENSE in the source tree.
+EggIdentity.Icons code itself: MIT, same as the rest of EggIdentity.

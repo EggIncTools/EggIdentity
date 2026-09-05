@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <Description>Shared Blazor admin settings panel for EggIdentity: descriptor-driven rows, value provenance, apply-tier badges and env drift.</Description>
+    <Description>Shared Blazor admin settings workbench for EggIdentity: category rail, descriptor-driven controls, value provenance, collection editor, batch save and env drift.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EggIdentity.Settings.Store\EggIdentity.Settings.Store.csproj" />
+    <ProjectReference Include="..\EggIdentity.UI\EggIdentity.UI.csproj" />
   </ItemGroup>
 
 </Project>

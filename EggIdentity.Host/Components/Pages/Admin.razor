@@ -1,25 +1,64 @@
 @page "/admin"
 @using EggIdentity.Auth
 @using EggIdentity.Contract
+@using EggIdentity.Deploy
 @inject NavigationManager Nav
+@inject IServiceProvider Services
+@implements IDisposable
 @rendermode @(RenderMode.InteractiveServer)
 
 <PageTitle>EggIdentity admin</PageTitle>
 
 @if (_isAdmin) {
-    <MessageConfigEditor/>
-    <h2>Settings</h2>
-    <SettingsPanel UpdatedBy="@_userId"/>
+    <div class="adm-page">
+        <ToastHost/>
+        <div class="adm">
+            <WorkbenchRail Class="adm-rail" Width="11rem">
+                <WorkbenchSection Label="Admin">
+                    @if (_fleetAvailable) {
+                        <WorkbenchEntry Selected="@(_pane == Pane.Fleet)" OnClick="@(() => Select(Pane.Fleet))">
+                            <Name>Fleet</Name>
+                        </WorkbenchEntry>
+                    }
+                    <WorkbenchEntry Selected="@(_pane == Pane.Bot)" OnClick="@(() => Select(Pane.Bot))">
+                        <Name>Bot</Name>
+                    </WorkbenchEntry>
+                    <WorkbenchEntry Selected="@(_pane == Pane.Settings)" OnClick="@(() => Select(Pane.Settings))">
+                        <Name>Settings</Name>
+                    </WorkbenchEntry>
+                </WorkbenchSection>
+            </WorkbenchRail>
+            <section class="adm-main">
+                @if (_pane == Pane.Fleet) {
+                    <FleetPane OnOpenDeployApps="OpenDeployApps"/>
+                } else if (_pane == Pane.Bot) {
+                    <MessageConfigEditor/>
+                } else {
+                    <SettingsPanel UpdatedBy="@_userId" InitialSelection="@_settingsSelection"/>
+                }
+            </section>
+        </div>
+    </div>
 } else if (_checked) {
     <p>Admin access required. <a href="@_loginUrl">Log in</a></p>
 }
 
 @code {
+    private enum Pane {
+        Fleet,
+        Bot,
+        Settings,
+    }
+
     [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
     private bool _isAdmin;
     private bool _checked;
+    private bool _fleetAvailable;
     private string _loginUrl = "";
     private string? _userId;
+    private string? _settingsSelection;
+    private Pane _pane = Pane.Bot;
+    private DeployToastBridge? _bridge;
 
     protected override async Task OnInitializedAsync() {
         var returnUrl = Uri.EscapeDataString(Nav.ToAbsoluteUri("/admin").ToString());
@@ -32,6 +71,27 @@
         }
 
         _checked = true;
+        if (_isAdmin) StartDeployBridge();
     }
+
+    private void StartDeployBridge() {
+        _fleetAvailable = Services.GetService<DeployOptions>() is not null;
+        if (!_fleetAvailable) return;
+        _pane = Pane.Fleet;
+        _bridge = Services.GetService<DeployToastBridge>();
+        _bridge?.Start();
+    }
+
+    private void Select(Pane pane) {
+        _pane = pane;
+        _settingsSelection = null;
+    }
+
+    private void OpenDeployApps() {
+        _settingsSelection = DeployApps.Key;
+        _pane = Pane.Settings;
+    }
+
+    public void Dispose() => _bridge?.Dispose();
 
 }

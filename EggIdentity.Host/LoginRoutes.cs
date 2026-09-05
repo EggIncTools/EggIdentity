@@ -14,22 +14,28 @@ internal static class LoginRoutes {
 
     public static void Map(WebApplication app, HostConfig config, SponsorSyncService? sponsorSync) {
         var routes = app.MapGroup("/auth");
+        var apps = app.Services.GetService<AppAuthConfigs>();
 
-        routes.MapGet("/sources", (HttpContext ctx) => Sources(ctx, config));
+        Func<HttpContext, Task<IResult>> sources = ctx => Sources(ctx, config, apps);
+        routes.MapGet("/sources", sources);
         routes.MapGet("/icons/{provider}", (HttpContext ctx, string provider, IconCache icons) => Icon(ctx, provider, icons, config));
-        routes.MapGet("/go/{provider}", (HttpContext ctx, string provider, OAuthStateStore states) => Go(ctx, provider, states, config));
+        routes.MapGet("/go/{provider}", (HttpContext ctx, string provider, OAuthStateStore states) => Go(ctx, provider, states, config, apps));
         routes.MapGet("/callback", (HttpContext ctx, OAuthStateStore states, IdentityResolver resolver, LoginCodeStore codes, UserQueries users) =>
-            Callback(ctx, states, resolver, codes, users, config, sponsorSync));
+            Callback(ctx, states, resolver, codes, users, config, apps, sponsorSync));
         routes.MapPost("/backchannel-logout", (HttpContext ctx, RevocationStore revocations) => BackchannelLogout(ctx, revocations, config));
 
-        Func<HttpContext, Task<IResult>> logout = ctx => Logout(ctx, config);
+        Func<HttpContext, Task<IResult>> logout = ctx => Logout(ctx, config, apps);
         routes.MapGet("/logout", logout);
     }
 
-    private static IResult Sources(HttpContext ctx, HostConfig config) {
+    internal static async Task<Dictionary<string, AppAuthConfig>> AppsAsync(AppAuthConfigs? apps, CancellationToken ct) =>
+        apps is null ? [] : await apps.GetAsync(ct);
+
+    private static async Task<IResult> Sources(HttpContext ctx, HostConfig config, AppAuthConfigs? apps) {
         if (!config.LoginWidgetEnabled) return Results.NotFound();
         var returnUrl = ctx.Request.Query["returnUrl"].ToString();
-        if (Program.ResolveApp(returnUrl, config.AppConfigs) is null) return Results.BadRequest("returnUrl not allowed");
+        var appConfigs = await AppsAsync(apps, ctx.RequestAborted);
+        if (Program.ResolveApp(returnUrl, appConfigs) is null) return Results.BadRequest("returnUrl not allowed");
 
         var mode = Program.ValidateMode(ctx.Request.Query["mode"].ToString());
         var sources = Program.KnownProviders.Select(provider => new LoginSourceResponse {
@@ -52,10 +58,10 @@ internal static class LoginRoutes {
         return Results.Bytes(icon.Bytes, icon.ContentType);
     }
 
-    private static async Task<IResult> Go(HttpContext ctx, string provider, OAuthStateStore states, HostConfig config) {
+    private static async Task<IResult> Go(HttpContext ctx, string provider, OAuthStateStore states, HostConfig config, AppAuthConfigs? apps) {
         if (!config.LoginWidgetEnabled) return Results.NotFound();
         var returnUrl = ctx.Request.Query["returnUrl"].ToString();
-        var appConfig = Program.ResolveApp(returnUrl, config.AppConfigs);
+        var appConfig = Program.ResolveApp(returnUrl, await AppsAsync(apps, ctx.RequestAborted));
         if (appConfig is null) return Results.BadRequest("returnUrl not allowed");
 
         var isLocal = provider == "local";
@@ -74,7 +80,7 @@ internal static class LoginRoutes {
 
     private static async Task<IResult> Callback(
         HttpContext ctx, OAuthStateStore states, IdentityResolver resolver, LoginCodeStore codes, UserQueries users,
-        HostConfig config, SponsorSyncService? sponsorSync) {
+        HostConfig config, AppAuthConfigs? apps, SponsorSyncService? sponsorSync) {
         if (!config.LoginWidgetEnabled) return Results.NotFound();
         var code = ctx.Request.Query["code"].ToString();
         var state = ctx.Request.Query["state"].ToString();
@@ -85,7 +91,7 @@ internal static class LoginRoutes {
         if (saved is null)
             return Results.BadRequest("unknown or expired state");
 
-        var appConfig = Program.ResolveApp(saved.ReturnUrl, config.AppConfigs);
+        var appConfig = Program.ResolveApp(saved.ReturnUrl, await AppsAsync(apps, ctx.RequestAborted));
         if (appConfig is null)
             return Results.BadRequest("returnUrl not allowed");
 
@@ -243,9 +249,10 @@ internal static class LoginRoutes {
         return Results.Ok();
     }
 
-    private static async Task<IResult> Logout(HttpContext ctx, HostConfig config) {
+    private static async Task<IResult> Logout(HttpContext ctx, HostConfig config, AppAuthConfigs? apps) {
         var returnUrlRaw = ctx.Request.Query["returnUrl"].ToString();
-        var returnUrl = Program.ResolveApp(returnUrlRaw, config.AppConfigs) is not null ? returnUrlRaw : null;
+        var appConfigs = await AppsAsync(apps, ctx.RequestAborted);
+        var returnUrl = Program.ResolveApp(returnUrlRaw, appConfigs) is not null ? returnUrlRaw : null;
 
         var idTokenHint = ctx.Request.Cookies.TryGetValue(Program.IdHintCookie, out var hint) ? hint : null;
 

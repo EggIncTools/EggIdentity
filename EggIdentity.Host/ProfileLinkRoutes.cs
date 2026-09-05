@@ -8,16 +8,18 @@ internal static class ProfileLinkRoutes {
     public static void Map(WebApplication app, HostConfig config) {
         var sessionOptions = config.SessionOptions!;
         var revocations = app.Services.GetRequiredService<RevocationStore>();
+        var apps = app.Services.GetService<AppAuthConfigs>();
 
         ProfileRoutes.Map(app, sessionOptions, config.AvatarStorageDir!, revocations,
             app.Services.GetRequiredService<ProfileService>(),
             app.Services.GetRequiredService<UserQueries>());
 
+        var deps = new LinkDeps(apps, sessionOptions, revocations);
         app.MapGet("/profile/link/{provider}/start", (HttpContext ctx, string provider, OAuthStateStore states) =>
-            StartLink(ctx, provider, states, config, sessionOptions, revocations));
+            StartLink(ctx, provider, states, deps));
 
         app.MapGet("/auth/relink/{provider}", (HttpContext ctx, string provider, OAuthStateStore states) =>
-            Relink(ctx, provider, states, config, sessionOptions, revocations));
+            Relink(ctx, provider, states, deps));
 
         app.MapGet("/auth/relink/continue", (HttpContext ctx) => {
             var target = ctx.Request.Query["state"].ToString();
@@ -27,17 +29,13 @@ internal static class ProfileLinkRoutes {
         });
     }
 
-    private static async Task<IResult> StartLink(
-        HttpContext ctx, string provider, OAuthStateStore states, HostConfig config,
-        SessionCookieOptions sessionOptions, RevocationStore revocations) {
-        var prepared = await PrepareLinkAsync(ctx, provider, states, config, sessionOptions, revocations);
+    private static async Task<IResult> StartLink(HttpContext ctx, string provider, OAuthStateStore states, LinkDeps deps) {
+        var prepared = await PrepareLinkAsync(ctx, provider, states, deps);
         return prepared.Failure ?? Results.Redirect(prepared.FlowUrl!);
     }
 
-    private static async Task<IResult> Relink(
-        HttpContext ctx, string provider, OAuthStateStore states, HostConfig config,
-        SessionCookieOptions sessionOptions, RevocationStore revocations) {
-        var prepared = await PrepareLinkAsync(ctx, provider, states, config, sessionOptions, revocations);
+    private static async Task<IResult> Relink(HttpContext ctx, string provider, OAuthStateStore states, LinkDeps deps) {
+        var prepared = await PrepareLinkAsync(ctx, provider, states, deps);
         if (prepared.Failure is not null) return prepared.Failure;
 
         var linkApp = prepared.App!;
@@ -64,14 +62,12 @@ internal static class ProfileLinkRoutes {
         return Results.Redirect(Program.BuildRelinkLogoutUrl(endSessionUrl, idTokenHint, continueUrl, flowUrl));
     }
 
-    private static async Task<PreparedLink> PrepareLinkAsync(
-        HttpContext ctx, string provider, OAuthStateStore states, HostConfig config,
-        SessionCookieOptions sessionOptions, RevocationStore revocations) {
-        var userId = await ProfileAuth.TryGetUserIdAsync(ctx, sessionOptions, revocations.IsRevokedAsync, ctx.RequestAborted);
+    private static async Task<PreparedLink> PrepareLinkAsync(HttpContext ctx, string provider, OAuthStateStore states, LinkDeps deps) {
+        var userId = await ProfileAuth.TryGetUserIdAsync(ctx, deps.SessionOptions, deps.Revocations.IsRevokedAsync, ctx.RequestAborted);
         if (userId is null) return new PreparedLink(Results.Unauthorized(), null, null);
 
         var returnUrl = ctx.Request.Query["returnUrl"].ToString();
-        var linkApp = Program.ResolveApp(returnUrl, config.AppConfigs);
+        var linkApp = Program.ResolveApp(returnUrl, await LoginRoutes.AppsAsync(deps.Apps, ctx.RequestAborted));
         if (linkApp is null) return new PreparedLink(Results.BadRequest("returnUrl not allowed"), null, null);
         if (!Program.KnownProviders.Contains(provider)) return new PreparedLink(Results.BadRequest("unknown provider"), null, null);
 
@@ -83,4 +79,6 @@ internal static class ProfileLinkRoutes {
     }
 
     private sealed record PreparedLink(IResult? Failure, AppAuthConfig? App, string? FlowUrl);
+
+    private sealed record LinkDeps(AppAuthConfigs? Apps, SessionCookieOptions SessionOptions, RevocationStore Revocations);
 }

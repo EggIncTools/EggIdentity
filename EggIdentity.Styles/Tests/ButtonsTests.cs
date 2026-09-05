@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using MonorailCss;
 using MonorailCss.Theme;
 
@@ -17,10 +18,10 @@ public class ButtonsTests {
             .Add("--color-err", "#e0685f")
             .Add("--color-border", "#3a3a44");
 
-    private static CssFramework BuildFramework() => new(new CssFrameworkSettings {
+    private static CssFramework BuildFramework(ImmutableDictionary<string, string>? applies = null) => new(new CssFrameworkSettings {
         Theme = BuildTheme(),
         IncludePreflight = false,
-        Applies = Components.Buttons.Applies,
+        Applies = applies ?? Components.Buttons.Applies,
     });
 
     [Fact]
@@ -37,7 +38,7 @@ public class ButtonsTests {
 
     [Fact]
     public void IconBtn_AloneAndWithActive_ProducesSelectorsWithAccentColor() {
-        var css = BuildFramework().Process("icon-btn icon-btn active");
+        var css = BuildFramework(Components.Icons.Applies).Process("icon-btn icon-btn active");
         var flat = css.Replace(" ", "").Replace("\n", "");
 
         Assert.Contains(".icon-btn{", flat);

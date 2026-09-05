@@ -17,6 +17,8 @@ jobs:
       pack-targets: |
         EggIdentity.Contract/EggIdentity.Contract.csproj
         EggIdentity.Db/EggIdentity.Db.csproj
+        EggIdentity.Deploy/EggIdentity.Deploy.csproj
+        EggIdentity.Deploy.AdminUi/EggIdentity.Deploy.AdminUi.csproj
         EggIdentity.Auth/EggIdentity.Auth.csproj
         EggIdentity.Bot/EggIdentity.Bot.csproj
         EggIdentity.Bot.AdminUi/EggIdentity.Bot.AdminUi.csproj
@@ -24,11 +26,13 @@ jobs:
         EggIdentity.Config/EggIdentity.Config.csproj
         EggIdentity.Fallback/EggIdentity.Fallback.csproj
         EggIdentity.Filtering/EggIdentity.Filtering.csproj
+        EggIdentity.Icons/EggIdentity.Icons.csproj
         EggIdentity/EggIdentity.csproj
         EggIdentity.Client/EggIdentity.Client.csproj
         EggIdentity.AdminUi/EggIdentity.AdminUi.csproj
         EggIdentity.Metrics/EggIdentity.Metrics.csproj
         EggIdentity.Metrics.AdminUi/EggIdentity.Metrics.AdminUi.csproj
+        EggIdentity.Resilience/EggIdentity.Resilience.csproj
         EggIdentity.Settings/EggIdentity.Settings.csproj
         EggIdentity.Settings.Store/EggIdentity.Settings.Store.csproj
         EggIdentity.Settings.AdminUi/EggIdentity.Settings.AdminUi.csproj
@@ -52,18 +56,26 @@ jobs:
       dockerfile: EggIdentity.Agent/Dockerfile
       cache-scope: agent
 
-  fast-deploy-identity:
-    uses: ./.github/workflows/fast-deploy-trigger.yml
+  notify-identity:
+    needs: docker-identity-host
+    uses: ./.github/workflows/notify-agent.yml
     with:
-      app: EggIdentity
+      app: eggidentity
       agent-url: https://eggidentity.davidarthurcole.me/agent
+      digest: ${{ needs.docker-identity-host.outputs.digest }}
+      revision: ${{ github.sha }}
+      version: ${{ github.ref_name }}
     secrets:
-      deploy-secret: ${{ secrets.IDENTITY_DEPLOY_SECRET }}
+      hook-secret: ${{ secrets.DEPLOY_HOOK_SECRET }}
 
-  fast-deploy-agent:
-    uses: ./.github/workflows/fast-deploy-trigger.yml
+  notify-agent:
+    needs: docker-agent
+    uses: ./.github/workflows/notify-agent.yml
     with:
       app: eggidentity-agent
       agent-url: https://eggidentity.davidarthurcole.me/agent
+      digest: ${{ needs.docker-agent.outputs.digest }}
+      revision: ${{ github.sha }}
+      version: ${{ github.ref_name }}
     secrets:
-      deploy-secret: ${{ secrets.AGENT_SELF_DEPLOY_SECRET }}
+      hook-secret: ${{ secrets.DEPLOY_HOOK_SECRET }}

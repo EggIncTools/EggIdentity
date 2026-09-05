@@ -5,9 +5,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Description>Generic host-side deploy agent: yaml pipeline, HTTP /deploy endpoint, watch loop. C# port of the Go eggidentity-agent, plus a Portainer stack-update step.</Description>
+    <Description>Host-side deploy agent: apps from the deploy.apps settings collection, registry manifest checks, CI push hook, Docker Engine API recreate over docker.sock, in-memory deploy event ring with SSE, status/check/deploy/restart routes, per-service env provenance, Portainer stack env authority.</Description>
     <RootNamespace>EggIdentity.Agent</RootNamespace>
-    <!-- An executable host, not a consumable library; keep it off the package feed. -->
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -19,9 +18,15 @@
     <ProjectReference Include="..\EggIdentity.Contract\EggIdentity.Contract.csproj" />
     <ProjectReference Include="..\EggIdentity.Auth\EggIdentity.Auth.csproj" />
     <ProjectReference Include="..\EggIdentity.Fallback\EggIdentity.Fallback.csproj" />
+    <ProjectReference Include="..\EggIdentity.Resilience\EggIdentity.Resilience.csproj" />
+    <ProjectReference Include="..\EggIdentity.Deploy\EggIdentity.Deploy.csproj" />
+    <ProjectReference Include="..\EggIdentity.Db\EggIdentity.Db.csproj" />
+    <ProjectReference Include="..\EggIdentity.Settings\EggIdentity.Settings.csproj" />
+    <ProjectReference Include="..\EggIdentity.Settings.Store\EggIdentity.Settings.Store.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Npgsql" />
     <PackageReference Include="YamlDotNet" />
   </ItemGroup>
 

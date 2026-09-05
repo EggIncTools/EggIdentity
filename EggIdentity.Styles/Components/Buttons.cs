@@ -20,9 +20,5 @@ internal static class Buttons {
 
         { ".btn-danger.btn-danger", "border-err text-err" },
         { ".btn-danger.btn-danger:hover", "bg-err text-bg border-err" },
-
-        { ".icon-btn", "bg-panel2 border border-border rounded text-fg cursor-pointer leading-none w-8 h-[30px] inline-flex items-center justify-center p-0 no-underline" },
-        { ".icon-btn:hover", "border-accent2" },
-        { ".icon-btn.active", "border-accent text-accent" },
     }.ToImmutableDictionary();
 }

@@ -1,30 +1,31 @@
-using EggIdentity.Agent;
-using EggIdentity.Contract;
-
 namespace EggIdentity.Agent.Tests;
 
 public class DeployHandlerTests {
     [Fact]
-    public void TryRun_NotInProgress_RunsDelegateAndReturnsRan() {
+    public void TryEnter_NotInProgress_EntersAndMarksBusy() {
         var handler = new DeployHandler();
-        var called = false;
-        var (res, ran) = handler.TryRun(() => { called = true; return new DeployResponse { Ok = true }; });
 
-        Assert.True(ran);
-        Assert.True(called);
-        Assert.True(res.Ok);
+        Assert.False(handler.InProgress);
+        Assert.True(handler.TryEnter());
+        Assert.True(handler.InProgress);
     }
 
     [Fact]
-    public void TryRun_AlreadyInProgress_DoesNotRunDelegate() {
+    public void TryEnter_AlreadyInProgress_Rejects() {
         var handler = new DeployHandler();
         Assert.True(handler.TryEnter());
 
-        var called = false;
-        var (res, ran) = handler.TryRun(() => { called = true; return new DeployResponse { Ok = true }; });
+        Assert.False(handler.TryEnter());
+    }
 
-        Assert.False(ran);
-        Assert.False(called);
-        Assert.False(res.Ok);
+    [Fact]
+    public void Exit_ReleasesGate() {
+        var handler = new DeployHandler();
+        Assert.True(handler.TryEnter());
+
+        handler.Exit();
+
+        Assert.False(handler.InProgress);
+        Assert.True(handler.TryEnter());
     }
 }

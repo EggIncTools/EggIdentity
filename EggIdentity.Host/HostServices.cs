@@ -1,10 +1,13 @@
 using System.Net.Http.Headers;
 using EggIdentity.Auth;
 using EggIdentity.Client;
+using EggIdentity.Deploy;
+using EggIdentity.Deploy.AdminUi;
 using EggIdentity.Fallback;
 using EggIdentity.Settings;
 using EggIdentity.Settings.AdminUi;
 using EggIdentity.Settings.Store;
+using EggIdentity.UI;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Npgsql;
@@ -59,6 +62,7 @@ internal static class HostServices {
 
         var authority = config.AuthentikAuthority!;
         builder.Services.AddSingleton(sp => new IconCache(sp.GetRequiredService<IHttpClientFactory>(), authority));
+        builder.Services.AddSingleton(sp => new AppAuthConfigs(sp.GetRequiredService<SettingsCache>(), authority, config.AuthentikAppsDir));
         builder.Services.AddSingleton(new ConfigurationManager<OpenIdConnectConfiguration>(
             $"{authority.TrimEnd('/')}/.well-known/openid-configuration",
             new OpenIdConnectConfigurationRetriever()));
@@ -74,7 +78,8 @@ internal static class HostServices {
 
     private static HostRuntime RegisterSettings(
         WebApplicationBuilder builder, HostConfig config, NpgsqlDataSource dataSource) {
-        var registry = new SettingsRegistry([HostSettings.Provider, SessionSettings.Provider]);
+        var registry = SettingsRegistry.Compose(
+            [HostSettings.Provider, SessionSettings.Provider], [DeployApps.Provider, AuthentikApps.Provider]);
         var store = new SettingsStore(dataSource, SecretProtector.FromEnvironment());
         var cache = new SettingsCache(registry, store, config.SharedFileLookup);
 
@@ -89,14 +94,6 @@ internal static class HostServices {
     private static void RegisterAdmin(WebApplicationBuilder builder, HostConfig config) {
         if (!config.AdminEnabled) return;
 
-        var agentUrl = Environment.GetEnvironmentVariable("DEPLOY_AGENT_URL");
-        if (!string.IsNullOrEmpty(agentUrl)) {
-            builder.Services.AddSingleton(sp => new AgentStackClient(
-                sp.GetRequiredService<IHttpClientFactory>(), config.SessionOptions!, agentUrl, "eggidentity"));
-            builder.Services.AddSingleton<IStackEnvSource>(sp => sp.GetRequiredService<AgentStackClient>());
-            builder.Services.AddSingleton<IRestartTrigger>(sp => sp.GetRequiredService<AgentStackClient>());
-        }
-
         builder.Services.AddHttpClient<IdentityApiClient>(c => {
             c.BaseAddress = new Uri($"http://localhost:{config.Port}");
             c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiSecret);
@@ -106,5 +103,12 @@ internal static class HostServices {
         builder.Services.AddAuthorization();
         builder.Services.AddCascadingAuthenticationState();
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+        builder.Services.AddEggIdentityToasts();
+        builder.Services.AddEggIdentityDeployToasts();
+
+        if (string.IsNullOrWhiteSpace(config.DeployAgentUrl)) return;
+        builder.Services.AddEggIdentityDeploy(
+            new DeployOptions(config.DeployAgentUrl, "eggidentity") { CallerName = "eggidentity-host" },
+            config.SessionOptions!);
     }
 }

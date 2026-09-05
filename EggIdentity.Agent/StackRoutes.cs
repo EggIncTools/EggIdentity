@@ -7,17 +7,16 @@ using Microsoft.Extensions.DependencyInjection;
 namespace EggIdentity.Agent;
 
 public static class StackRoutes {
-    public static void MapStackRoutes(this WebApplication app, AgentRegistry registry) {
+    private const string NotConfigured = "portainer is not configured";
+
+    public static void MapStackRoutes(this WebApplication app, PortainerConfig? portainer) {
         ArgumentNullException.ThrowIfNull(app);
-        ArgumentNullException.ThrowIfNull(registry);
 
         app.MapGet("/stack/env", async (HttpContext ctx, IHttpClientFactory factory) => {
             if (!ctx.User.IsAtLeast(UserRole.Admin)) return Results.Forbid();
+            if (portainer is null) return Results.Problem(NotConfigured, statusCode: 503);
 
-            var client = PortainerClient.FromEnvironment(factory.CreateClient());
-            if (client is null) return Results.Problem("portainer is not configured", statusCode: 503);
-
-            var result = await client.GetEnvAsync(ctx.RequestAborted);
+            var result = await portainer.CreateClient(factory.CreateClient()).GetEnvAsync(ctx.RequestAborted);
             if (!result.Ok) return Results.Problem(result.Error, statusCode: 502);
 
             return Results.Json(result.Entries
@@ -28,22 +27,22 @@ public static class StackRoutes {
         app.MapPatch("/stack/env", async (HttpContext ctx, IHttpClientFactory factory, Dictionary<string, string?> changes) => {
             if (!ctx.User.IsAtLeast(UserRole.Admin)) return Results.Forbid();
             if (changes is null || changes.Count == 0) return Results.BadRequest("no changes supplied");
+            if (portainer is null) return Results.Problem(NotConfigured, statusCode: 503);
 
-            var client = PortainerClient.FromEnvironment(factory.CreateClient());
-            if (client is null) return Results.Problem("portainer is not configured", statusCode: 503);
-
-            var result = await client.PatchEnvAsync(changes, ctx.RequestAborted);
+            var result = await portainer.CreateClient(factory.CreateClient()).PatchEnvAsync(changes, ctx.RequestAborted);
             if (!result.Ok) return Results.Problem(result.Error, statusCode: 502);
 
             return Results.Json(new { updated = changes.Count });
         });
 
-        app.MapPost("/restart/{appName}", async (string appName, HttpContext ctx) => {
+        app.MapPost("/stack/reconcile", async (HttpContext ctx, IHttpClientFactory factory) => {
             if (!ctx.User.IsAtLeast(UserRole.Admin)) return Results.Forbid();
-            if (!registry.Apps.ContainsKey(appName)) return Results.NotFound();
+            if (portainer is null) return Results.Problem(NotConfigured, statusCode: 503);
 
-            var failure = await DockerContainer.RestartAsync(appName, ctx.RequestAborted);
-            return failure is null ? Results.Ok() : Results.Problem(failure, statusCode: 502);
+            var result = await portainer.CreateClient(factory.CreateClient()).ReconcileAsync(ctx.RequestAborted);
+            if (!result.Ok) return Results.Problem(result.Error, statusCode: 502);
+
+            return Results.Json(new { reconciled = true, variables = result.Entries.Count });
         });
     }
 }

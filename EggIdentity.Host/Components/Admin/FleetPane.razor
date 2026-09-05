@@ -1,0 +1,24 @@
+<div class="fleet">
+    <div class="fleet-head">
+        <span class="@AgentCss">@AgentSummary</span>
+        <span class="fleet-tools">
+            <button type="button" class="btn-mini" disabled="@(_busy || _apps.Count == 0)" @onclick="CheckAllAsync">Check all</button>
+            <button type="button" class="btn-mini btn-danger" disabled="@_busy" @onclick="ReconcileAsync">@ReconcileLabel</button>
+        </span>
+    </div>
+
+    @if (!_loaded) {
+        <p class="wb-note">Loading...</p>
+    } else if (_apps.Count == 0) {
+        <div class="fleet-empty">
+            <p>No apps registered. Add rows to Deployed apps under Settings.</p>
+            <button type="button" class="btn-mini" @onclick="OnOpenDeployApps">Open Deployed apps</button>
+        </div>
+    } else {
+        <div class="fleet-grid">
+            @foreach (var app in _apps) {
+                <DeployPanel @key="app.Name" App="@app.Name" Compact="true"/>
+            }
+        </div>
+    }
+</div>

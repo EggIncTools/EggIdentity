@@ -1,244 +1,448 @@
 @rendermode @(RenderMode.InteractiveServer)
-@inject IServiceProvider Services
-@using EggIdentity.Settings.AdminUi
 
 <section class="sks">
     @if (_admin is null) {
-        <p class="sks-muted">Settings service not configured (register a SettingsAdminService).</p>
-    } else if (_rows is null) {
-        <p class="sks-muted">Loading…</p>
+        <p class="wb-note">Settings service not configured (register a SettingsAdminService).</p>
     } else {
-        @if (_admin.HasPendingRestart) {
-            <div class="sks-banner">
-                <span>@_admin.PendingRestartKeys.Count change(s) need a restart to take effect.</span>
-                @if (_restart is not null) {
-                    <button class="sks-btn" disabled="@_busy" @onclick="RestartAsync">Restart</button>
-                }
-            </div>
-        }
-
-        <div class="sks-toolbar">
-            <input class="sks-search" placeholder="Search settings" value="@_query"
-                   @oninput="e => _query = e.Value?.ToString() ?? string.Empty"/>
-            <select class="sks-select" value="@_category"
-                    @onchange="e => _category = e.Value?.ToString() ?? AllCategories">
-                <option value="@AllCategories">All categories</option>
-                @foreach (var c in Categories) {
-                    <option value="@c">@c</option>
-                }
-            </select>
-            <span class="sks-spacer"></span>
-            <button class="sks-btn" disabled="@_busy" @onclick="LoadAsync">Refresh</button>
-        </div>
-
-        @if (_error is not null) {
-            <p class="sks-error">@_error</p>
-        }
-        @if (_saved is not null) {
-            <p class="sks-ok">@_saved</p>
-        }
-
-        <table class="sks-table">
-            <thead>
-            <tr>
-                <th>Setting</th>
-                <th>Value</th>
-                <th>Source</th>
-                <th>Apply</th>
-                <th></th>
-            </tr>
-            </thead>
-            <tbody>
-            @foreach (var row in Visible) {
-                <tr class="@(row.PendingRestart ? "sks-dirty" : null)">
-                    <td>
-                        <div class="sks-label">@row.Descriptor.Label</div>
-                        <div class="sks-key">@row.Descriptor.EnvKey</div>
-                        @if (row.Descriptor.Description is not null) {
-                            <div class="sks-desc">@row.Descriptor.Description</div>
-                        }
-                    </td>
-                    <td>
-                        @if (IsEditable(row)) {
-                            @if (row.Descriptor.Kind == SettingKind.Bool) {
-                                <select class="sks-input" value="@Draft(row)"
-                                        @onchange="e => SetDraft(row, e.Value?.ToString())">
-                                    <option value="true">true</option>
-                                    <option value="false">false</option>
-                                </select>
-                            } else if (row.Descriptor.Kind == SettingKind.Enum) {
-                                <select class="sks-input" value="@Draft(row)"
-                                        @onchange="e => SetDraft(row, e.Value?.ToString())">
-                                    @foreach (var option in row.Descriptor.EnumValues) {
-                                        <option value="@option">@option</option>
+        <div class="sks-body">
+            <WorkbenchRail Class="sks-rail">
+                <WorkbenchSection Label="Settings">
+                    @if (_rows is null && _rowsError is null) {
+                        <p class="wb-note">Loading...</p>
+                    }
+                    @foreach (var category in Categories) {
+                        var name = category;
+                        var dirty = DirtyCount(name);
+                        <WorkbenchEntry Selected="@IsSelected(PaneKind.Category, name)" OnClick="@(() => Select(PaneKind.Category, name))">
+                            <Name>@name</Name>
+                            <Trail>
+                                @if (dirty > 0) {
+                                    <span class="badge badge-accent sks-badge" title="Unsaved edits">@dirty</span>
+                                }
+                                @if (HasPendingRestart(name)) {
+                                    <span class="sks-dot" title="Restart pending"></span>
+                                }
+                                <span class="sks-count">@RowCount(name)</span>
+                            </Trail>
+                        </WorkbenchEntry>
+                    }
+                </WorkbenchSection>
+                @if (_collections.Count > 0) {
+                    <WorkbenchSection Label="Collections">
+                        @foreach (var collection in _collections) {
+                            var key = collection.Key;
+                            <WorkbenchEntry Selected="@IsSelected(PaneKind.Collection, key)" OnClick="@(() => Select(PaneKind.Collection, key))">
+                                <Name>@collection.Label</Name>
+                                <Trail>
+                                    @if (HasPendingRestartFor(key)) {
+                                        <span class="sks-dot" title="Restart pending"></span>
                                     }
-                                </select>
-                            } else {
-                                <input class="sks-input" type="@InputType(row)"
-                                       placeholder="@Placeholder(row)" value="@Draft(row)"
-                                       @oninput="e => SetDraft(row, e.Value?.ToString())"/>
-                            }
-                        } else {
-                            <span class="sks-readonly">@(row.Display ?? "not set")</span>
+                                    <span class="sks-count">@CollectionCount(key)</span>
+                                </Trail>
+                            </WorkbenchEntry>
                         }
-                    </td>
-                    <td><span class="sks-badge sks-src-@row.Source.ToString().ToLowerInvariant()">@row.Source</span></td>
-                    <td><span class="sks-badge sks-tier-@row.Descriptor.Tier.ToString().ToLowerInvariant()">@TierLabel(row.Descriptor.Tier)</span></td>
-                    <td>
-                        @if (IsEditable(row)) {
-                            <button class="sks-btn" disabled="@_busy" @onclick="() => SaveAsync(row)">Save</button>
-                        }
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
+                    </WorkbenchSection>
+                }
+                @if (_envSource is not null) {
+                    <WorkbenchSection Label="Environment">
+                        <WorkbenchEntry Selected="@IsSelected(PaneKind.Drift)" OnClick="@(() => Select(PaneKind.Drift))"
+                                        Tone="@(_drift is { IsClean: false } ? WorkbenchTone.Warn : WorkbenchTone.Normal)">
+                            <Name>Drift</Name>
+                            <Trail>
+                                @if (_drift is { ProblemCount: > 0 } drift) {
+                                    <span class="badge badge-err sks-badge">@drift.ProblemCount</span>
+                                }
+                            </Trail>
+                        </WorkbenchEntry>
+                        <WorkbenchEntry Selected="@IsSelected(PaneKind.Stack)" OnClick="@(() => Select(PaneKind.Stack))">
+                            <Name>Stack</Name>
+                            <Trail>
+                                @if (_env is not null) {
+                                    <span class="sks-count">@_env.Count</span>
+                                }
+                            </Trail>
+                        </WorkbenchEntry>
+                    </WorkbenchSection>
+                }
+            </WorkbenchRail>
 
-        @if (_drift is not null) {
-            <h3 class="sks-h">Environment drift</h3>
-            @if (_drift.IsClean) {
-                <p class="sks-ok">No drift. Every stack key is read and every required key is set.</p>
-            } else {
-                @if (_drift.SetButUnread.Count > 0) {
-                    <p class="sks-warn">Set in the stack, read by nothing:</p>
-                    <ul class="sks-list">
-                        @foreach (var k in _drift.SetButUnread) {
-                            <li>@k</li>
-                        }
-                    </ul>
+            <div class="sks-main">
+                <div class="sks-toolbar">
+                    <FilterInput ShowIcon="true" WrapClass="sks-search-wrap" Class="form-input sks-search" Placeholder="Search settings"
+                                 AriaLabel="Search settings" Value="@_query" ValueChanged="OnQueryChanged"/>
+                    <button type="button" class="btn-mini" disabled="@_busy" @onclick="ReloadAsync">Reload</button>
+                </div>
+
+                <div class="sks-pane">
+                    @if (HasQuery) {
+                        @ResultsPane()
+                    } else if (_pane.Kind == PaneKind.Category && _pane.Key is { } category) {
+                        @CategoryPane(category)
+                    } else if (SelectedCollection is { } collection) {
+                        @CollectionPane(collection)
+                    } else if (_pane.Kind == PaneKind.Drift) {
+                        @DriftPane()
+                    } else if (_pane.Kind == PaneKind.Stack) {
+                        @StackPane()
+                    }
+                </div>
+
+                <footer class="sks-footer">
+                    @if (_admin.HasPendingRestart) {
+                        <div class="sks-restart">
+                            <Icon Name="warning" Class="icon-sm"/>
+                            <span>@_admin.PendingRestartKeys.Count change(s) need a restart</span>
+                            @if (_restart is not null) {
+                                <button type="button" class="btn-mini" disabled="@_busy" @onclick="RestartAsync">Restart</button>
+                            }
+                        </div>
+                    }
+                    @if (_status is not null) {
+                        <span class="@StatusCss">@_status</span>
+                    }
+                    <span class="sks-spacer"></span>
+                    <span class="sks-unsaved">@DirtyCount() unsaved</span>
+                    <button type="button" class="btn-secondary" disabled="@(_busy || DirtyCount() == 0)" @onclick="Discard">Discard</button>
+                    <button type="button" class="btn-primary" disabled="@(_busy || DirtyCount() == 0)" @onclick="SaveAllAsync">Save all</button>
+                </footer>
+            </div>
+        </div>
+    }
+
+    @if (_stackEdit is { } stack) {
+        <ModalHost Open="true" Title="@(stack.Remove ? "Remove from stack" : "Edit on stack")" TitleId="sksStackEditTitle"
+                   Width="ModalWidth.Small" OnClose="CloseStackEdit">
+            <div class="modal-body sks-form">
+                <div class="sks-field">
+                    <span class="sks-label">Key</span>
+                    <code class="sks-key">@stack.Key</code>
+                </div>
+                @if (!stack.Remove && !stack.Applied) {
+                    <div class="sks-field">
+                        <label class="sks-label" for="sksStackValue">Value</label>
+                        <input id="sksStackValue" class="form-input sks-input" type="text" value="@stack.Value"
+                               @oninput="e => stack.Value = e.Value?.ToString() ?? string.Empty"/>
+                    </div>
                 }
-                @if (_drift.ReadButUnset.Count > 0) {
-                    <p class="sks-warn">Required by code, missing from the stack:</p>
-                    <ul class="sks-list">
-                        @foreach (var k in _drift.ReadButUnset) {
-                            <li>@k</li>
-                        }
-                    </ul>
+                @if (stack.Applied) {
+                    <p class="sks-ok">Applied to the stack.</p>
+                } else {
+                    <p class="sks-warn">
+                        <Icon Name="warning" Class="icon-sm"/>
+                        <span>Applying this change updates the stack and the container will be recreated.</span>
+                    </p>
                 }
-            }
-        }
+                @if (stack.Error is not null) {
+                    <p class="sks-error">@stack.Error</p>
+                }
+                <div class="sks-modal-actions">
+                    @if (stack.Applied) {
+                        @if (_restart is not null) {
+                            <button type="button" class="btn-primary" disabled="@_busy" @onclick="RestartFromStackEditAsync">Restart</button>
+                        }
+                        <button type="button" class="btn-secondary" @onclick="CloseStackEdit">Close</button>
+                    } else {
+                        <button type="button" class="btn-secondary" @onclick="CloseStackEdit">Cancel</button>
+                        <button type="button" class="@(stack.Remove ? "btn-primary btn-danger" : "btn-primary")" disabled="@_busy" @onclick="ApplyStackEditAsync">
+                            @(stack.Remove ? "Remove" : "Apply")
+                        </button>
+                    }
+                </div>
+            </div>
+        </ModalHost>
+    }
+
+    @if (_rowEdit is { } edit) {
+        <ModalHost Open="true" Title="@(edit.IsNew ? $"Add {edit.Descriptor.Label}" : $"Edit {edit.Descriptor.Label}")"
+                   TitleId="sksRowEditTitle" OnClose="CloseRowEdit">
+            <div class="modal-body sks-form">
+                @foreach (var field in edit.Descriptor.Fields) {
+                    var spec = FieldSpec(edit, field);
+                    <div class="sks-field">
+                        <label class="sks-label" for="@spec.Id">
+                            @field.Label
+                            @if (field.Required) {
+                                <span class="sks-req">required</span>
+                            }
+                        </label>
+                        @if (field.Description is { Length: > 0 } fieldDescription) {
+                            <p class="sks-desc">@fieldDescription</p>
+                        }
+                        @ControlView(spec)
+                    </div>
+                }
+                @if (edit.Error is not null) {
+                    <p class="sks-error">@edit.Error</p>
+                }
+                <div class="sks-modal-actions">
+                    <button type="button" class="btn-secondary" @onclick="CloseRowEdit">Cancel</button>
+                    <button type="button" class="btn-primary" disabled="@_busy" @onclick="SaveRowEditAsync">Save</button>
+                </div>
+            </div>
+        </ModalHost>
     }
 </section>
 
 @code {
-    private const string AllCategories = "*";
 
-    private SettingsAdminService? _admin;
-    private IStackEnvSource? _stack;
-    private IRestartTrigger? _restart;
-
-    private IReadOnlyList<SettingRow>? _rows;
-    private DriftReport? _drift;
-    private readonly Dictionary<string, string?> _drafts = new(StringComparer.Ordinal);
-
-    private string _query = string.Empty;
-    private string _category = AllCategories;
-    private string? _error;
-    private string? _saved;
-    private bool _busy;
-
-    [Parameter] public string? UpdatedBy { get; set; }
-
-    protected override async Task OnInitializedAsync() {
-        _admin = Services.GetService<SettingsAdminService>();
-        _stack = Services.GetService<IStackEnvSource>();
-        _restart = Services.GetService<IRestartTrigger>();
-        if (_admin is not null) await LoadAsync();
-    }
-
-    private IEnumerable<string> Categories =>
-        _rows is null ? [] : _rows.Select(r => r.Descriptor.Category).Distinct().Order(StringComparer.Ordinal);
-
-    private IEnumerable<SettingRow> Visible {
-        get {
-            if (_rows is null) return [];
-            var rows = _rows.AsEnumerable();
-            if (!string.Equals(_category, AllCategories, StringComparison.Ordinal))
-                rows = rows.Where(r => string.Equals(r.Descriptor.Category, _category, StringComparison.Ordinal));
-            if (!string.IsNullOrWhiteSpace(_query)) {
-                var q = _query.Trim();
-                rows = rows.Where(r =>
-                    r.Descriptor.Label.Contains(q, StringComparison.OrdinalIgnoreCase)
-                    || r.Descriptor.Key.Contains(q, StringComparison.OrdinalIgnoreCase)
-                    || r.Descriptor.EnvKey.Contains(q, StringComparison.OrdinalIgnoreCase));
-            }
-            return rows;
+    private RenderFragment ResultsPane() => @<div class="sks-results">
+        @{
+            var any = false;
         }
-    }
-
-    private async Task LoadAsync() {
-        if (_admin is null) return;
-        _busy = true;
-        _error = null;
-        try {
-            _rows = await _admin.GetRowsAsync(CancellationToken.None);
-            _drafts.Clear();
-            if (_stack is not null) {
-                var keys = await _stack.GetStackKeysAsync(CancellationToken.None);
-                _drift = _admin.Drift(keys);
-            }
-        } catch (InvalidOperationException e) {
-            _error = e.Message;
-        } finally {
-            _busy = false;
+        @if (_rowsError is not null) {
+            <p class="sks-error">@_rowsError</p>
         }
-    }
+        @foreach (var group in SearchResults()) {
+            any = true;
+            <h4 class="sks-group">@group.Key</h4>
+            @foreach (var row in group) {
+                @SettingRowView(row)
+            }
+        }
+        @if (!any) {
+            <p class="wb-note">No settings match "@_query.Trim()".</p>
+        }
+    </div>;
 
-    private async Task SaveAsync(SettingRow row) {
-        if (_admin is null) return;
-        _busy = true;
-        _error = null;
-        _saved = null;
-        try {
-            var value = _drafts.GetValueOrDefault(row.Descriptor.Key);
-            var result = await _admin.SaveAsync(row.Descriptor.Key, value, UpdatedBy, CancellationToken.None);
-            if (!result.Ok) {
-                _error = result.Error;
+    private RenderFragment CategoryPane(string category) => @<div class="sks-category">
+        @if (_rowsError is not null) {
+            <p class="sks-error">@_rowsError</p>
+            <button type="button" class="btn-mini" disabled="@_busy" @onclick="LoadRowsAsync">Retry</button>
+        } else {
+            <WorkbenchLoad T="SettingRow" Items="@RowsIn(category)" LoadingText="Loading settings..." EmptyText="No settings in this category.">
+                <div class="sks-rows">
+                    @foreach (var row in context) {
+                        @SettingRowView(row)
+                    }
+                </div>
+            </WorkbenchLoad>
+        }
+    </div>;
+
+    private RenderFragment SettingRowView(SettingRow row) => @<div class="@RowCss(row)">
+        <div class="sks-row-head">
+            <label class="sks-label" for="@ControlId(row.Descriptor.Key)">@row.Descriptor.Label</label>
+            <code class="sks-key">@row.Descriptor.EnvKey</code>
+            <span class="badge badge-muted sks-badge">@SourceLabel(row.Source)</span>
+            @if (row.Descriptor.Kind == SettingKind.External) {
+                <span class="badge badge-muted sks-badge">external</span>
+            }
+            @if (row.Descriptor.Tier == ApplyTier.Bootstrap) {
+                <span class="sks-lock" title="Bootstrap: set on the stack"><Icon Name="lock" Class="icon-sm" Icons="Icons"/></span>
+            }
+        </div>
+        @if (row.Descriptor.Description is { Length: > 0 } description) {
+            <p class="sks-desc">@description</p>
+        }
+        <div class="sks-control">
+            @SettingControl(row)
+        </div>
+        @if (_rowErrors.TryGetValue(row.Descriptor.Key, out var error)) {
+            <p class="sks-error">@error</p>
+        }
+    </div>;
+
+    private RenderFragment SettingControl(SettingRow row) => @<text>
+        @if (IsReadOnly(row.Descriptor)) {
+            <span class="sks-readonly">@(row.Display ?? "not set")</span>
+        } else if (IsLockedBootstrap(row.Descriptor)) {
+            @ControlView(LockedSpec(row))
+            @if (_stackEditor is not null) {
+                <button type="button" class="btn-mini" disabled="@_busy" @onclick="() => OpenStackEdit(row.Descriptor.EnvKey, false)">Edit on stack</button>
+            }
+        } else if (IsSecret(row.Descriptor)) {
+            <span class="@(row.Display is null ? "badge badge-muted sks-badge" : "badge badge-ok sks-badge")">@(row.Display is null ? "not set" : "set")</span>
+            @if (IsRevealed(row)) {
+                @ControlView(SettingSpec(row))
             } else {
-                _saved = result.RestartRequired
-                    ? $"{row.Descriptor.Label} saved. A restart is needed for it to take effect."
-                    : $"{row.Descriptor.Label} saved.";
-                await LoadAsync();
+                <button type="button" class="btn-mini" @onclick="() => Reveal(row)">Reveal to edit</button>
             }
-        } finally {
-            _busy = false;
+        } else {
+            @ControlView(SettingSpec(row))
         }
-    }
+    </text>;
 
-    private async Task RestartAsync() {
-        if (_restart is null || _admin is null) return;
-        _busy = true;
-        _error = null;
-        try {
-            var failure = await _restart.RestartAsync(CancellationToken.None);
-            if (failure is not null) {
-                _error = failure;
-            } else {
-                _admin.ClearPendingRestart();
-                _saved = "Restart requested.";
+    private RenderFragment ControlView(ControlSpec spec) => @<text>
+        @if (spec.Kind == SettingKind.Bool) {
+            <select id="@spec.Id" class="form-select sks-input" disabled="@spec.Disabled" value="@spec.Value"
+                    @onchange="e => spec.Set(e.Value?.ToString())">
+                <option value="">unset</option>
+                <option value="true">true</option>
+                <option value="false">false</option>
+            </select>
+        } else if (spec.Kind == SettingKind.Enum) {
+            <select id="@spec.Id" class="form-select sks-input" disabled="@spec.Disabled" value="@spec.Value"
+                    @onchange="e => spec.Set(e.Value?.ToString())">
+                <option value="">unset</option>
+                @foreach (var option in spec.EnumValues) {
+                    <option value="@option">@option</option>
+                }
+            </select>
+        } else if (spec.Kind is SettingKind.StringList or SettingKind.CidrList) {
+            <textarea id="@spec.Id" class="form-input sks-input sks-textarea" rows="4" disabled="@spec.Disabled"
+                      placeholder="one per line" value="@spec.Value" @oninput="e => spec.Set(e.Value?.ToString())"></textarea>
+        } else if (spec.Kind == SettingKind.Json) {
+            <textarea id="@spec.Id" class="form-input sks-input sks-textarea sks-mono" rows="6" disabled="@spec.Disabled"
+                      placeholder="@spec.Placeholder" value="@spec.Value" @oninput="e => spec.Set(e.Value?.ToString())"></textarea>
+        } else {
+            <input id="@spec.Id" class="form-input sks-input" type="@(spec.Password ? "password" : "text")" inputmode="@InputMode(spec.Kind)"
+                   disabled="@spec.Disabled" placeholder="@spec.Placeholder" value="@spec.Value" autocomplete="off"
+                   @oninput="e => spec.Set(e.Value?.ToString())"/>
+        }
+    </text>;
+
+    private RenderFragment CollectionPane(CollectionDescriptor descriptor) => @<div class="sks-collection">
+        <div class="sks-pane-head">
+            <h3 class="sks-title">@descriptor.Label</h3>
+            <span class="sks-spacer"></span>
+            <button type="button" class="btn-mini" disabled="@_busy" @onclick="() => OpenAdd(descriptor)">Add</button>
+        </div>
+        @if (descriptor.Description is { Length: > 0 } description) {
+            <p class="sks-desc">@description</p>
+        }
+        @if (_collectionErrors.TryGetValue(descriptor.Key, out var collectionError)) {
+            <p class="sks-error">@collectionError</p>
+            <button type="button" class="btn-mini" disabled="@_busy" @onclick="() => LoadCollectionAsync(descriptor.Key)">Retry</button>
+        }
+        <WorkbenchLoad T="CollectionRow" Items="@CollectionRows(descriptor.Key)" LoadingText="Loading rows..." EmptyText="No rows yet.">
+            <div class="sks-table-wrap">
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        @foreach (var field in VisibleFields(descriptor)) {
+                            <th>@field.Label</th>
+                        }
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in context) {
+                        var id = row.Id;
+                        <tr>
+                            @foreach (var field in VisibleFields(descriptor)) {
+                                <td class="@(IsSecret(field) ? "sks-mono" : null)">@row.Get(field.Name)</td>
+                            }
+                            <td class="sks-actions">
+                                <button type="button" class="btn-mini" disabled="@_busy" @onclick="() => OpenEdit(descriptor, row)">Edit</button>
+                                <button type="button" class="btn-mini btn-danger" disabled="@_busy" @onclick="() => DeleteAsync(descriptor, id)">
+                                    @(IsConfirmingDelete(id) ? "Confirm delete" : "Delete")
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </WorkbenchLoad>
+    </div>;
+
+    private RenderFragment DriftPane() => @<div class="sks-drift">
+        <div class="sks-pane-head">
+            <h3 class="sks-title">Drift</h3>
+            <span class="sks-spacer"></span>
+            <button type="button" class="btn-mini" disabled="@_busy" @onclick="LoadEnvAsync">Reload</button>
+        </div>
+        @if (_envError is not null) {
+            <p class="sks-error">@_envError</p>
+        } else if (_drift is null) {
+            <p class="wb-note">Loading drift...</p>
+        } else {
+            @if (_drift.IsClean) {
+                <p class="sks-ok">No drift.</p>
             }
-        } finally {
-            _busy = false;
+            <p class="sks-counts">@DriftSummary()</p>
+            @DriftGroup("Undeclared keys", _drift.Undeclared)
+            @DriftGroup("Unused stack variables", _drift.UnusedStackVariables)
+            @DriftGroup("Missing required", _drift.MissingRequired)
+            @DriftGroup("Missing optional", _drift.MissingOptional)
+            @DriftGroup("External", _drift.External)
+            @if (_drift.Matched.Count > 0) {
+                <h4 class="sks-group">
+                    <button type="button" class="sks-toggle" @onclick="() => _showMatched = !_showMatched">
+                        <Icon Name="@(_showMatched ? "chevron-down" : "chevron-right")" Class="icon-sm"/>
+                        <span>Matched</span>
+                        <span class="sks-count">@_drift.Matched.Count</span>
+                    </button>
+                </h4>
+                @if (_showMatched) {
+                    @DriftRows(_drift.Matched)
+                }
+            }
         }
-    }
+    </div>;
 
-    private static bool IsEditable(SettingRow row) =>
-        row.Descriptor.Kind != SettingKind.ReadOnly
-        && (row.Descriptor.Tier != ApplyTier.Bootstrap || row.Descriptor.AllowBootstrapEdit);
+    private RenderFragment DriftGroup(string heading, IReadOnlyList<DriftEntry> entries) => @<text>
+        @if (entries.Count > 0) {
+            <h4 class="sks-group">@heading <span class="sks-count">@entries.Count</span></h4>
+            @DriftRows(entries)
+        }
+    </text>;
 
-    private string? Draft(SettingRow row) =>
-        _drafts.TryGetValue(row.Descriptor.Key, out var v) ? v : (row.Descriptor.IsSecret ? null : row.Display);
+    private RenderFragment DriftRows(IReadOnlyList<DriftEntry> entries) => @<div class="sks-drift-rows">
+        @foreach (var entry in entries) {
+            var key = entry.Key;
+            <div class="sks-drift-row">
+                <code class="sks-key">@key</code>
+                @if (entry.Origin is { } origin) {
+                    <span class="badge badge-muted sks-badge">@OriginLabel(origin)</span>
+                }
+                <span class="sks-detail">@entry.Detail</span>
+                <span class="sks-actions">
+                    @if (_stackEditor is not null && entry.Reason is DriftReason.Undeclared or DriftReason.UnusedStackVariable) {
+                        <button type="button" class="btn-mini btn-danger" disabled="@_busy" @onclick="() => OpenStackEdit(key, true)">Remove from stack</button>
+                    }
+                    @if (entry.Reason == DriftReason.Undeclared) {
+                        <button type="button" class="btn-mini" @onclick="() => CopyDescriptorAsync(key)">
+                            <Icon Name="copy" Class="icon-sm" Icons="Icons"/>
+                            <span>Copy descriptor</span>
+                        </button>
+                    }
+                    @if (entry.Reason is DriftReason.MissingRequired or DriftReason.MissingOptional) {
+                        <button type="button" class="btn-mini" @onclick="() => GoToSetting(key)">Go to setting</button>
+                    }
+                </span>
+            </div>
+        }
+    </div>;
 
-    private void SetDraft(SettingRow row, string? value) => _drafts[row.Descriptor.Key] = value;
+    private RenderFragment StackPane() => @<div class="sks-stack">
+        <div class="sks-pane-head">
+            <h3 class="sks-title">Stack</h3>
+            <span class="sks-spacer"></span>
+            <button type="button" class="btn-mini" disabled="@_busy" @onclick="LoadEnvAsync">Reload</button>
+        </div>
+        @if (_envError is not null) {
+            <p class="sks-error">@_envError</p>
+        } else {
+            <WorkbenchLoad T="EnvKeyInfo" Items="@(_env is null ? null : SortedEnv)" LoadingText="Loading stack env..." EmptyText="No environment keys.">
+                <div class="sks-table-wrap">
+                    <table class="data-table">
+                        <thead>
+                        <tr>
+                            <th>Key</th>
+                            <th>Origin</th>
+                            <th>Value</th>
+                            <th>Referenced</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var info in context) {
+                            <tr>
+                                <td><code class="sks-key">@info.Name</code></td>
+                                <td><span class="badge badge-muted sks-badge">@OriginLabel(info.Origin)</span></td>
+                                <td class="sks-mono sks-value">@EnvValueText(info)</td>
+                                <td>
+                                    @if (info.Origin == EnvOrigin.StackVariable) {
+                                        <span class="@(info.Referenced ? "badge badge-ok sks-badge" : "badge badge-err sks-badge")">@(info.Referenced ? "yes" : "no")</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </WorkbenchLoad>
+        }
+    </div>;
 
-    private static string InputType(SettingRow row) => row.Descriptor.IsSecret ? "password" : "text";
-
-    private static string? Placeholder(SettingRow row) =>
-        row.Descriptor.IsSecret && row.Source != SettingSource.Default ? "set, leave blank to keep" : row.Descriptor.Default;
-
-    private static string TierLabel(ApplyTier tier) => tier switch {
-        ApplyTier.Live => "live",
-        ApplyTier.RestartRequired => "restart",
-        _ => "bootstrap",
-    };
 }

@@ -1,0 +1,46 @@
+name: notify-agent
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        type: string
+        required: true
+      agent-url:
+        type: string
+        required: true
+      digest:
+        type: string
+        required: true
+      revision:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
+    secrets:
+      hook-secret:
+        required: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify deploy agent
+        env:
+          APP: ${{ inputs.app }}
+          AGENT_URL: ${{ inputs.agent-url }}
+          DIGEST: ${{ inputs.digest }}
+          REVISION: ${{ inputs.revision }}
+          VERSION: ${{ inputs.version }}
+          HOOK_SECRET: ${{ secrets.hook-secret }}
+        run: |
+          set -euo pipefail
+          BODY=$(printf '{"app":"%s","digest":"%s","revision":"%s","version":"%s"}' "$APP" "$DIGEST" "$REVISION" "$VERSION")
+          STATUS=$(curl -sS -o /tmp/notify-agent.out -w '%{http_code}' -X POST "$AGENT_URL/hooks/image-pushed" \
+            -H "Authorization: Bearer $HOOK_SECRET" \
+            -H "Content-Type: application/json" \
+            --data "$BODY")
+          echo "agent responded $STATUS"
+          cat /tmp/notify-agent.out || true
+          case "$STATUS" in 2*) exit 0 ;; *) exit 1 ;; esac

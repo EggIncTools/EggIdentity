@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <Description>Shared Blazor admin deploy panel for eggidentity-agent (running/latest version, check/update/restart/logs, live event timeline) plus a deploy-event toast bridge.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EggIdentity.Deploy\EggIdentity.Deploy.csproj" />
+    <ProjectReference Include="..\EggIdentity.UI\EggIdentity.UI.csproj" />
+  </ItemGroup>
+
+</Project>

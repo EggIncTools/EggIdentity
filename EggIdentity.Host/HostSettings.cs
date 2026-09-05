@@ -9,6 +9,7 @@ public static class HostSettings {
     private const string Sponsors = "Sponsors";
     private const string Storage = "Storage";
     private const string Build = "Build";
+    private const string Deploy = "Deploy";
 
     public const string LoginSweepIntervalMinutes = "identity.login_sweep_interval_minutes";
     public const string SponsorTarget = "github.sponsor_target";
@@ -33,11 +34,6 @@ public static class HostSettings {
             Description = "Gates this page. Editing it from here is how you lock yourself out, so it stays on the stack.",
         },
         new SettingDescriptor(
-            "settings.encryption_key", "EGGIDENTITY_SETTINGS_KEY", "Settings encryption key", Core,
-            SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
-            Description = "Base64 32-byte AES-GCM key protecting stored secrets. Cannot itself be stored.",
-        },
-        new SettingDescriptor(
             LoginSweepIntervalMinutes, "IDENTITY_LOGIN_SWEEP_INTERVAL_MINUTES", "Expired-row sweep interval (minutes)", Core,
             SettingKind.Number, ApplyTier.RestartRequired, Sensitivity.Plain) { Default = "10" },
         new SettingDescriptor(
@@ -46,11 +42,13 @@ public static class HostSettings {
         new SettingDescriptor(
             "authentik.authority", "AUTHENTIK_AUTHORITY", "Authentik authority", Identity,
             SettingKind.Url, ApplyTier.Bootstrap, Sensitivity.Plain) {
-            Description = "Gates the login widget together with the apps directory.",
+            Description = "Gates the login widget. App registrations come from the authentik.apps collection.",
         },
         new SettingDescriptor(
             "authentik.apps_dir", "AUTHENTIK_APPS_DIR", "Authentik app config directory", Identity,
-            SettingKind.Path, ApplyTier.Bootstrap, Sensitivity.Plain),
+            SettingKind.Path, ApplyTier.Bootstrap, Sensitivity.Plain) {
+            Description = "Deprecated. Only read while the authentik.apps collection is empty; import it with eggidentity-tools import-authentik-apps and unset.",
+        },
         new SettingDescriptor(
             "discord.token", "DISCORD_TOKEN", "Bot token", Discord,
             SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
@@ -81,6 +79,11 @@ public static class HostSettings {
             "build.git_sha", "GIT_SHA", "Build commit", Build,
             SettingKind.ReadOnly, ApplyTier.Bootstrap, Sensitivity.Plain) {
             Description = "Stamped into the image at build time.",
+        },
+        new SettingDescriptor(
+            "deploy.agent_url", "DEPLOY_AGENT_URL", "Deploy agent URL", Deploy,
+            SettingKind.Url, ApplyTier.Bootstrap, Sensitivity.Plain) {
+            Description = "Base URL of eggidentity-agent. Enables the Fleet page, drift and restart.",
         },
     ]);
 }

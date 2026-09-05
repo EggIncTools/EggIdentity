@@ -18,6 +18,7 @@ public class ComponentClassesTests {
         Assert.True(ComponentClasses.All.ContainsKey(".modal-card.wb-card"));
         Assert.True(ComponentClasses.All.ContainsKey(".filter-panel"));
         Assert.True(ComponentClasses.All.ContainsKey(".cal-viewport"));
+        Assert.True(ComponentClasses.All.ContainsKey(".icon"));
     }
 
     [Fact]
@@ -36,7 +37,8 @@ public class ComponentClassesTests {
             + Components.Prose.Applies.Count
             + Components.Workbench.Applies.Count
             + Components.Filters.Applies.Count
-            + Components.Calendar.Applies.Count;
+            + Components.Calendar.Applies.Count
+            + Components.Icons.Applies.Count;
 
         Assert.Equal(expected, ComponentClasses.All.Count);
     }

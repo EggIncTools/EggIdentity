@@ -14,6 +14,7 @@ public enum SettingKind {
     Path,
     Json,
     ReadOnly,
+    External,
 }
 
 public enum ApplyTier {

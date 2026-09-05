@@ -8,21 +8,30 @@ public interface ISettingsSource {
 public sealed class SettingsSnapshot : ISettingsSource {
     private readonly SettingsRegistry _registry;
     private readonly Dictionary<string, SettingValue> _values;
+    private readonly Dictionary<string, IReadOnlyList<CollectionRow>> _collections;
 
     public SettingsSnapshot(
         SettingsRegistry registry,
         IReadOnlyDictionary<string, string?> database,
         Func<string, string?>? file = null,
-        Func<string, string?>? environment = null) {
+        Func<string, string?>? environment = null,
+        IReadOnlyDictionary<string, IReadOnlyList<CollectionRow>>? collections = null) {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(database);
 
         _registry = registry;
         var env = environment ?? Environment.GetEnvironmentVariable;
         _values = new Dictionary<string, SettingValue>(StringComparer.Ordinal);
+        _collections = new Dictionary<string, IReadOnlyList<CollectionRow>>(StringComparer.Ordinal);
 
         foreach (var d in registry.All) {
             _values[d.Key] = Resolve(d, database, file, env);
+        }
+
+        foreach (var c in registry.Collections) {
+            IReadOnlyList<CollectionRow> stored =
+                collections is not null && collections.TryGetValue(c.Key, out var rows) ? rows : [];
+            _collections[c.Key] = [.. stored.Select(r => ApplyDefaults(c, r))];
         }
     }
 
@@ -40,6 +49,23 @@ public sealed class SettingsSnapshot : ISettingsSource {
     public TimeSpan? GetDuration(string key) => Value(key).AsDuration();
 
     public IReadOnlyList<string> GetList(string key) => Value(key).AsList();
+
+    public IReadOnlyList<CollectionRow> Rows(string collectionKey) =>
+        _collections.TryGetValue(collectionKey, out var rows)
+            ? rows
+            : throw new KeyNotFoundException($"unknown collection key \"{collectionKey}\"");
+
+    public IReadOnlyList<T> Collection<T>(string collectionKey) =>
+        [.. Rows(collectionKey).Select(r => CollectionBinder.Bind<T>(r.Values))];
+
+    private static CollectionRow ApplyDefaults(CollectionDescriptor c, CollectionRow row) {
+        var values = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var f in c.Fields) {
+            var stored = row.Values.GetValueOrDefault(f.Name);
+            values[f.Name] = string.IsNullOrEmpty(stored) ? f.Default : stored;
+        }
+        return row with { Values = values };
+    }
 
     private static SettingValue Resolve(
         SettingDescriptor d,

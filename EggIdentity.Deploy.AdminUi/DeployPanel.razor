@@ -1,0 +1,66 @@
+@inject IServiceProvider Services
+@implements IDisposable
+
+<section class="@RootClass">
+    @if (_client is null || _events is null || _options is null) {
+        <p class="dp-muted">Deploy agent not configured (call AddEggIdentityDeploy).</p>
+    } else {
+        <div class="panel-head dp-head">
+            <span class="dp-app">@AppName</span>
+            <span class="dp-badges">
+                @if (_status?.UpdateAvailable == true) {
+                    <span class="badge badge-accent2">Update available</span>
+                }
+                @if (_status?.Busy == true) {
+                    <span class="badge badge-muted">Busy</span>
+                }
+                @if (_status is null && _error is null) {
+                    <span class="badge badge-muted">Loading</span>
+                }
+            </span>
+        </div>
+
+        @if (_error is not null) {
+            <p class="dp-error">@_error</p>
+        }
+        @if (_recreating) {
+            <p class="dp-notice">This container is being recreated, the page will reconnect.</p>
+        }
+
+        <dl class="dp-facts">
+            <dt>Running</dt>
+            <dd title="@(_status?.RunningDigest)">@RunningText</dd>
+            <dt>Latest</dt>
+            <dd title="@(_status?.LatestDigest)">@LatestText</dd>
+            <dt>Checked</dt>
+            <dd title="@CheckedTitle">@CheckedText</dd>
+        </dl>
+
+        <div class="dp-actions">
+            <button type="button" class="btn-mini" disabled="@_working" @onclick="CheckNowAsync">Check now</button>
+            <button type="button" class="btn-mini" disabled="@(!CanUpdate)" @onclick="UpdateNowAsync">@UpdateLabel</button>
+            <button type="button" class="btn-mini btn-danger" disabled="@_working" @onclick="RestartNowAsync">@RestartLabel</button>
+            @if (ShowLogs) {
+                <button type="button" class="btn-mini" disabled="@_logsLoading" @onclick="ToggleLogsAsync">@(_logsOpen ? "Hide logs" : "Logs")</button>
+            }
+        </div>
+
+        @if (_logsOpen) {
+            <pre class="dp-logs">@(_logs ?? "Loading...")</pre>
+        }
+
+        @if (Timeline.Count > 0) {
+            <ol class="dp-timeline">
+                @foreach (var e in Timeline) {
+                    <li class="dp-event" @key="e.Id">
+                        <span class="badge dp-phase @DeployPanelFormat.PhaseClass(e.Phase)">@e.Phase</span>
+                        <span class="dp-msg">@e.Message</span>
+                        <span class="dp-time" title="@DeployPanelFormat.Timestamp(e.At)">@DeployPanelFormat.Relative(e.At, Now)</span>
+                    </li>
+                }
+            </ol>
+        } else {
+            <p class="dp-muted">No deploy events yet.</p>
+        }
+    }
+</section>

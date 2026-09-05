@@ -7,6 +7,20 @@ public class SettingsValidationTests {
             EnumValues = enumValues,
         };
 
+    private static readonly CollectionDescriptor Apps = new(
+        "deploy.apps", "Apps", "Deploy",
+        [
+            new FieldDescriptor("name", "Name", SettingKind.Text) { Required = true },
+            new FieldDescriptor("image", "Image", SettingKind.Text) { Required = true },
+            new FieldDescriptor("repo_url", "Repository", SettingKind.Url),
+            new FieldDescriptor("deploy_secret", "Deploy secret", SettingKind.Secret, Sensitivity.Secret),
+            new FieldDescriptor("auto_deploy", "Auto deploy", SettingKind.Bool) { Default = "true" },
+        ],
+        "name");
+
+    private static Dictionary<string, string?> Row(params (string Field, string? Value)[] pairs) =>
+        pairs.ToDictionary(p => p.Field, p => p.Value, StringComparer.Ordinal);
+
     [Fact]
     public void Blank_IsOnlyAnErrorWhenRequired() {
         Assert.Null(SettingsValidation.Validate(Of(SettingKind.Text), ""));
@@ -67,8 +81,71 @@ public class SettingsValidationTests {
     }
 
     [Fact]
+    public void External_IsNeverWritable() {
+        Assert.NotNull(SettingsValidation.Validate(Of(SettingKind.External), "eth0"));
+    }
+
+    [Fact]
     public void Json_RejectsMalformedPayloads() {
         Assert.Null(SettingsValidation.Validate(Of(SettingKind.Json), """{"a":1}"""));
         Assert.NotNull(SettingsValidation.Validate(Of(SettingKind.Json), "{"));
+    }
+
+    [Fact]
+    public void ValidateKind_IsSharedByScalarsAndFields() {
+        Assert.Null(SettingsValidation.ValidateKind(SettingKind.Number, "7", []));
+        Assert.NotNull(SettingsValidation.ValidateKind(SettingKind.Number, "seven", []));
+        Assert.Null(SettingsValidation.ValidateKind(SettingKind.Number, "", []));
+    }
+
+    [Fact]
+    public void Row_AcceptsAWellFormedRecord() {
+        var row = Row(("name", "eggledger"), ("image", "ghcr.io/x/y:latest"), ("repo_url", "https://github.com/x/y"));
+
+        Assert.Null(SettingsValidation.ValidateRow(Apps, row));
+    }
+
+    [Fact]
+    public void Row_RejectsUnknownFields() {
+        var error = SettingsValidation.ValidateRow(Apps, Row(("name", "a"), ("image", "b"), ("bogus", "c")));
+
+        Assert.Contains("bogus", error, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("has space")]
+    [InlineData("semi;colon")]
+    public void Row_RejectsBadIds(string? id) {
+        Assert.NotNull(SettingsValidation.ValidateRow(Apps, Row(("name", id), ("image", "b"))));
+    }
+
+    [Theory]
+    [InlineData("eggledger")]
+    [InlineData("https://ledger.example.com/")]
+    [InlineData("user@host:1.2-3_4")]
+    public void Row_AcceptsPathSafeIds(string id) {
+        Assert.Null(SettingsValidation.ValidateRow(Apps, Row(("name", id), ("image", "b"))));
+    }
+
+    [Fact]
+    public void Row_RequiresRequiredFields() {
+        var error = SettingsValidation.ValidateRow(Apps, Row(("name", "a")));
+
+        Assert.Equal("Image is required", error);
+    }
+
+    [Fact]
+    public void Row_AppliesKindRulesPerField() {
+        var error = SettingsValidation.ValidateRow(Apps, Row(("name", "a"), ("image", "b"), ("repo_url", "not a url")));
+
+        Assert.StartsWith("Repository:", error, StringComparison.Ordinal);
+        Assert.NotNull(SettingsValidation.ValidateRow(Apps, Row(("name", "a"), ("image", "b"), ("auto_deploy", "maybe"))));
+    }
+
+    [Fact]
+    public void Row_OptionalBlankFieldsAreFine() {
+        Assert.Null(SettingsValidation.ValidateRow(Apps, Row(("name", "a"), ("image", "b"), ("deploy_secret", ""), ("auto_deploy", null))));
     }
 }

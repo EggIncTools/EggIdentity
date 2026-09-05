@@ -4,7 +4,17 @@ using Npgsql;
 namespace EggIdentity.Tools;
 
 internal static class Program {
+    private const string ImportAuthentikApps = "import-authentik-apps";
+
     private static async Task<int> Main(string[] args) {
+        if (args.Length > 0 && args[0] == ImportAuthentikApps) {
+            if (args.Length < 2) {
+                Console.Error.WriteLine($"usage: eggidentity-tools {ImportAuthentikApps} <dir>");
+                return 1;
+            }
+            return await AuthentikAppImport.RunAsync(args[1], CancellationToken.None);
+        }
+
         var egiConn = RequireEnv("EGI_SOURCE_DB_CONNECTION");
         var ledgerConn = RequireEnv("LEDGER_SOURCE_DB_CONNECTION");
         var targetConn = RequireEnv("IDENTITY_DB_CONNECTION");
@@ -56,10 +66,10 @@ internal static class Program {
         await Migrator.MigrateAsync(conn, Path.Combine(AppContext.BaseDirectory, "Migrations"));
     }
 
-    private static string? RequireEnv(string name) {
+    internal static string? RequireEnv(string name) {
         var value = Environment.GetEnvironmentVariable(name);
         if (string.IsNullOrEmpty(value)) {
-            Console.Error.WriteLine($"cutover: {name} is required");
+            Console.Error.WriteLine($"tools: {name} is required");
             return null;
         }
         return value;

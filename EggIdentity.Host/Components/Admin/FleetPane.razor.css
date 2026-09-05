@@ -1,0 +1,51 @@
+.fleet {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.fleet-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fleet-agent {
+    flex: 1;
+    min-width: 12rem;
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.fleet-agent-down {
+    color: #f23f43;
+    opacity: 1;
+}
+
+.fleet-tools {
+    display: inline-flex;
+    gap: 0.35rem;
+}
+
+.fleet-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 1rem;
+    border: 1px dashed #3f4147;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.fleet-empty p {
+    margin: 0;
+}
+
+.fleet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+    gap: 0.75rem;
+    align-items: start;
+}

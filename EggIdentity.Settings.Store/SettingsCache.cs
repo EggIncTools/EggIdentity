@@ -25,7 +25,8 @@ public sealed class SettingsCache(
         try {
             if (Current is not null && _clock.GetUtcNow() - _loadedAt < _ttl) return Current;
             var database = await store.GetAllAsync(ct);
-            Current = new SettingsSnapshot(registry, database, file);
+            var collections = registry.Collections.Count == 0 ? null : await store.GetAllRowsAsync(ct);
+            Current = new SettingsSnapshot(registry, database, file, null, collections);
             _loadedAt = _clock.GetUtcNow();
             return Current;
         } finally {

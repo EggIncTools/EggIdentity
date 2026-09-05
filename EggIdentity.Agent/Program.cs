@@ -2,41 +2,84 @@ using System.Security.Cryptography;
 using System.Text;
 using EggIdentity.Auth;
 using EggIdentity.Contract;
+using EggIdentity.Deploy;
 using EggIdentity.Fallback;
+using EggIdentity.Settings;
+using EggIdentity.Settings.Store;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Npgsql;
 
 namespace EggIdentity.Agent;
 
 internal static class Program {
     private const string PlainText = "text/plain";
+    private static readonly TimeSpan EngineCallTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan DefaultWatchInterval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan DefaultPullTimeout = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan CatalogPollInterval = TimeSpan.FromSeconds(2);
 
-    private static int Main(string[] args) {
-        var configDir = EnvOr("AGENT_CONFIG_DIR", "/etc/eggidentity/agents");
-        var port = EnvOr("AGENT_PORT", "7777");
-        var intervalText = EnvOr("AGENT_WATCH_INTERVAL", "1m");
-        var notifySecret = Environment.GetEnvironmentVariable("DEPLOY_NOTIFY_SECRET") ?? "";
+    private static async Task<int> Main(string[] args) {
+        if (SwapHelper.TryParseArgs(args, out var swap)) {
+            var helperEngine = new DockerEngineClient(DockerEngineClient.CreateHttpClient(), EngineCallTimeout, () => DefaultPullTimeout);
+            return await SwapHelper.RunAsync(helperEngine, swap, Console.Error);
+        }
+
+        var connString = Environment.GetEnvironmentVariable("IDENTITY_DB_CONNECTION");
+        if (string.IsNullOrEmpty(connString)) {
+            Console.Error.WriteLine("eggidentity-agent: IDENTITY_DB_CONNECTION is required; apps are read from the deploy.apps settings collection");
+            return 1;
+        }
+
+        var registry = SettingsRegistry.Compose([AgentSettings.Provider, SessionSettings.Provider], [DeployApps.Provider]);
+        await using var dataSource = NpgsqlDataSource.Create(connString);
+        var store = new SettingsStore(dataSource, SecretProtector.FromEnvironment());
+        using var cache = new SettingsCache(registry, store);
+
+        SettingsSnapshot snapshot;
+        try {
+            await store.MigrateAsync();
+            snapshot = await cache.GetAsync();
+        } catch (Exception e) when (e is NpgsqlException or InvalidOperationException) {
+            Console.Error.WriteLine($"eggidentity-agent: settings store unavailable: {e.Message}");
+            return 1;
+        }
+
+        var port = snapshot.GetInt(AgentSettings.Port, 7777);
         var sessionOptions = SessionCookieOptions.FromEnvironment();
+        var engine = new DockerEngineClient(
+            DockerEngineClient.CreateHttpClient(), EngineCallTimeout, () => Live(cache, AgentSettings.PullTimeout, DefaultPullTimeout));
+        var images = new RegistryClient(new HttpClient { Timeout = EngineCallTimeout });
+        var events = new DeployEventRing();
+        var service = new DeployService(AppCatalog.FromSnapshot(snapshot), engine, images, events);
+        var runtime = new AgentRuntime(
+            service, events, engine, PortainerConfig.FromSnapshot(snapshot), snapshot.GetString(AgentSettings.HookSecret));
+        var app = Build(args, port, sessionOptions, runtime);
 
-        if (!TryLoadRegistry(configDir, out var registry)) return 1;
-        if (!TryParseInterval(intervalText, out var interval)) return 1;
+        var stopping = app.Lifetime.ApplicationStopping;
+        _ = new SettingsChangeListener(dataSource, cache).RunAsync(stopping);
+        _ = new AppCatalogSync(cache, service).RunAsync(CatalogPollInterval, stopping);
+        _ = Task.Run(async () => {
+            await service.ReapAsync(stopping);
+            await service.RunPollLoopAsync(() => Live(cache, AgentSettings.WatchInterval, DefaultWatchInterval), stopping);
+        }, stopping);
 
-        var orchestrator = new AgentOrchestrator(registry, interval, notifySecret);
-        var app = Build(args, port, sessionOptions, registry, orchestrator);
-
-        _ = orchestrator.RunAsync(app.Lifetime.ApplicationStopping);
-        Console.WriteLine($"eggidentity-agent: watching {registry.Apps.Count} app(s) every {interval}: {string.Join(", ", registry.Apps.Keys)}");
+        var names = service.AppNames;
+        Console.WriteLine($"eggidentity-agent: watching {names.Count} app(s) from deploy.apps: {string.Join(", ", names)}");
         Console.WriteLine($"eggidentity-agent: listening on :{port}");
-        app.Run();
+        await app.RunAsync();
         return 0;
     }
 
-    private static WebApplication Build(
-        string[] args, string port, SessionCookieOptions? sessionOptions,
-        AgentRegistry registry, AgentOrchestrator orchestrator) {
+    private static TimeSpan Live(SettingsCache cache, string key, TimeSpan fallback) {
+        var value = cache.Current?.GetDuration(key);
+        return value is { } duration && duration > TimeSpan.Zero ? duration : fallback;
+    }
+
+    private static WebApplication Build(string[] args, int port, SessionCookieOptions? sessionOptions, AgentRuntime runtime) {
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddHttpClient();
         if (sessionOptions is not null) {
@@ -50,15 +93,18 @@ internal static class Program {
         if (sessionOptions is not null) {
             app.UseAuthentication();
             app.UseAuthorization();
-            MapAdminRoutes(app, registry);
+            MapAdminRoutes(app, runtime);
         }
-        MapDeployRoutes(app, registry, orchestrator);
+        MapDeployRoutes(app, runtime);
         return app;
     }
 
-    private static void MapAdminRoutes(WebApplication app, AgentRegistry registry) {
+    private static void MapAdminRoutes(WebApplication app, AgentRuntime runtime) {
+        var service = runtime.Service;
+        var engine = runtime.Engine;
+
         app.MapGet("/fallback/{appName}", (string appName, HttpContext ctx) => {
-            if (!registry.Apps.ContainsKey(appName)) return Results.NotFound();
+            if (!service.TryGetApp(appName, out _)) return Results.NotFound();
             var isAdmin = ctx.User.IsAtLeast(UserRole.Admin);
             var branding = new FallbackBranding(appName, FallbackDefaults.Tokens);
             var html = FallbackPages.RenderDown(branding, isAdmin, $"/logs/{appName}/tail");
@@ -67,69 +113,91 @@ internal static class Program {
 
         app.MapGet("/logs/{appName}/tail", async (string appName, HttpContext ctx, int? lines) => {
             if (!ctx.User.IsAtLeast(UserRole.Admin)) return Results.Forbid();
-            if (!registry.Apps.ContainsKey(appName)) return Results.NotFound();
+            if (!service.TryGetApp(appName, out var cfg)) return Results.NotFound();
             var clampedLines = AgentRouteHelpers.ClampLogLines(lines);
-            var output = await DockerLogReader.TailAsync(appName, clampedLines, ctx.RequestAborted);
-            return Results.Text(output, PlainText);
+            try {
+                return Results.Text(await engine.LogsTailAsync(cfg.ContainerName, clampedLines, ctx.RequestAborted), PlainText);
+            } catch (Exception e) when (e is not OperationCanceledException) {
+                return Results.Text($"docker logs failed: {e.Message}", PlainText, null, StatusCodes.Status502BadGateway);
+            }
         });
 
-        app.MapStackRoutes(registry);
+        app.MapGet("/status", (HttpContext ctx) =>
+            ctx.User.IsAtLeast(UserRole.Admin) ? Results.Json(service.StatusAll()) : Results.Forbid());
+
+        app.MapGet("/status/{appName}", (string appName, HttpContext ctx) => {
+            if (!ctx.User.IsAtLeast(UserRole.Admin)) return Results.Forbid();
+            var status = service.Status(appName);
+            return status is null ? Results.NotFound() : Results.Json(status);
+        });
+
+        app.MapPost("/check/{appName}", async (string appName, HttpContext ctx) => {
+            if (!ctx.User.IsAtLeast(UserRole.Admin)) return Results.Forbid();
+            if (!service.TryGetApp(appName, out _)) return Results.NotFound();
+            return Results.Json(await service.CheckAsync(appName, ctx.RequestAborted));
+        });
+
+        app.MapPost("/restart/{appName}", async (string appName, HttpContext ctx, IHostApplicationLifetime lifetime) => {
+            if (!ctx.User.IsAtLeast(UserRole.Admin)) return Results.Forbid();
+            if (!service.TryGetApp(appName, out _)) return Results.NotFound();
+            return Results.Json(await service.RestartAsync(appName, lifetime.ApplicationStopping));
+        });
+
+        app.MapGet("/events", async (HttpContext ctx) => {
+            if (!ctx.User.IsAtLeast(UserRole.Admin)) {
+                ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return;
+            }
+            var after = ServerSentEvents.ResolveAfter(ctx.Request.Headers["Last-Event-ID"], ctx.Request.Query["after"]);
+            await ServerSentEvents.StreamAsync(ctx.Response, runtime.Events, after, ServerSentEvents.KeepaliveInterval, ctx.RequestAborted);
+        });
+
+        app.MapStackRoutes(runtime.Portainer);
+        app.MapEnvRoutes(runtime);
     }
 
-    private static void MapDeployRoutes(WebApplication app, AgentRegistry registry, AgentOrchestrator orchestrator) {
-        app.MapPost("/deploy/{appName}", async (string appName, HttpRequest req) => {
-            if (!registry.Apps.TryGetValue(appName, out var cfg)) return Results.NotFound();
-            if (!IsAuthorized(cfg, req)) return Unauthorized();
-            var (res, ran) = await orchestrator.TryDeployAsync(appName);
-            if (!ran) return Results.Text("deploy already in progress", PlainText, null, StatusCodes.Status409Conflict);
-            return Results.Json(res);
+    private static void MapDeployRoutes(WebApplication app, AgentRuntime runtime) {
+        var service = runtime.Service;
+
+        app.MapPost("/deploy/{appName}", (string appName, HttpContext ctx, IHostApplicationLifetime lifetime) => {
+            if (!service.TryGetApp(appName, out var cfg)) return Results.NotFound();
+            if (!ctx.User.IsAtLeast(UserRole.Admin) && !BearerMatches(ctx.Request, cfg.DeploySecret))
+                return Unauthorized();
+            RunInBackground(() => service.DeployAsync(appName, "manual", lifetime.ApplicationStopping));
+            return Results.Json(service.Status(appName), statusCode: StatusCodes.Status202Accepted);
         });
 
-        app.MapPost("/deploy/{appName}/fast", async (string appName, HttpRequest req) => {
-            if (!registry.Apps.TryGetValue(appName, out var cfg)) return Results.NotFound();
-            if (!IsAuthorized(cfg, req)) return Unauthorized();
-            if (!orchestrator.HasFastPipeline(appName))
-                return Results.Text($"fast deploy not configured for {appName}", PlainText, null, StatusCodes.Status400BadRequest);
-            var (res, ran) = await orchestrator.TryDeployFastAsync(appName);
-            if (!ran) return Results.Text("deploy already in progress", PlainText, null, StatusCodes.Status409Conflict);
-            return Results.Json(res);
+        app.MapPost("/hooks/image-pushed", (HttpContext ctx, DeployHookPayload payload, IHostApplicationLifetime lifetime) => {
+            if (!BearerMatches(ctx.Request, runtime.HookSecret)) return Unauthorized();
+            if (payload is null || string.IsNullOrWhiteSpace(payload.App)) return Results.BadRequest("app is required");
+            if (!service.TryGetApp(payload.App, out var cfg)) return Results.NotFound();
+            service.NoteRelease(cfg.Name, payload.Digest, payload.Revision, payload.Version);
+            RunInBackground(async () => {
+                var status = await service.CheckAsync(cfg.Name, lifetime.ApplicationStopping);
+                if (cfg.AutoDeploy && status.UpdateAvailable)
+                    await service.DeployAsync(cfg.Name, "hook", lifetime.ApplicationStopping);
+            });
+            return Results.Json(service.Status(cfg.Name), statusCode: StatusCodes.Status202Accepted);
         });
     }
+
+    private static void RunInBackground(Func<Task> work) =>
+        _ = Task.Run(async () => {
+            try {
+                await work();
+            } catch (Exception e) {
+                Console.Error.WriteLine($"eggidentity-agent: background work failed: {e}");
+            }
+        });
 
     private static IResult Unauthorized() =>
         Results.Text("unauthorized", PlainText, null, StatusCodes.Status401Unauthorized);
 
-    private static bool IsAuthorized(AgentConfig cfg, HttpRequest req) {
-        var secret = Environment.GetEnvironmentVariable(cfg.SecretEnv) ?? "";
-        var token = (req.Headers.Authorization.ToString() ?? "").Replace("Bearer ", "");
-        return secret != "" && CryptographicOperations.FixedTimeEquals(
-            Encoding.UTF8.GetBytes(token), Encoding.UTF8.GetBytes(secret));
-    }
-
-    private static bool TryLoadRegistry(string configDir, out AgentRegistry registry) {
-        try {
-            registry = AgentRegistry.LoadFromDir(configDir);
-            return true;
-        } catch (Exception e) {
-            Console.Error.WriteLine($"eggidentity-agent: load config dir: {e.Message}");
-            registry = null!;
-            return false;
-        }
-    }
-
-    private static bool TryParseInterval(string text, out TimeSpan interval) {
-        try {
-            interval = AgentConfig.ParseDuration(text);
-            return true;
-        } catch (Exception e) {
-            Console.Error.WriteLine($"eggidentity-agent: AGENT_WATCH_INTERVAL: {e.Message}");
-            interval = default;
-            return false;
-        }
-    }
-
-    private static string EnvOr(string name, string fallback) {
-        var value = Environment.GetEnvironmentVariable(name);
-        return string.IsNullOrEmpty(value) ? fallback : value;
+    private static bool BearerMatches(HttpRequest req, string? secret) {
+        if (string.IsNullOrEmpty(secret)) return false;
+        var header = req.Headers.Authorization.ToString();
+        if (!header.StartsWith("Bearer ", StringComparison.Ordinal)) return false;
+        var token = header["Bearer ".Length..].Trim();
+        return CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(token), Encoding.UTF8.GetBytes(secret));
     }
 }

@@ -19,5 +19,6 @@ public static class ComponentClasses {
         .AddRange(Prose.Applies)
         .AddRange(Workbench.Applies)
         .AddRange(Filters.Applies)
-        .AddRange(Calendar.Applies);
+        .AddRange(Calendar.Applies)
+        .AddRange(Icons.Applies);
 }

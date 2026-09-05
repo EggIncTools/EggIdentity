@@ -1,5 +1,6 @@
 using EggIdentity.Auth;
 using EggIdentity.Config;
+using EggIdentity.Deploy;
 
 namespace EggIdentity.Host;
 
@@ -14,7 +15,6 @@ internal sealed class HostConfig {
     public string? AuthentikAuthority { get; init; }
     public string? AuthentikAppsDir { get; init; }
     public bool LoginWidgetEnabled { get; init; }
-    public required Dictionary<string, AppAuthConfig> AppConfigs { get; init; }
 
     public SessionCookieOptions? SessionOptions { get; init; }
     public string? AvatarStorageDir { get; init; }
@@ -27,6 +27,7 @@ internal sealed class HostConfig {
     public required IReadOnlyDictionary<string, string> SharedFileValues { get; init; }
     public bool BotEnabled { get; init; }
     public bool AdminEnabled { get; init; }
+    public string? DeployAgentUrl { get; init; }
 
     public string? SharedFileLookup(string key) => SharedFileValues.GetValueOrDefault(key);
 
@@ -38,7 +39,7 @@ internal sealed class HostConfig {
 
         var authentikAuthority = Environment.GetEnvironmentVariable("AUTHENTIK_AUTHORITY");
         var authentikAppsDir = Environment.GetEnvironmentVariable("AUTHENTIK_APPS_DIR");
-        var loginWidgetEnabled = !string.IsNullOrEmpty(authentikAuthority) && !string.IsNullOrEmpty(authentikAppsDir);
+        var loginWidgetEnabled = !string.IsNullOrEmpty(authentikAuthority);
 
         var sessionOptions = SessionCookieOptions.FromEnvironment();
         var avatarStorageDir = Environment.GetEnvironmentVariable("AVATAR_STORAGE_DIR");
@@ -59,9 +60,6 @@ internal sealed class HostConfig {
             AuthentikAuthority = authentikAuthority,
             AuthentikAppsDir = authentikAppsDir,
             LoginWidgetEnabled = loginWidgetEnabled,
-            AppConfigs = loginWidgetEnabled
-                ? AppAuthConfigLoader.LoadFromDirectory(authentikAppsDir!, authentikAuthority!)
-                : [],
             SessionOptions = sessionOptions,
             AvatarStorageDir = avatarStorageDir,
             ProfileEnabled = loginWidgetEnabled && sessionOptions is not null && !string.IsNullOrEmpty(avatarStorageDir),
@@ -71,6 +69,7 @@ internal sealed class HostConfig {
             SharedFileValues = BotConfigLoader.ParseFile(botConfigFilePath),
             BotEnabled = botEnabled,
             AdminEnabled = botEnabled && loginWidgetEnabled && sessionOptions is not null,
+            DeployAgentUrl = Environment.GetEnvironmentVariable(DeployOptions.AgentUrlEnv),
         };
     }
 }
