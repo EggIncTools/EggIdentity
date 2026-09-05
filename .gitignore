@@ -4,3 +4,4 @@ artifacts/
 publish/
 .vscode/
 *.trx
+EggIdentity.Host/wwwroot/styles.css

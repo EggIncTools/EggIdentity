@@ -19,7 +19,7 @@
 }
 
 .fleet-agent-down {
-    color: #f23f43;
+    color: var(--color-err);
     opacity: 1;
 }
 
@@ -34,7 +34,7 @@
     align-items: flex-start;
     gap: 0.5rem;
     padding: 1rem;
-    border: 1px dashed #3f4147;
+    border: 1px dashed var(--color-border);
     border-radius: 8px;
     font-size: 0.9rem;
 }

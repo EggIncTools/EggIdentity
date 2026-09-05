@@ -261,6 +261,8 @@
 }
 
 .sks-field .sks-input {
+    flex: none;
+    width: 100%;
     max-width: none;
 }
 

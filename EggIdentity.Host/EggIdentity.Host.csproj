@@ -33,8 +33,51 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\EggIdentity.Host.CssBuild\EggIdentity.Host.CssBuild.csproj" ReferenceOutputAssembly="false" Private="false" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\EggIdentity\Migrations\*.up.sql" Link="Migrations\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\EggIdentity.Bot\Migrations\*.up.sql" Link="BotMigrations\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\styles.css" />
+    <Content Include="wwwroot\styles.css" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_StylesInput Include="Styles\app.css;LandingPage.cs;LegalPages.cs" />
+    <_StylesInput Include="**\*.razor;**\*.razor.cs" Exclude="bin\**;obj\**;Tests\**" />
+    <_StylesInput Include="..\EggIdentity.UI\**\*.razor;..\EggIdentity.UI\**\*.razor.cs" />
+    <_StylesInput Include="..\EggIdentity.Settings.AdminUi\**\*.razor;..\EggIdentity.Settings.AdminUi\**\*.razor.cs" />
+    <_StylesInput Include="..\EggIdentity.Deploy.AdminUi\**\*.razor;..\EggIdentity.Deploy.AdminUi\**\*.razor.cs" />
+    <_StylesInput Include="..\EggIdentity.Bot.AdminUi\**\*.razor;..\EggIdentity.Bot.AdminUi\**\*.razor.cs" />
+    <_StylesInput Include="..\EggIdentity.Metrics.AdminUi\**\*.razor;..\EggIdentity.Metrics.AdminUi\**\*.razor.cs" />
+    <_StylesInput Include="..\EggIdentity.AdminUi\**\*.razor;..\EggIdentity.AdminUi\**\*.razor.cs" />
+    <_StylesInput Include="..\EggIdentity.Fallback\FallbackPages.cs" />
+  </ItemGroup>
+
+  <Target Name="ResolveCssBuildPath" DependsOnTargets="ResolveProjectReferences">
+    <ItemGroup>
+      <_CssBuildProject Include="@(ProjectReference)" Condition="'%(Filename)' == 'EggIdentity.Host.CssBuild'" />
+    </ItemGroup>
+    <MSBuild Projects="@(_CssBuildProject)" Targets="GetTargetPath" Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" PropertyName="_CssBuildDll" />
+    </MSBuild>
+    <PropertyGroup>
+      <_CssBuildDotnet>$(DOTNET_HOST_PATH)</_CssBuildDotnet>
+      <_CssBuildDotnet Condition="'$(_CssBuildDotnet)' == ''">dotnet</_CssBuildDotnet>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="BuildCss"
+          AfterTargets="ResolveProjectReferences"
+          DependsOnTargets="ResolveCssBuildPath"
+          Condition="'$(BuildHostCss)' != 'false' And '$(DesignTimeBuild)' != 'true'"
+          Inputs="@(_StylesInput);$(_CssBuildDll)"
+          Outputs="$(MSBuildProjectDirectory)\wwwroot\styles.css">
+    <Exec Command="&quot;$(_CssBuildDotnet)&quot; &quot;$(_CssBuildDll)&quot; &quot;$(MSBuildProjectDirectory)&quot;" />
+  </Target>
 
 </Project>

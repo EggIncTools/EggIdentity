@@ -17,5 +17,7 @@ internal static class Toasts {
         { ".toast-text", "text-[13px] text-fg" },
         { ".toast.toast-busy", "border-l-muted" },
         { ".toast.toast-error", "border-l-err" },
+        { ".status-note-x", "w-4 h-4 shrink-0 grid place-items-center rounded-sm bg-transparent border-0 p-0 text-muted cursor-pointer" },
+        { ".status-note-x:hover", "text-fg" },
     }.ToImmutableDictionary();
 }

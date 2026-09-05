@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Build-time CSS compiler for EggIdentity.Host: scans the Host and the shared admin RCLs for utility/component class tokens and compiles wwwroot/styles.css via MonorailCss + EggIdentity.Styles.</Description>
+    <RootNamespace>EggIdentity.Host.CssBuild</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonorailCss" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EggIdentity.Styles\EggIdentity.Styles.csproj" />
+    <ProjectReference Include="..\EggIdentity.Fallback\EggIdentity.Fallback.csproj" />
+  </ItemGroup>
+
+</Project>

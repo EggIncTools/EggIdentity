@@ -5,6 +5,7 @@ WORKDIR /src
 
 COPY . .
 RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet restore EggIdentity.Host.CssBuild/EggIdentity.Host.CssBuild.csproj && \
     dotnet publish EggIdentity.Host/EggIdentity.Host.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime

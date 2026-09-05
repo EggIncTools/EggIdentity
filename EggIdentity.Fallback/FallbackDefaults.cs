@@ -3,6 +3,7 @@ namespace EggIdentity.Fallback;
 public static class FallbackDefaults {
     public static readonly IReadOnlyDictionary<string, string> Tokens = new Dictionary<string, string> {
         ["--color-bg"] = "#0b0d12",
+        ["--color-panel0"] = "#10131b",
         ["--color-panel"] = "#161a24",
         ["--color-panel2"] = "#1a1f2c",
         ["--color-fg"] = "#f3f5f9",

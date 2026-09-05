@@ -27,6 +27,7 @@
   <Project Path="EggIdentity.Filtering/Tests/EggIdentity.Filtering.Tests.csproj" />
   <Project Path="EggIdentity.Host/EggIdentity.Host.csproj" />
   <Project Path="EggIdentity.Host/Tests/EggIdentity.Host.Tests.csproj" />
+  <Project Path="EggIdentity.Host.CssBuild/EggIdentity.Host.CssBuild.csproj" />
   <Project Path="EggIdentity.Icons/EggIdentity.Icons.csproj" />
   <Project Path="EggIdentity.Icons/Tests/EggIdentity.Icons.Tests.csproj" />
   <Project Path="EggIdentity.Metrics/EggIdentity.Metrics.csproj" />
