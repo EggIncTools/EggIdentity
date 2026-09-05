@@ -81,11 +81,20 @@
         await SetScrollLockAsync(true);
     }
 
+    const string ScrollLockScript = "./_content/EggIdentity.UI/scrollLock.js";
+    bool _scriptLoaded;
+
     async Task SetScrollLockAsync(bool locked) {
         try {
+            if (!_scriptLoaded) {
+                await using var module = await JS.InvokeAsync<IJSObjectReference>("import", ScrollLockScript);
+                _scriptLoaded = true;
+            }
             await JS.InvokeVoidAsync(locked ? "modalScrollLock" : "modalScrollUnlock");
         }
         catch (JSDisconnectedException) {
+        }
+        catch (JSException) {
         }
     }
 
