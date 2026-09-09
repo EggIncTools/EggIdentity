@@ -27,18 +27,21 @@ public sealed class ToastService : IDisposable {
         }
     }
 
-    public void Push(StatusNoteKind kind, string text, string? actionLabel = null, Action? action = null) {
+    public void Push(StatusNoteKind kind, string text, string? actionLabel = null, Action? action = null, string? key = null) {
         if (string.IsNullOrWhiteSpace(text)) return;
         var now = _time.GetUtcNow();
         var sticky = kind == StatusNoteKind.Error || action is not null;
         lock (_gate) {
             if (_disposed) return;
-            var existing = _items.FindIndex(t => t.Kind == kind && t.Text == text && now - t.At < CollapseWindow);
-            if (existing >= 0) {
+            var keyed = key is null ? -1 : _items.FindIndex(t => t.Key == key);
+            var existing = keyed >= 0 ? keyed : _items.FindIndex(t => t.Key == key && t.Kind == kind && t.Text == text && now - t.At < CollapseWindow);
+            if (keyed >= 0) {
+                _items[keyed] = new ToastItem(_items[keyed].Id, kind, text, now, sticky, actionLabel, action, key);
+            } else if (existing >= 0) {
                 _items[existing] = _items[existing] with { At = now };
             } else {
                 Evict();
-                _items.Add(new ToastItem(Guid.NewGuid(), kind, text, now, sticky, actionLabel, action));
+                _items.Add(new ToastItem(Guid.NewGuid(), kind, text, now, sticky, actionLabel, action, key));
             }
 
             if (!sticky) _sweep ??= _time.CreateTimer(Sweep, null, SweepPeriod, SweepPeriod);

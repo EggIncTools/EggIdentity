@@ -14,6 +14,7 @@ public sealed record ContainerInfo(
     JsonElement Config,
     JsonElement HostConfig,
     JsonElement Networks) {
+    public JsonElement ImageConfig { get; init; }
     public string? Revision => Labels.GetValueOrDefault(OciLabels.Revision);
     public string? Version => Labels.GetValueOrDefault(OciLabels.Version);
 }
@@ -33,6 +34,7 @@ public static class OciLabels {
 }
 
 public sealed record ContainerSpec(string Name, string Image, JsonElement Config, JsonElement HostConfig, JsonElement Networks) {
+    public JsonElement ImageConfig { get; init; }
     public IReadOnlyList<string>? Cmd { get; init; }
     public IReadOnlyList<string>? Binds { get; init; }
     public bool AutoRemove { get; init; }

@@ -7,4 +7,5 @@ public sealed record ToastItem(
     DateTimeOffset At,
     bool Sticky,
     string? ActionLabel = null,
-    Action? Action = null);
+    Action? Action = null,
+    string? Key = null);

@@ -32,14 +32,18 @@ public static class DockerJson {
         var labels = ReadStringMap(config, "Labels");
         var env = ReadStringList(config, "Env");
         var repoDigests = new List<string>();
+        var imageConfig = EmptyObject();
         if (image is { } imageElement) {
             repoDigests = ReadStringList(imageElement, "RepoDigests");
-            if (imageElement.TryGetProperty("Config", out var imageConfig)) {
+            if (imageElement.TryGetProperty("Config", out var ic) && ic.ValueKind == JsonValueKind.Object) {
+                imageConfig = ic.Clone();
                 foreach (var (k, v) in ReadStringMap(imageConfig, "Labels"))
                     labels.TryAdd(k, v);
             }
         }
-        return new ContainerInfo(id, name.TrimStart('/'), imageRef, imageId, repoDigests, env, labels, running, config, hostConfig, networks);
+        return new ContainerInfo(id, name.TrimStart('/'), imageRef, imageId, repoDigests, env, labels, running, config, hostConfig, networks) {
+            ImageConfig = imageConfig,
+        };
     }
 
     public static ImageInfo ParseImage(JsonElement image) {
@@ -52,6 +56,7 @@ public static class DockerJson {
         ArgumentNullException.ThrowIfNull(spec);
 
         var body = ObjectNode(spec.Config);
+        StripImageDefaults(body, spec.ImageConfig);
         body["Image"] = spec.Image;
         body.Remove("MacAddress");
         if (IsAutoContainerId(body["Hostname"]?.GetValue<string>())) body.Remove("Hostname");
@@ -77,6 +82,36 @@ public static class DockerJson {
         ArgumentNullException.ThrowIfNull(node);
         using var doc = JsonDocument.Parse(node.ToJsonString());
         return doc.RootElement.Clone();
+    }
+
+    private static readonly string[] ImageScalarKeys = ["Cmd", "Entrypoint", "WorkingDir", "User", "StopSignal", "StopTimeout", "Healthcheck", "Shell"];
+    private static readonly string[] ImageMapKeys = ["Labels", "ExposedPorts", "Volumes"];
+
+    private static void StripImageDefaults(JsonObject body, JsonElement image) {
+        if (image.ValueKind != JsonValueKind.Object) return;
+        foreach (var key in ImageScalarKeys) {
+            if (!body.TryGetPropertyValue(key, out var value)) continue;
+            if (SameAsImage(value, image, key)) body.Remove(key);
+        }
+        foreach (var key in ImageMapKeys) {
+            if (body[key] is not JsonObject map || !image.TryGetProperty(key, out var imageMap) || imageMap.ValueKind != JsonValueKind.Object) continue;
+            foreach (var entry in imageMap.EnumerateObject()) {
+                if (map.TryGetPropertyValue(entry.Name, out var value) && JsonNode.DeepEquals(value, JsonNode.Parse(entry.Value.GetRawText())))
+                    map.Remove(entry.Name);
+            }
+        }
+        if (body["Env"] is JsonArray env && image.TryGetProperty("Env", out var imageEnv) && imageEnv.ValueKind == JsonValueKind.Array) {
+            var defaults = imageEnv.EnumerateArray().Select(e => e.GetString()).Where(e => e is not null).ToHashSet(StringComparer.Ordinal);
+            for (var i = env.Count - 1; i >= 0; i--) {
+                if (env[i]?.GetValue<string>() is { } line && defaults.Contains(line)) env.RemoveAt(i);
+            }
+        }
+    }
+
+    private static bool SameAsImage(JsonNode? value, JsonElement image, string key) {
+        var hasImageValue = image.TryGetProperty(key, out var imageValue) && imageValue.ValueKind != JsonValueKind.Null;
+        if (!hasImageValue) return value is null;
+        return JsonNode.DeepEquals(value, JsonNode.Parse(imageValue.GetRawText()));
     }
 
     private static JsonObject ObjectNode(JsonElement element) =>

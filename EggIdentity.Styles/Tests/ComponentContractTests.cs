@@ -16,7 +16,7 @@ public class ComponentContractTests {
             ".form-input", ".form-input:focus", ".form-select", ".form-select:focus", ".form-check",
             ".data-table", ".data-table thead th", ".data-table td", ".data-table tbody tr", ".data-table tbody tr:hover", ".stat-tile", ".stat-tile-label", ".stat-tile-value",
             ".toast-container", ".toast", ".toast.show", ".toast.leaving", ".toast-msg", ".toast-time", ".toast.toast-ok", ".toast.toast-err", ".toast.toast-info",
-            ".toast-host", ".toast-text", ".toast.toast-busy", ".toast.toast-error", ".status-note-x", ".status-note-x:hover",
+            ".toast-host", ".toast-host .toast", ".toast-text", ".toast.toast-busy", ".toast.toast-error", ".status-note-x", ".status-note-x:hover",
             ".tooltip-floating", ".tooltip-anchored", ".tooltip-fixed", ".tooltip-host", ".tooltip-toggle",
             ".tooltip-host:hover .tooltip-toggle", ".tooltip-toggle.show", ".tooltip-floating.tooltip-below", ".tooltip-anchored.tooltip-below",
             ".tooltip-floating::before", ".tooltip-floating::after", ".tooltip-floating.tooltip-below::before", ".tooltip-floating.tooltip-below::after",

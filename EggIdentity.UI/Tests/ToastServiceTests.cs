@@ -74,6 +74,43 @@ public class ToastServiceTests {
     }
 
     [Fact]
+    public void Push_SameKey_ReplacesInPlaceKeepingId() {
+        var (svc, time) = Create();
+        svc.Push(StatusNoteKind.Info, "other");
+        svc.Push(StatusNoteKind.Busy, "app: pulling", key: "app");
+        var first = svc.Items[1];
+
+        time.Advance(TimeSpan.FromSeconds(5));
+        svc.Push(StatusNoteKind.Ok, "app: deployed", key: "app");
+
+        Assert.Equal(2, svc.Items.Count);
+        var item = svc.Items[1];
+        Assert.Equal(first.Id, item.Id);
+        Assert.Equal(StatusNoteKind.Ok, item.Kind);
+        Assert.Equal("app: deployed", item.Text);
+        Assert.Equal(time.GetUtcNow(), item.At);
+    }
+
+    [Fact]
+    public void Push_SameKey_ErrorBecomesSticky() {
+        var (svc, _) = Create();
+        svc.Push(StatusNoteKind.Busy, "app: pulling", key: "app");
+
+        svc.Push(StatusNoteKind.Error, "app: boom", key: "app");
+
+        Assert.True(Assert.Single(svc.Items).Sticky);
+    }
+
+    [Fact]
+    public void Push_DifferentKeys_AddSeparateItems() {
+        var (svc, _) = Create();
+        svc.Push(StatusNoteKind.Busy, "pulling", key: "a");
+        svc.Push(StatusNoteKind.Busy, "pulling", key: "b");
+
+        Assert.Equal(2, svc.Items.Count);
+    }
+
+    [Fact]
     public void Push_SixthItem_EvictsOldestNonSticky() {
         var (svc, _) = Create();
         for (var i = 0; i < 5; i++) svc.Push(StatusNoteKind.Info, $"item {i}");

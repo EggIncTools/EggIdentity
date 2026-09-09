@@ -65,6 +65,46 @@ public class DeployServiceTests {
     }
 
     [Fact]
+    public async Task Check_ContainerRunsDifferentRepo_FailsInsteadOfReportingUpdate() {
+        var (service, engine, _, ring) = Build();
+        engine.Container = engine.Container! with { Image = "ghcr.io/x/other:latest" };
+
+        var status = await service.CheckAsync(App, CancellationToken.None);
+
+        Assert.False(status.UpdateAvailable);
+        var failed = Assert.Single(ring.Since(0));
+        Assert.Equal(DeployPhase.Failed, failed.Phase);
+        Assert.Contains("deploy.apps row", failed.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Deploy_ContainerRunsDifferentRepo_AbortsBeforePulling() {
+        var (service, engine, _, ring) = Build();
+        engine.Container = engine.Container! with { Image = "ghcr.io/x/other:latest" };
+
+        await service.DeployAsync(App, "manual", CancellationToken.None);
+
+        Assert.DoesNotContain("pull", engine.Calls);
+        Assert.Equal([DeployPhase.Failed], Phases(ring));
+    }
+
+    [Theory]
+    [InlineData("ghcr.io/x/eggledger:latest", null)]
+    [InlineData("ghcr.io/x/eggledger@sha256:abc", null)]
+    [InlineData("GHCR.io/x/EggLedger:2", null)]
+    [InlineData("sha256:0123", null)]
+    [InlineData("", null)]
+    [InlineData("ghcr.io/x/eggincognito:latest", "ghcr.io/x/eggincognito")]
+    public void ImageMismatch_ComparesRepositoryOnly(string running, string? offendingRepo) {
+        var container = new ContainerInfo("id", "eggledger", running, "sha256:img", [], [], new Dictionary<string, string>(), true, default, default, default);
+
+        var mismatch = DeployService.ImageMismatch(container, ImageRef.Parse("ghcr.io/x/eggledger:latest"));
+
+        if (offendingRepo is null) Assert.Null(mismatch);
+        else Assert.Contains(offendingRepo, mismatch, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Check_NewDigest_PublishesReleaseAvailableOnce() {
         var (service, _, _, ring) = Build();
 

@@ -151,6 +151,79 @@ public class DockerJsonTests {
         Assert.Equal(["/data:/data"], host.GetProperty("Binds").EnumerateArray().Select(e => e.GetString()));
     }
 
+    private const string RunnerContainerInspect = """
+    { "Id": "0123456789abcdef0123456789abcdef",
+      "Name": "/runner",
+      "Image": "sha256:runnerimg",
+      "State": { "Running": true },
+      "Config": { "Hostname": "0123456789ab",
+        "Image": "ghcr.io/x/runner:latest",
+        "Entrypoint": ["dotnet", "Runner.dll"],
+        "Cmd": null,
+        "WorkingDir": "/app",
+        "User": "",
+        "Env": ["PATH=/usr/bin", "A=1", "ASPNET_VERSION=10.0.0", "ADB_SERVER_SOCKET=tcp:127.0.0.1:5037"],
+        "Labels": { "com.docker.compose.service": "runner", "org.opencontainers.image.revision": "old-rev" },
+        "ExposedPorts": { "8080/tcp": {}, "9000/tcp": {} } },
+      "HostConfig": { "NetworkMode": "host" },
+      "NetworkSettings": { "Networks": {} } }
+    """;
+
+    private const string RunnerImageInspect = """
+    { "Id": "sha256:runnerimg",
+      "RepoDigests": ["ghcr.io/x/runner@sha256:cafe"],
+      "Config": { "Entrypoint": ["dotnet", "Runner.dll"],
+        "Cmd": null,
+        "WorkingDir": "/app",
+        "User": "",
+        "Env": ["PATH=/usr/bin", "ASPNET_VERSION=10.0.0", "ADB_SERVER_SOCKET=tcp:127.0.0.1:5037"],
+        "Labels": { "org.opencontainers.image.revision": "old-rev" },
+        "ExposedPorts": { "8080/tcp": {} } } }
+    """;
+
+    [Fact]
+    public void BuildCreateBody_DropsImageDerivedConfigSoTheNewImageSuppliesIt() {
+        var info = DockerJson.ParseContainer(Root(RunnerContainerInspect), Root(RunnerImageInspect));
+
+        var body = DockerJson.BuildCreateBody(new ContainerSpec("runner", "ghcr.io/x/runner:2", info.Config, info.HostConfig, info.Networks) { ImageConfig = info.ImageConfig });
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        Assert.False(root.TryGetProperty("Entrypoint", out _));
+        Assert.False(root.TryGetProperty("Cmd", out _));
+        Assert.False(root.TryGetProperty("WorkingDir", out _));
+        Assert.False(root.TryGetProperty("User", out _));
+        Assert.Equal(["A=1"], root.GetProperty("Env").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal(["com.docker.compose.service"], root.GetProperty("Labels").EnumerateObject().Select(p => p.Name));
+        Assert.Equal(["9000/tcp"], root.GetProperty("ExposedPorts").EnumerateObject().Select(p => p.Name));
+    }
+
+    [Fact]
+    public void BuildCreateBody_KeepsContainerOverridesThatDifferFromTheImage() {
+        var container = RunnerContainerInspect
+            .Replace("\"WorkingDir\": \"/app\"", "\"WorkingDir\": \"/custom\"", StringComparison.Ordinal)
+            .Replace("\"Entrypoint\": [\"dotnet\", \"Runner.dll\"]", "\"Entrypoint\": [\"sh\", \"-c\", \"run\"]", StringComparison.Ordinal);
+        var info = DockerJson.ParseContainer(Root(container), Root(RunnerImageInspect));
+
+        var body = DockerJson.BuildCreateBody(new ContainerSpec("runner", "ghcr.io/x/runner:2", info.Config, info.HostConfig, info.Networks) { ImageConfig = info.ImageConfig });
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        Assert.Equal("/custom", root.GetProperty("WorkingDir").GetString());
+        Assert.Equal(["sh", "-c", "run"], root.GetProperty("Entrypoint").EnumerateArray().Select(e => e.GetString()));
+    }
+
+    [Fact]
+    public void BuildCreateBody_WithoutImageConfig_CarriesEverything() {
+        var info = DockerJson.ParseContainer(Root(RunnerContainerInspect), null);
+
+        var body = DockerJson.BuildCreateBody(new ContainerSpec("runner", "ghcr.io/x/runner:2", info.Config, info.HostConfig, info.Networks));
+        using var doc = JsonDocument.Parse(body);
+
+        Assert.Equal("/app", doc.RootElement.GetProperty("WorkingDir").GetString());
+        Assert.Equal(4, doc.RootElement.GetProperty("Env").GetArrayLength());
+    }
+
     [Theory]
     [InlineData("0123456789ab", true)]
     [InlineData("web-1", false)]

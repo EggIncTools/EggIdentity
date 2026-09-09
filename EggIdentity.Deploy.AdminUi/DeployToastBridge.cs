@@ -22,12 +22,15 @@ public sealed class DeployToastBridge(IDeployEvents events, ToastService toasts,
     }
 
     private void OnEvent(DeployEvent evt) {
+        if (!Notable(evt.Phase)) return;
         if (_time.GetUtcNow() - evt.At > StaleWindow) return;
-        toasts.Push(Kind(evt.Phase), Text(evt));
+        toasts.Push(Kind(evt.Phase), Text(evt), key: evt.App);
     }
 
+    internal static bool Notable(DeployPhase phase) => phase is not (DeployPhase.Checked or DeployPhase.UpToDate);
+
     internal static StatusNoteKind Kind(DeployPhase phase) => phase switch {
-        DeployPhase.Pulling or DeployPhase.Pulled or DeployPhase.Recreating => StatusNoteKind.Busy,
+        DeployPhase.Pulling or DeployPhase.Pulled or DeployPhase.Recreating or DeployPhase.Restarting => StatusNoteKind.Busy,
         DeployPhase.Deployed => StatusNoteKind.Ok,
         DeployPhase.Failed => StatusNoteKind.Error,
         _ => StatusNoteKind.Info,

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace EggIdentity.Fallback.Tests;
 
@@ -14,6 +15,7 @@ public class FallbackMiddlewareTests {
     private static async Task<(WebApplication app, HttpClient client)> StartAsync() {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
+        builder.Logging.ClearProviders();
         builder.Services.AddEggIdentityFallback(new FallbackBranding("TestApp", new Dictionary<string, string> {
             ["--color-bg"] = "#0b0d12",
         }));

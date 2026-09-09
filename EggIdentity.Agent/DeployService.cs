@@ -298,7 +298,20 @@ public sealed class DeployService(
     }
 
     private static ContainerSpec Replacement(DeployApp cfg, ContainerInfo old) =>
-        new(cfg.ContainerName, cfg.Image, old.Config, old.HostConfig, old.Networks);
+        new(cfg.ContainerName, cfg.Image, old.Config, old.HostConfig, old.Networks) { ImageConfig = old.ImageConfig };
+
+    internal static string? ImageMismatch(ContainerInfo running, ImageRef expected) {
+        if (running.Image.Length == 0 || running.Image.StartsWith("sha256:", StringComparison.Ordinal)) return null;
+        ImageRef actual;
+        try {
+            actual = ImageRef.Parse(running.Image);
+        } catch (FormatException) {
+            return null;
+        }
+        return string.Equals(actual.Name, expected.Name, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : $"container {running.Name} runs {actual.Name}, but the deploy.apps row says {expected.Name}; fix the row before deploying";
+    }
 
     private async Task RollbackAsync(DeployApp cfg, ContainerInfo old, string? newId, bool oldStopped, Exception cause, CancellationToken ct) {
         Console.WriteLine($"deploy {cfg.Name}: rolling back after: {cause.Message}");
@@ -332,6 +345,13 @@ public sealed class DeployService(
                 state.LastCheckedAt = _clock.GetUtcNow();
             }
             return new Observation(null, null, null, e.Message);
+        }
+
+        if (running is not null && ImageMismatch(running, state.Image) is { } mismatch) {
+            lock (state.Sync) {
+                state.LastCheckedAt = _clock.GetUtcNow();
+            }
+            return new Observation(null, null, null, mismatch);
         }
 
         var runningDigest = running is null ? null : PickDigest(running, state.Image);
