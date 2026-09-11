@@ -34,6 +34,7 @@ public class ComponentContractTests {
             ".cal-cell-label", ".cal-cell-label.cal-cell-muted", ".cal-gridline", ".cal-hour-tick", ".cal-now", ".cal-lane-group", ".cal-lane-group + .cal-lane-group", ".cal-lane-group:last-child", ".cal-lane",
             ".cal-range-trigger", ".cal-range-trigger:hover", ".cal-range-panel", ".cal-range-panel:popover-open",
             ".icon", ".icon-xs", ".icon-sm", ".icon-md", ".icon-lg", ".icon-btn", ".icon-btn.active", ".icon-btn .icon", ".icon-btn-sm .icon",
+            ".brand-icon", ".brand-art",
         };
 
         Assert.Equal(expected, [.. ComponentClasses.All.Keys]);

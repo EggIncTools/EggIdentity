@@ -6,6 +6,7 @@ namespace EggIdentity.Styles;
 public static class ComponentClasses {
     public static readonly ImmutableDictionary<string, string> All = ImmutableDictionary<string, string>.Empty
         .AddRange(Badges.Applies)
+        .AddRange(Brand.Applies)
         .AddRange(Buttons.Applies)
         .AddRange(Panels.Applies)
         .AddRange(SegmentedToggles.Applies)

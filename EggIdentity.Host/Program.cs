@@ -55,6 +55,7 @@ public static class Program {
         app.MapGet("/terms", () => Results.Content(LegalPages.Terms, "text/html"));
 
         LoginRoutes.Map(app, config, sponsorSync);
+        BrandRoutes.Map(app);
 
         if (config.ProfileEnabled) ProfileLinkRoutes.Map(app, config);
         if (config.SponsorEnabled) SponsorRoutes.Map(app, config, sponsorSync!);

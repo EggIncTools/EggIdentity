@@ -1,0 +1,14 @@
+Brand assets license
+
+Copyright (c) DavidArthurCole. All rights reserved.
+
+The image assets in this package are the original artwork of the copyright
+holder and identify the applications of the EggIncTools suite.
+
+They are distributed solely so that applications in the EggIncTools suite, and
+applications authorized by the copyright holder, may display them. No license
+is granted to copy, modify, redistribute, or use these assets to identify any
+other product or service.
+
+This license covers the image assets only. The source code of the EggIdentity
+project is separately licensed under the MIT License.

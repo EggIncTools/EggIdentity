@@ -20,6 +20,7 @@
     <ProjectReference Include="..\EggIdentity.Contract\EggIdentity.Contract.csproj" />
     <ProjectReference Include="..\EggIdentity.Auth\EggIdentity.Auth.csproj" />
     <ProjectReference Include="..\EggIdentity.Bot\EggIdentity.Bot.csproj" />
+    <ProjectReference Include="..\EggIdentity.Brand\EggIdentity.Brand.csproj" />
     <ProjectReference Include="..\EggIdentity.Client\EggIdentity.Client.csproj" />
     <ProjectReference Include="..\EggIdentity.Config\EggIdentity.Config.csproj" />
     <ProjectReference Include="..\EggIdentity.Deploy\EggIdentity.Deploy.csproj" />

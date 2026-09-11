@@ -9,6 +9,7 @@
   <Project Path="EggIdentity.Bot/EggIdentity.Bot.csproj" />
   <Project Path="EggIdentity.Bot/Tests/EggIdentity.Bot.Tests.csproj" />
   <Project Path="EggIdentity.Bot.AdminUi/EggIdentity.Bot.AdminUi.csproj" />
+  <Project Path="EggIdentity.Brand/EggIdentity.Brand.csproj" />
   <Project Path="EggIdentity.Client/EggIdentity.Client.csproj" />
   <Project Path="EggIdentity.Client/Tests/EggIdentity.Client.Tests.csproj" />
   <Project Path="EggIdentity.CodeStyle/EggIdentity.CodeStyle.csproj" />
