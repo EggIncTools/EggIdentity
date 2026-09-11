@@ -22,6 +22,7 @@ jobs:
         EggIdentity.Auth/EggIdentity.Auth.csproj
         EggIdentity.Bot/EggIdentity.Bot.csproj
         EggIdentity.Bot.AdminUi/EggIdentity.Bot.AdminUi.csproj
+        EggIdentity.Brand/EggIdentity.Brand.csproj
         EggIdentity.CodeStyle/EggIdentity.CodeStyle.csproj
         EggIdentity.Config/EggIdentity.Config.csproj
         EggIdentity.Fallback/EggIdentity.Fallback.csproj
