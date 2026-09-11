@@ -36,12 +36,18 @@ public static class CutoverMerger {
 
         var identities = new List<Models.Identity>();
         foreach (var i in egi.Identities) {
-            if (!knownUserIds.Contains(i.UserId)) { orphans.Add(new(i.UserId, i.Provider, i.Subject, "eggincognito")); continue; }
+            if (!knownUserIds.Contains(i.UserId)) {
+                orphans.Add(new(i.UserId, i.Provider, i.Subject, "eggincognito"));
+                continue;
+            }
             identities.Add(ToIdentity(i, i.UserId));
         }
         foreach (var i in ledger.Identities) {
             var effectiveUserId = idRemap.GetValueOrDefault(i.UserId, i.UserId);
-            if (!knownUserIds.Contains(effectiveUserId)) { orphans.Add(new(i.UserId, i.Provider, i.Subject, "eggledger")); continue; }
+            if (!knownUserIds.Contains(effectiveUserId)) {
+                orphans.Add(new(i.UserId, i.Provider, i.Subject, "eggledger"));
+                continue;
+            }
             identities.Add(ToIdentity(i, effectiveUserId));
         }
 

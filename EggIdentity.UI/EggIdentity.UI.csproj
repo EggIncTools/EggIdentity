@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <Description>Shared Blazor UI components + JS interop for EggLedger/EggIncognito: modal host, icon renderer, outside-click detection, toast host.</Description>
+    <Description>Shared Blazor components and JS interop for EggLedger and EggIncognito: modal shell, icons, workbench shell, toasts, pickers, calendar primitives.</Description>
   </PropertyGroup>
 
   <ItemGroup>

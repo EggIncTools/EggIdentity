@@ -38,7 +38,7 @@ internal static class LoginRoutes {
         if (Program.ResolveApp(returnUrl, appConfigs) is null) return Results.BadRequest("returnUrl not allowed");
 
         var mode = Program.ValidateMode(ctx.Request.Query["mode"].ToString());
-        var sources = Program.KnownProviders.Select(provider => new LoginSourceResponse {
+        var sources = IdentityWire.KnownProviders.Select(provider => new LoginSourceResponse {
             Name = char.ToUpperInvariant(provider[0]) + provider[1..],
             IconUrl = $"/auth/icons/{provider}",
             Url = $"/auth/go/{provider}?returnUrl={Uri.EscapeDataString(returnUrl)}&mode={Uri.EscapeDataString(mode)}",
@@ -48,7 +48,7 @@ internal static class LoginRoutes {
 
     private static async Task<IResult> Icon(HttpContext ctx, string provider, IconCache icons, HostConfig config) {
         if (!config.LoginWidgetEnabled) return Results.NotFound();
-        if (!Program.KnownProviders.Contains(provider)) return Results.NotFound();
+        if (!IdentityWire.KnownProviders.Contains(provider)) return Results.NotFound();
 
         var icon = await icons.GetAsync(provider, ctx.RequestAborted);
         if (icon is null)
@@ -67,7 +67,7 @@ internal static class LoginRoutes {
         var isLocal = provider == "local";
         if (isLocal && !Program.IsValidLocalKey(config.LocalLoginKey, ctx.Request.Headers["X-Local-Login-Key"]))
             return Results.NotFound();
-        if (!isLocal && !Program.KnownProviders.Contains(provider))
+        if (!isLocal && !IdentityWire.KnownProviders.Contains(provider))
             return Results.BadRequest("unknown provider");
 
         var mode = Program.ValidateMode(ctx.Request.Query["mode"].ToString());
@@ -223,6 +223,7 @@ internal static class LoginRoutes {
         var validationParams = new TokenValidationParameters {
             ValidIssuer = discovery.Issuer,
             IssuerSigningKeys = discovery.SigningKeys,
+            TokenDecryptionKey = AuthentikOAuth.ReadRsaPrivateKey(config.AuthentikTokenDecryptionKey),
             ValidateAudience = false,
             ValidateLifetime = true,
         };

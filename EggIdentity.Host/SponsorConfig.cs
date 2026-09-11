@@ -7,7 +7,6 @@ public sealed record SponsorConfig(
     string DiscordBotToken,
     string DiscordGuildId,
     string DiscordRoleId) {
-
     public static SponsorConfig? FromEnvironment() {
         var pat = Environment.GetEnvironmentVariable("GITHUB_SPONSOR_PAT");
         var webhookSecret = Environment.GetEnvironmentVariable("GITHUB_SPONSOR_WEBHOOK_SECRET");

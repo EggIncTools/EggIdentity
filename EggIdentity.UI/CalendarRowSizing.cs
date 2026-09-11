@@ -10,9 +10,8 @@ public static class CalendarRowSizing {
         foreach (var g in groups) {
             var lanes = Math.Max(g.LaneCount, 0);
             total += g.HeaderRem;
-            if (lanes > 0) {
+            if (lanes > 0)
                 total += lanes * g.LaneMinRem + Math.Max(lanes - 1, 0) * g.LaneGapRem;
-            }
         }
         total += Math.Max(groups.Count - 1, 0) * groupGapRem;
         return total;

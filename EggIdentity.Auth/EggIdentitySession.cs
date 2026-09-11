@@ -26,7 +26,6 @@ public sealed class EggIdentitySessionHandler(
     TimeProvider clock,
     SessionRevocationCache revocations)
     : AuthenticationHandler<EggIdentitySessionOptions>(options, logger, encoder) {
-
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync() {
         var cookie = Options.Cookie;
         if (!Request.Cookies.TryGetValue(cookie.CookieName, out var token) || string.IsNullOrEmpty(token))

@@ -29,7 +29,7 @@ public class ComponentContractTests {
             ".wb-sec-head", ".wb-sec-tools", ".wb-sec-body", ".wb-scroll", ".wb-note", ".wb-seg-count",
             ".filter-panel", ".filter-bucket", ".filter-row", ".filter-glue", ".filter-glue-outer",
             ".filter-glue-inner", ".filter-warn", ".filter-add-btn", ".filter-add-inner", ".filter-add-outer",
-            ".filter-remove-btn", ".filter-remove-btn:hover",
+            ".filter-remove-btn", ".filter-remove-btn:hover", ".filter-field", ".filter-glass",
             ".cal-viewport", ".cal-strip", ".cal-period", ".cal-period-context", ".cal-canvas", ".cal-row", ".cal-row.cal-row-fixed", ".cal-row.cal-row-context",
             ".cal-cell-label", ".cal-cell-label.cal-cell-muted", ".cal-gridline", ".cal-hour-tick", ".cal-now", ".cal-lane-group", ".cal-lane-group + .cal-lane-group", ".cal-lane-group:last-child", ".cal-lane",
             ".cal-range-trigger", ".cal-range-trigger:hover", ".cal-range-panel", ".cal-range-panel:popover-open",

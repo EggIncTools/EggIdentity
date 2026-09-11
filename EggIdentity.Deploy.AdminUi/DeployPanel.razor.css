@@ -31,12 +31,12 @@
 }
 
 .dp-error {
-    color: var(--err, #f23f43);
+    color: var(--color-err, #f23f43);
     margin: 0;
 }
 
 .dp-notice {
-    color: var(--accent2, #f0b232);
+    color: var(--color-accent2, #f0b232);
     margin: 0;
 }
 
@@ -78,7 +78,7 @@
     font-size: 0.75rem;
     line-height: 1.35;
     padding: 0.5rem;
-    border: 1px solid var(--border, #26282c);
+    border: 1px solid var(--color-border, #26282c);
     border-radius: 6px;
     white-space: pre-wrap;
     word-break: break-all;
@@ -126,24 +126,24 @@
 .dp-phase-releaseavailable,
 .dp-phase-checked,
 .dp-phase-restarting {
-    color: var(--accent2, #f0b232);
-    border-color: var(--accent2, #f0b232);
+    color: var(--color-accent2, #f0b232);
+    border-color: var(--color-accent2, #f0b232);
 }
 
 .dp-phase-pulling,
 .dp-phase-pulled,
 .dp-phase-recreating {
-    color: var(--accent, #5865f2);
-    border-color: var(--accent, #5865f2);
+    color: var(--color-accent, #5865f2);
+    border-color: var(--color-accent, #5865f2);
 }
 
 .dp-phase-deployed,
 .dp-phase-uptodate {
-    color: var(--ok, #23a559);
-    border-color: var(--ok, #23a559);
+    color: var(--color-ok, #23a559);
+    border-color: var(--color-ok, #23a559);
 }
 
 .dp-phase-failed {
-    color: var(--err, #f23f43);
-    border-color: var(--err, #f23f43);
+    color: var(--color-err, #f23f43);
+    border-color: var(--color-err, #f23f43);
 }

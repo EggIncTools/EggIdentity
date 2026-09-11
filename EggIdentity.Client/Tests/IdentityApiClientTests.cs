@@ -172,7 +172,7 @@ public class IdentityApiClientTests {
         Assert.NotNull(result);
         Assert.Equal("alice", result!.Username);
         Assert.Equal("/profile/me", handler.LastRequest!.RequestUri!.AbsolutePath);
-        Assert.Equal("tok-1", handler.LastRequest.Headers.GetValues("X-EggIdentity-Session").Single());
+        Assert.Equal("tok-1", handler.LastRequest.Headers.GetValues(IdentityWire.SessionHeader).Single());
     }
 
     [Fact]

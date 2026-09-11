@@ -67,7 +67,6 @@ public static class Program {
 
     public const string IdHintCookie = "eggidentity_idhint";
 
-    public static readonly string[] KnownProviders = ["discord", "google", "microsoft", "github"];
 
     public static bool IsValidLocalKey(string? configured, string? presented) {
         if (string.IsNullOrEmpty(configured) || string.IsNullOrEmpty(presented)) return false;

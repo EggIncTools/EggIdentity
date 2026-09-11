@@ -12,6 +12,7 @@ public static class HostSettings {
     private const string Deploy = "Deploy";
 
     public const string LoginSweepIntervalMinutes = "identity.login_sweep_interval_minutes";
+    public const string TokenDecryptionKey = "authentik.token_decryption_key";
     public const string SponsorTarget = "github.sponsor_target";
     public const string SponsorRoleId = "discord.sponsor_role_id";
 
@@ -43,6 +44,11 @@ public static class HostSettings {
             "authentik.authority", "AUTHENTIK_AUTHORITY", "Authentik authority", Identity,
             SettingKind.Url, ApplyTier.Bootstrap, Sensitivity.Plain) {
             Description = "Gates the login widget. App registrations come from the authentik.apps collection.",
+        },
+        new SettingDescriptor(
+            TokenDecryptionKey, "AUTHENTIK_TOKEN_DECRYPTION_KEY", "Authentik token decryption key", Identity,
+            SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
+            Description = "RSA private key in PEM form, required only when the Authentik provider has an encryption key set. Without it an encrypted id_token yields no session id and revocation stops working. Storing it needs EGGIDENTITY_SETTINGS_KEY on the stack.",
         },
         new SettingDescriptor(
             "authentik.apps_dir", "AUTHENTIK_APPS_DIR", "Authentik app config directory", Identity,

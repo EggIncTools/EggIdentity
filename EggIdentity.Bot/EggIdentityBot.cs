@@ -82,10 +82,18 @@ public sealed class EggIdentityBot : IAsyncDisposable {
     }
 
     private async Task OnReadyAsync() {
-        try { await RegisterCommandsAsync(); } catch (Exception ex) { Console.Error.WriteLine($"bot: register commands: {ex.Message}"); }
-        try { await DownloadGuildMembersAsync(); } catch (Exception ex) { Console.Error.WriteLine($"bot: download guild members: {ex.Message}"); }
-        try { await EnsureSharedRoleAsync(); } catch (Exception ex) { Console.Error.WriteLine($"bot: shared-role: {ex.Message}"); }
-        try { await InitChannelHubAsync(); } catch (Exception ex) { Console.Error.WriteLine($"bot: channel hub: {ex.Message}"); }
+        await StepAsync("register commands", RegisterCommandsAsync);
+        await StepAsync("download guild members", DownloadGuildMembersAsync);
+        await StepAsync("shared-role", EnsureSharedRoleAsync);
+        await StepAsync("channel hub", InitChannelHubAsync);
+    }
+
+    private static async Task StepAsync(string label, Func<Task> step) {
+        try {
+            await step();
+        } catch (Exception ex) {
+            Console.Error.WriteLine($"bot: {label}: {ex.Message}");
+        }
     }
 
     private async Task DownloadGuildMembersAsync() {

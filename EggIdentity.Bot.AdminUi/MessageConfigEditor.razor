@@ -7,7 +7,7 @@
     @if (Service is null) {
         <p class="skc-muted">Bot not configured (needs a bot token, a dashboard channel, and Postgres).</p>
     } else if (!_loaded) {
-        <p class="skc-muted">Loading…</p>
+        <p class="skc-muted">Loading...</p>
     } else {
         <div class="skc-ids">
             <label>
@@ -65,7 +65,7 @@
         }
 
         <div class="skc-actions">
-            <button type="button" class="skc-save" @onclick="Save" disabled="@_saving">@(_saving ? "Saving…" : "Save")</button>
+            <button type="button" class="skc-save" @onclick="Save" disabled="@_saving">@(_saving ? "Saving..." : "Save")</button>
             <button type="button" class="skc-reset" @onclick="ResetTab" disabled="@_saving">Reset this tab to default</button>
         </div>
         @if (_msg is not null) {
@@ -227,7 +227,7 @@
                                                            @foreach (var b in c.Blocks) {
                                                                <div class="skc-fieldrow">
                                                                    @if (b.Kind == "separator") {
-                                                                       <span class="skc-grow skc-muted">— separator —</span>
+                                                                       <span class="skc-grow skc-muted">separator</span>
                                                                    } else {
                                                                        <label class="skc-grow">Text (markdown, use {{ pings }} to ping) <input @bind="b.Text"/></label>
                                                                    }
@@ -373,5 +373,4 @@
     static void AddSeparator(ComponentForm c) {
         if (c.Blocks.Count < 10) c.Blocks.Add(new BlockForm { Kind = "separator" });
     }
-
 }

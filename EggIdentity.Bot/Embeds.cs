@@ -33,7 +33,6 @@ public static class DefaultEmbeds {
             .AddField("Version", $"[{cfg.Build.Version}]({cfg.CommitUrl(cfg.Build.Version)})", inline: true)
             .AddField("Built", string.IsNullOrEmpty(cfg.Build.Date) ? "unknown" : cfg.Build.Date, inline: true)
             .Build();
-
 }
 
 public sealed record EmbedOptions {

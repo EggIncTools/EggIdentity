@@ -1,22 +1,34 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using EggIdentity.Contract;
+using Microsoft.IdentityModel.Tokens;
 
 namespace EggIdentity.Auth;
 
 public sealed record AuthentikTokenResult(
     string Sub, string? DiscordId, string? GoogleId, string? MicrosoftId, string? GitHubId,
     string? Username, string? Avatar, string? Sid, string? IdToken) {
-    public IReadOnlyDictionary<string, string?> PerSourceIds => new Dictionary<string, string?> {
-        ["discord"] = DiscordId,
-        ["google"] = GoogleId,
-        ["microsoft"] = MicrosoftId,
-        ["github"] = GitHubId,
+    public IReadOnlyDictionary<string, string?> PerSourceIds => new Dictionary<string, string?>(StringComparer.Ordinal) {
+        [IdentityWire.Discord] = DiscordId,
+        [IdentityWire.Google] = GoogleId,
+        [IdentityWire.Microsoft] = MicrosoftId,
+        [IdentityWire.GitHub] = GitHubId,
     };
 }
 
-public sealed class AuthentikOAuth(string authority, string clientId, string clientSecret, string callbackUrl) {
+public sealed class AuthentikOAuth(string authority, string clientId, string clientSecret, string callbackUrl, string? tokenDecryptionKeyPem = null) {
     private static readonly HttpClient Http = new();
+
+    public SecurityKey? TokenDecryptionKey { get; } = ReadRsaPrivateKey(tokenDecryptionKeyPem);
+
+    public static SecurityKey? ReadRsaPrivateKey(string? pem) {
+        if (string.IsNullOrWhiteSpace(pem)) return null;
+        var rsa = RSA.Create();
+        rsa.ImportFromPem(pem);
+        return new RsaSecurityKey(rsa);
+    }
 
     public string Authority { get; } = authority.TrimEnd('/');
 
@@ -59,7 +71,9 @@ public sealed class AuthentikOAuth(string authority, string clientId, string cli
             throw new InvalidOperationException("Authentik token response missing access_token");
 
         var idToken = tokenDoc.RootElement.TryGetProperty("id_token", out var itEl) ? itEl.GetString() : null;
-        var sid = ReadSessionIdFromIdToken(idToken);
+        var sid = ReadSessionIdFromIdToken(idToken, TokenDecryptionKey);
+        if (string.IsNullOrEmpty(sid))
+            Console.Error.WriteLine($"authentik callback for client {ClientId}: no session id, revocation is disabled for this session: {DescribeIdTokenProblem(idToken, TokenDecryptionKey)}");
 
         using var userInfoReq = new HttpRequestMessage(HttpMethod.Get, $"{Authority}/application/o/userinfo/");
         userInfoReq.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
@@ -93,14 +107,14 @@ public sealed class AuthentikOAuth(string authority, string clientId, string cli
         };
     }
 
-    public static string? ReadSessionIdFromIdToken(string? idToken) {
-        using var doc = DecodeIdTokenPayload(idToken);
+    public static string? ReadSessionIdFromIdToken(string? idToken, SecurityKey? decryptionKey = null) {
+        using var doc = DecodeIdTokenPayload(idToken, decryptionKey);
         if (doc is null) return null;
         return doc.RootElement.TryGetProperty("sid", out var sidEl) ? sidEl.GetString() : null;
     }
 
-    public static string? ReadAudienceFromIdToken(string? idToken) {
-        using var doc = DecodeIdTokenPayload(idToken);
+    public static string? ReadAudienceFromIdToken(string? idToken, SecurityKey? decryptionKey = null) {
+        using var doc = DecodeIdTokenPayload(idToken, decryptionKey);
         if (doc is null) return null;
         if (!doc.RootElement.TryGetProperty("aud", out var audEl)) return null;
         if (audEl.ValueKind == JsonValueKind.String) return audEl.GetString();
@@ -111,13 +125,57 @@ public sealed class AuthentikOAuth(string authority, string clientId, string cli
         return null;
     }
 
-    private static JsonDocument? DecodeIdTokenPayload(string? idToken) {
+    public static string? DescribeIdTokenProblem(string? idToken, SecurityKey? decryptionKey = null) {
+        if (string.IsNullOrEmpty(idToken)) return "the token response carried no id_token";
+        var parts = idToken.Split('.');
+        if (parts.Length == EncryptedTokenParts && decryptionKey is null)
+            return "the id_token is encrypted (JWE) and this host holds no decryption key; set authentik.token_decryption_key or unset the encryption key on the Authentik provider";
+        if (parts.Length < 2)
+            return $"the id_token is not a JWS ({parts.Length} part(s))";
+        using var doc = DecodeIdTokenPayload(idToken, decryptionKey);
+        if (doc is null) {
+            return parts.Length == EncryptedTokenParts
+                ? "the id_token did not decrypt with the configured key"
+                : "the id_token payload did not decode as JSON";
+        }
+        return doc.RootElement.TryGetProperty("sid", out _) ? null : "the id_token carried no sid claim";
+    }
+
+    private const int EncryptedTokenParts = 5;
+
+    private static JsonDocument? DecodeIdTokenPayload(string? idToken, SecurityKey? decryptionKey) {
         if (string.IsNullOrEmpty(idToken)) return null;
         var parts = idToken.Split('.');
+        if (parts.Length == EncryptedTokenParts) {
+            var payloadJson = decryptionKey is null ? null : DecryptPayloadJson(idToken, decryptionKey);
+            if (payloadJson is null) return null;
+            try {
+                return JsonDocument.Parse(payloadJson);
+            } catch (Exception) {
+                return null;
+            }
+        }
         if (parts.Length < 2) return null;
         try {
             var payload = Convert.FromBase64String(PadBase64Url(parts[1]));
             return JsonDocument.Parse(payload);
+        } catch (Exception) {
+            return null;
+        }
+    }
+
+    private static string? DecryptPayloadJson(string jwe, SecurityKey decryptionKey) {
+        try {
+            new JwtSecurityTokenHandler().ValidateToken(jwe, new TokenValidationParameters {
+                TokenDecryptionKey = decryptionKey,
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = false,
+                ValidateIssuerSigningKey = false,
+                RequireSignedTokens = false,
+                SignatureValidator = (token, _) => new JwtSecurityToken(token),
+            }, out var validated);
+            return (validated as JwtSecurityToken)?.Payload.SerializeToJson();
         } catch (Exception) {
             return null;
         }

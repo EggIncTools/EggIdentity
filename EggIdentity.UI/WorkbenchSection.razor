@@ -20,5 +20,4 @@
     string BodyCss => Scroll ? "wb-sec-body wb-scroll" : "wb-sec-body";
 
     string? BodyStyle => Scroll && !string.IsNullOrWhiteSpace(MaxHeight) ? $"max-height: {MaxHeight}" : null;
-
 }

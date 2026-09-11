@@ -47,7 +47,6 @@ public sealed class BotConfigService(
     ChannelConfigStore configStore, ChannelStateStore stateStore,
     Func<ThreadKind, ulong, CancellationToken, Task<string?>> ensureWebhook,
     Func<ThreadKind, CancellationToken, Task> teardownWebhook) {
-
     public async Task<BotConfigView> GetAsync(CancellationToken ct) {
         var cc = await configStore.GetAsync(guildId, appName, ct);
 

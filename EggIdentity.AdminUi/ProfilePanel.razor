@@ -29,7 +29,6 @@
     [Parameter] public RenderFragment<ProfileLinkRowContext>? LinkRowTemplate { get; set; }
     [Parameter] public RenderFragment<ProfileProvidersContext>? ProvidersTemplate { get; set; }
 
-    private static readonly string[] KnownProviders = ["discord", "google", "microsoft", "github"];
 
     private ProfileResponse? _profile;
     private string? _banner;
@@ -80,7 +79,7 @@
     }
 
     private ProfileProvidersContext BuildProvidersContext() {
-        var items = KnownProviders.Select(provider => {
+        var items = IdentityWire.KnownProviders.Select(provider => {
             var identity = _profile!.Identities.FirstOrDefault(i => i.Provider == provider);
             var linked = identity is not null;
             return new ProfileProviderItem(
@@ -98,7 +97,7 @@
     }
 
     private ProfileLinkRowContext BuildLinkRowContext() {
-        var items = KnownProviders.Select(provider => new ProfileLinkItem(
+        var items = IdentityWire.KnownProviders.Select(provider => new ProfileLinkItem(
             provider,
             _profile!.Identities.Any(i => i.Provider == provider),
             Identity.StartLinkUrl(provider, ReturnUrl),
@@ -251,5 +250,4 @@
 
     public void Dispose() {
     }
-
 }

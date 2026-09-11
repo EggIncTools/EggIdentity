@@ -37,7 +37,6 @@
 }
 
 @code {
-
     [Parameter] public bool Open { get; set; }
     [Parameter] public string Title { get; set; } = "";
     [Parameter] public string? TitleId { get; set; }
@@ -118,5 +117,4 @@
         if (!_wasOpen) return;
         await SetScrollLockAsync(false);
     }
-
 }

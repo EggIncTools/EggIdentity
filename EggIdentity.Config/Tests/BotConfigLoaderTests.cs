@@ -83,5 +83,4 @@ public class BotConfigLoaderTests {
             Assert.Equal("dc", cfg.DashboardChannelId);
         } finally { File.Delete(path); }
     }
-
 }

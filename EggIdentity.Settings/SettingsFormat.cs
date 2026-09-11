@@ -8,7 +8,10 @@ public static class SettingsFormat {
         var total = TimeSpan.Zero;
         var num = "";
         foreach (var ch in s) {
-            if (char.IsDigit(ch) || ch == '.') { num += ch; continue; }
+            if (char.IsDigit(ch) || ch == '.') {
+                num += ch;
+                continue;
+            }
             if (num.Length == 0) return null;
             if (!double.TryParse(num, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)) return null;
             switch (ch) {

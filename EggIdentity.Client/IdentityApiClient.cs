@@ -33,7 +33,7 @@ public sealed class IdentityApiClient(HttpClient http) {
 
     public async Task<SupporterStatusResponse?> RefreshSupporterStatusAsync(string sessionToken, CancellationToken ct) {
         using var req = new HttpRequestMessage(HttpMethod.Post, "/profile/supporter/refresh");
-        req.Headers.Add("X-EggIdentity-Session", sessionToken);
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
         var resp = await http.SendAsync(req, ct);
         if (resp.StatusCode == System.Net.HttpStatusCode.TooManyRequests) return null;
         resp.EnsureSuccessStatusCode();
@@ -84,7 +84,7 @@ public sealed class IdentityApiClient(HttpClient http) {
 
     public async Task<ProfileResponse?> GetProfileAsync(string sessionToken, CancellationToken ct) {
         using var req = new HttpRequestMessage(HttpMethod.Get, "/profile/me");
-        req.Headers.Add("X-EggIdentity-Session", sessionToken);
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
         var resp = await http.SendAsync(req, ct);
         if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized) return null;
         resp.EnsureSuccessStatusCode();
@@ -101,7 +101,7 @@ public sealed class IdentityApiClient(HttpClient http) {
 
     public async Task<bool> UnlinkIdentityAsync(string sessionToken, string provider, string subject, CancellationToken ct) {
         using var req = new HttpRequestMessage(HttpMethod.Post, $"/profile/identities/{provider}/{subject}/unlink");
-        req.Headers.Add("X-EggIdentity-Session", sessionToken);
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
         var resp = await http.SendAsync(req, ct);
         return resp.IsSuccessStatusCode;
     }
@@ -112,7 +112,7 @@ public sealed class IdentityApiClient(HttpClient http) {
         fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
         form.Add(fileContent, "file", fileName);
         using var req = new HttpRequestMessage(HttpMethod.Post, "/profile/avatar") { Content = form };
-        req.Headers.Add("X-EggIdentity-Session", sessionToken);
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
         var resp = await http.SendAsync(req, ct);
         return resp.IsSuccessStatusCode;
     }
@@ -121,7 +121,7 @@ public sealed class IdentityApiClient(HttpClient http) {
         using var req = new HttpRequestMessage(HttpMethod.Post, "/profile/preferences") {
             Content = JsonContent.Create(new ProfilePreferencesRequest { Timezone = timezone, Language = language, Theme = theme }),
         };
-        req.Headers.Add("X-EggIdentity-Session", sessionToken);
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
         var resp = await http.SendAsync(req, ct);
         return resp.IsSuccessStatusCode;
     }
@@ -130,7 +130,7 @@ public sealed class IdentityApiClient(HttpClient http) {
         using var req = new HttpRequestMessage(HttpMethod.Post, "/profile/avatar/select") {
             Content = JsonContent.Create(new AvatarSelectRequest { Provider = provider, Subject = subject }),
         };
-        req.Headers.Add("X-EggIdentity-Session", sessionToken);
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
         var resp = await http.SendAsync(req, ct);
         return resp.IsSuccessStatusCode;
     }

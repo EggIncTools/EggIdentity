@@ -18,5 +18,4 @@
     string? RailStyle => string.IsNullOrWhiteSpace(Width) ? null : $"--wb-rail-w: {Width}";
 
     string Css => string.IsNullOrWhiteSpace(Class) ? "wb-rail" : $"wb-rail {Class}";
-
 }

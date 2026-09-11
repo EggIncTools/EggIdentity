@@ -45,9 +45,8 @@ public sealed class SettingsAdminService(SettingsRegistry registry, SettingsStor
         var descriptor = registry.Find(key);
         if (descriptor is null) return new SettingsSaveResult(false, $"unknown setting \"{key}\"", false);
 
-        if (descriptor.Kind is SettingKind.ReadOnly or SettingKind.External) {
+        if (descriptor.Kind is SettingKind.ReadOnly or SettingKind.External)
             return new SettingsSaveResult(false, $"{descriptor.Label} is read-only", false);
-        }
 
         if (descriptor.Tier == ApplyTier.Bootstrap && !descriptor.AllowBootstrapEdit) {
             return new SettingsSaveResult(
@@ -59,9 +58,8 @@ public sealed class SettingsAdminService(SettingsRegistry registry, SettingsStor
                 false, "secret storage is unavailable: EGGIDENTITY_SETTINGS_KEY is not configured", false);
         }
 
-        if (SettingsValidation.Validate(descriptor, value) is string error) {
+        if (SettingsValidation.Validate(descriptor, value) is string error)
             return new SettingsSaveResult(false, error, false);
-        }
 
         if (string.IsNullOrWhiteSpace(value)) {
             await store.DeleteAsync(key, ct);
@@ -86,9 +84,8 @@ public sealed class SettingsAdminService(SettingsRegistry registry, SettingsStor
         if (descriptor is null) return new SettingsSaveResult(false, $"unknown collection \"{collectionKey}\"", false);
         if (SecretsUnavailable(descriptor) is { } unavailable) return unavailable;
 
-        if (await store.GetRowAsync(collectionKey, id, ct) is not null) {
+        if (await store.GetRowAsync(collectionKey, id, ct) is not null)
             return new SettingsSaveResult(false, $"{descriptor.Label} \"{id}\" already exists", false);
-        }
 
         var merged = new Dictionary<string, string?>(values, StringComparer.Ordinal) {
             [descriptor.IdField] = id,
@@ -126,9 +123,8 @@ public sealed class SettingsAdminService(SettingsRegistry registry, SettingsStor
     private async Task<SettingsSaveResult> WriteRowAsync(
         CollectionDescriptor descriptor, string id, IReadOnlyDictionary<string, string?> merged,
         string? updatedBy, CancellationToken ct) {
-        if (SettingsValidation.ValidateRow(descriptor, merged) is string error) {
+        if (SettingsValidation.ValidateRow(descriptor, merged) is string error)
             return new SettingsSaveResult(false, error, false);
-        }
 
         await store.UpsertRowAsync(descriptor, id, merged, updatedBy, ct);
         await cache.RefreshAsync(ct);

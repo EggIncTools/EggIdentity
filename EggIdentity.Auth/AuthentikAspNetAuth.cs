@@ -58,7 +58,7 @@ public static class AuthentikAspNetAuth {
                     ctx.HandleResponse();
                     return;
                 }
-                var discordId = principal.FindFirstValue("discord_id");
+                var discordId = principal.FindFirstValue(SessionClaims.DiscordId);
                 var username = principal.FindFirstValue("preferred_username") ?? principal.FindFirstValue(ClaimTypes.Name);
                 var identityClient = ctx.HttpContext.RequestServices.GetRequiredService<IdentityApiClient>();
                 var result = await identityClient.ResolveAsync(
@@ -67,13 +67,11 @@ public static class AuthentikAspNetAuth {
                 var identity = (ClaimsIdentity)principal.Identity!;
                 identity.AddClaim(new Claim(options.UserIdClaim, result.UserId.ToString()));
                 identity.AddClaim(new Claim(options.RoleClaim, result.Role));
-                if (options.DiscordIdClaim is not null && !string.IsNullOrEmpty(discordId)) {
+                if (options.DiscordIdClaim is not null && !string.IsNullOrEmpty(discordId))
                     identity.AddClaim(new Claim(options.DiscordIdClaim, discordId));
-                }
 
-                if (options.OnResolved is not null) {
+                if (options.OnResolved is not null)
                     await options.OnResolved(result, identity, ctx.HttpContext);
-                }
             };
             o.Events.OnRemoteFailure = ctx => {
                 var logger = ctx.HttpContext.RequestServices
@@ -89,7 +87,7 @@ public static class AuthentikAspNetAuth {
 
     public static async Task OnValidatePrincipalCheckRevoked(
         CookieValidatePrincipalContext ctx, IdentityApiClient identity, string userIdClaimType, string roleClaimType) {
-        var sid = ctx.Principal?.FindFirstValue("sid");
+        var sid = ctx.Principal?.FindFirstValue(SessionClaims.SessionId);
         if (!string.IsNullOrEmpty(sid) && await identity.IsRevokedAsync(sid, ctx.HttpContext.RequestAborted)) {
             ctx.RejectPrincipal();
             await ctx.HttpContext.SignOutAsync(ctx.Scheme.Name);

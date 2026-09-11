@@ -10,7 +10,6 @@ public sealed class SponsorSyncService(
     GitHubSponsorStatusStore store,
     ProfileService profiles,
     UserQueries users) {
-
     public async Task<GitHubSponsorStatus?> SyncAsync(Guid userId, CancellationToken ct) {
         var identities = await profiles.ListIdentitiesAsync(userId, ct);
         var github = identities.FirstOrDefault(i => i.Provider == "github");

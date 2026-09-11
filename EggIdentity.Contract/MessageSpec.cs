@@ -13,7 +13,6 @@ public sealed record MessageSpec(
     [property: JsonPropertyName("embed")] EmbedSpec? Embed,
     [property: JsonPropertyName("components")] ComponentSpec? Components,
     [property: JsonPropertyName("mentions")] MentionSpec? Mentions) {
-
     public static MessageSpec FromEmbed(EmbedSpec embed) =>
         new(MessageKind.Embed, embed, null, null);
 }

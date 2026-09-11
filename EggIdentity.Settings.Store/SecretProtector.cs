@@ -18,7 +18,11 @@ public sealed class SecretProtector {
     public static SecretProtector? FromKey(string? base64Key) {
         if (string.IsNullOrWhiteSpace(base64Key)) return null;
         byte[] key;
-        try { key = Convert.FromBase64String(base64Key); } catch (FormatException) { return null; }
+        try {
+            key = Convert.FromBase64String(base64Key);
+        } catch (FormatException) {
+            return null;
+        }
         return key.Length == 32 ? new SecretProtector(key) : null;
     }
 
@@ -46,7 +50,11 @@ public sealed class SecretProtector {
         if (!IsProtected(stored)) return stored;
 
         byte[] packed;
-        try { packed = Convert.FromBase64String(stored![Prefix.Length..]); } catch (FormatException) { return null; }
+        try {
+            packed = Convert.FromBase64String(stored![Prefix.Length..]);
+        } catch (FormatException) {
+            return null;
+        }
         if (packed.Length < NonceSize + TagSize) return null;
 
         var nonce = packed.AsSpan(0, NonceSize);

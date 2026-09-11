@@ -37,9 +37,7 @@ public static partial class CssBuildText {
                     if (depth > 0) {
                         var line = 1;
                         for (var j = 0; j < pos; j++) {
-                            if (text[j] == '\n') {
-                                line++;
-                            }
+                            if (text[j] == '\n') line++;
                         }
                         var snippetStart = Math.Max(applyIndex, pos - 40);
                         var snippet = text.Substring(snippetStart, pos - snippetStart + 1);

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using EggIdentity.Auth;
+using EggIdentity.Contract;
 using Microsoft.AspNetCore.Http;
 
 namespace EggIdentity.Host;
@@ -7,7 +8,7 @@ namespace EggIdentity.Host;
 public static class ProfileAuth {
     public static async Task<Guid?> TryGetUserIdAsync(
         HttpContext ctx, SessionCookieOptions cookie, Func<string, CancellationToken, Task<bool>> isRevokedAsync, CancellationToken ct) {
-        var token = ctx.Request.Headers.TryGetValue("X-EggIdentity-Session", out var header) ? header.ToString()
+        var token = ctx.Request.Headers.TryGetValue(IdentityWire.SessionHeader, out var header) ? header.ToString()
             : ctx.Request.Cookies.TryGetValue(cookie.CookieName, out var cookieValue) ? cookieValue
             : null;
         if (string.IsNullOrEmpty(token)) return null;

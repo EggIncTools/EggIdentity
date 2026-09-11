@@ -14,6 +14,7 @@ internal sealed class HostConfig {
     public string? LocalLoginKey { get; init; }
     public string? AuthentikAuthority { get; init; }
     public string? AuthentikAppsDir { get; init; }
+    public string? AuthentikTokenDecryptionKey { get; init; }
     public bool LoginWidgetEnabled { get; init; }
 
     public SessionCookieOptions? SessionOptions { get; init; }
@@ -39,6 +40,7 @@ internal sealed class HostConfig {
 
         var authentikAuthority = Environment.GetEnvironmentVariable("AUTHENTIK_AUTHORITY");
         var authentikAppsDir = Environment.GetEnvironmentVariable("AUTHENTIK_APPS_DIR");
+        var authentikTokenDecryptionKey = Environment.GetEnvironmentVariable("AUTHENTIK_TOKEN_DECRYPTION_KEY");
         var loginWidgetEnabled = !string.IsNullOrEmpty(authentikAuthority);
 
         var sessionOptions = SessionCookieOptions.FromEnvironment();
@@ -59,6 +61,7 @@ internal sealed class HostConfig {
             LocalLoginKey = Environment.GetEnvironmentVariable("EGGIDENTITY_LOCAL_KEY"),
             AuthentikAuthority = authentikAuthority,
             AuthentikAppsDir = authentikAppsDir,
+            AuthentikTokenDecryptionKey = authentikTokenDecryptionKey,
             LoginWidgetEnabled = loginWidgetEnabled,
             SessionOptions = sessionOptions,
             AvatarStorageDir = avatarStorageDir,

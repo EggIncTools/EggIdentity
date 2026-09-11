@@ -2,7 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace EggIdentity.Contract;
 
-
 public sealed class IdentityResolveRequest {
     [JsonPropertyName("provider")]
     public string Provider { get; set; } = "";

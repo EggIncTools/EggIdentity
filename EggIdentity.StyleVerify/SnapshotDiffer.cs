@@ -17,9 +17,8 @@ public static class SnapshotDiffer {
         }
 
         foreach (var candidate_ in candidate.Elements) {
-            if (!goldenByKey.ContainsKey(candidate_.Key)) {
+            if (!goldenByKey.ContainsKey(candidate_.Key))
                 deltas.Add(new StyleDelta(DeltaKind.ElementAddedInCandidate, candidate_.Key, null, null, null));
-            }
         }
 
         return deltas.ToImmutable();
@@ -34,9 +33,8 @@ public static class SnapshotDiffer {
                 deltas.Add(new StyleDelta(DeltaKind.PropertyChanged, golden.Key, property, hasOld ? oldValue : null, hasNew ? newValue : null));
                 continue;
             }
-            if (!StyleValueComparer.AreEquivalent(oldValue!, newValue!, numericTolerance)) {
+            if (!StyleValueComparer.AreEquivalent(oldValue!, newValue!, numericTolerance))
                 deltas.Add(new StyleDelta(DeltaKind.PropertyChanged, golden.Key, property, oldValue, newValue));
-            }
         }
     }
 }

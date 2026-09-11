@@ -1,4 +1,5 @@
 using EggIdentity.Auth;
+using EggIdentity.Contract;
 using EggIdentity.Host;
 using Microsoft.AspNetCore.Http;
 using Xunit;
@@ -22,7 +23,7 @@ public class ProfileAuthTests {
         var userId = Guid.NewGuid();
         var token = SessionToken.Issue(Cookie, new SessionUser(UserId: userId.ToString(), Sid: "sid-1", Role: "viewer", Name: "alice", Avatar: null, DiscordId: null), DateTimeOffset.UtcNow);
         var ctx = new DefaultHttpContext();
-        ctx.Request.Headers["X-EggIdentity-Session"] = token;
+        ctx.Request.Headers[IdentityWire.SessionHeader] = token;
 
         var result = await ProfileAuth.TryGetUserIdAsync(ctx, Cookie, (_, _) => Task.FromResult(false), CancellationToken.None);
 
@@ -34,7 +35,7 @@ public class ProfileAuthTests {
         var userId = Guid.NewGuid();
         var token = SessionToken.Issue(Cookie, new SessionUser(UserId: userId.ToString(), Sid: "sid-revoked", Role: "viewer", Name: "alice", Avatar: null, DiscordId: null), DateTimeOffset.UtcNow);
         var ctx = new DefaultHttpContext();
-        ctx.Request.Headers["X-EggIdentity-Session"] = token;
+        ctx.Request.Headers[IdentityWire.SessionHeader] = token;
 
         var result = await ProfileAuth.TryGetUserIdAsync(ctx, Cookie, (_, _) => Task.FromResult(true), CancellationToken.None);
 

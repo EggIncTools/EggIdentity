@@ -6,7 +6,6 @@ namespace EggIdentity.Bot;
 
 public sealed class DeployNotifier(
     ChannelConfigStore configStore, DiscordSocketClient client, ulong guildId, string appName) {
-
     public async Task NotifyAsync(DeployResponse res, CancellationToken ct) {
         var cfg = await configStore.GetAsync(guildId.ToString(), appName, ct);
         if (cfg is null || string.IsNullOrEmpty(cfg.DeployNotificationsThreadId)) return;

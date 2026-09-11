@@ -36,10 +36,10 @@ public static class Brands {
             UniformTrimInset = 40,
         },
         new BrandInfo {
-            Slug = "abacus", DisplayName = "EggAbacus", Accent = "#2563eb",
+            Slug = "abacus", DisplayName = "EggAbacus", Accent = "#f43f5e",
         },
         new BrandInfo {
-            Slug = "identity", DisplayName = "EggIdentity", Accent = "#7aa2ff",
+            Slug = "identity", DisplayName = "EggIdentity", Accent = "#f5b93b",
         },
         new BrandInfo {
             Slug = "tools", DisplayName = "EggIncTools", Accent = "#7aa2ff",

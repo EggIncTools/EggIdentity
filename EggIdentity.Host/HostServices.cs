@@ -62,7 +62,8 @@ internal static class HostServices {
 
         var authority = config.AuthentikAuthority!;
         builder.Services.AddSingleton(sp => new IconCache(sp.GetRequiredService<IHttpClientFactory>(), authority));
-        builder.Services.AddSingleton(sp => new AppAuthConfigs(sp.GetRequiredService<SettingsCache>(), authority, config.AuthentikAppsDir));
+        builder.Services.AddSingleton(sp => new AppAuthConfigs(
+            sp.GetRequiredService<SettingsCache>(), authority, config.AuthentikAppsDir, config.AuthentikTokenDecryptionKey));
         builder.Services.AddSingleton(new ConfigurationManager<OpenIdConnectConfiguration>(
             $"{authority.TrimEnd('/')}/.well-known/openid-configuration",
             new OpenIdConnectConfigurationRetriever()));

@@ -1,3 +1,4 @@
+using EggIdentity.Agent.Models.Stack;
 using EggIdentity.Auth;
 using EggIdentity.Contract;
 using Microsoft.AspNetCore.Builder;
@@ -21,7 +22,7 @@ public static class StackRoutes {
 
             return Results.Json(result.Entries
                 .OrderBy(e => e.Name, StringComparer.Ordinal)
-                .Select(e => new { name = e.Name, value = SecretMasking.Mask(e.Name, e.Value), masked = SecretMasking.LooksSecret(e.Name) }));
+                .Select(MaskedEnvEntry.From));
         });
 
         app.MapPatch("/stack/env", async (HttpContext ctx, IHttpClientFactory factory, Dictionary<string, string?> changes) => {

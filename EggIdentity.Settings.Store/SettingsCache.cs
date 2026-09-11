@@ -6,7 +6,6 @@ public sealed class SettingsCache(
     Func<string, string?>? file = null,
     TimeSpan? ttl = null,
     TimeProvider? timeProvider = null) : IDisposable {
-
     private readonly TimeSpan _ttl = ttl ?? TimeSpan.FromSeconds(15);
     private readonly TimeProvider _clock = timeProvider ?? TimeProvider.System;
     private readonly SemaphoreSlim _gate = new(1, 1);

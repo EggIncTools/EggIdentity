@@ -5,7 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Description>Host-side deploy agent: apps from the deploy.apps settings collection, registry manifest checks, CI push hook, Docker Engine API recreate over docker.sock, in-memory deploy event ring with SSE, status/check/deploy/restart routes, per-service env provenance, Portainer stack env authority.</Description>
+    <Description>Host-side deploy agent: apps from the deploy.apps settings collection, registry manifest checks, CI push hook, and container recreate over the Docker Engine API. Emits deploy events over SSE.</Description>
     <RootNamespace>EggIdentity.Agent</RootNamespace>
     <IsPackable>false</IsPackable>
   </PropertyGroup>

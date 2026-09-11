@@ -16,5 +16,7 @@ internal static class Filters {
         { ".filter-add-outer", "[border-style:dashed]" },
         { ".filter-remove-btn", "inline-flex items-center justify-center w-5 h-5 rounded [color:var(--color-err)] [background-color:transparent] [border:0] cursor-pointer" },
         { ".filter-remove-btn:hover", "[background-color:color-mix(in_srgb,var(--color-err)_15%,transparent)]" },
+        { ".filter-field", "relative flex items-center gap-1.5" },
+        { ".filter-glass", "absolute left-2 [color:var(--color-muted)] pointer-events-none" },
     }.ToImmutableDictionary();
 }

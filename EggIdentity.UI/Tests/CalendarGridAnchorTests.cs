@@ -13,9 +13,7 @@ public class CalendarGridAnchorTests {
         for (int i = 0; i < 365; i++) {
             date = date.AddDays(1);
             var offset = tz.GetUtcOffset(date.ToDateTime(TimeOnly.MinValue));
-            if (offset > prevOffset) {
-                return date;
-            }
+            if (offset > prevOffset) return date;
             prevOffset = offset;
         }
         throw new InvalidOperationException("no spring-forward transition found in " + year);

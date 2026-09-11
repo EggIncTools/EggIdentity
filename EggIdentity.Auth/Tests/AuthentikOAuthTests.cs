@@ -97,4 +97,52 @@ public class AuthentikOAuthTests {
 
         Assert.Equal(expectedChallenge, challenge);
     }
+
+    private static string JwsWith(string payloadJson) {
+        static string Enc(string raw) =>
+            Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(raw)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        return $"{Enc("{\"alg\":\"RS256\"}")}.{Enc(payloadJson)}.sig";
+    }
+
+    [Fact]
+    public void DescribeIdTokenProblem_NamesJweWhenNoKeyIsConfigured() {
+        var jwe = "header.encryptedkey.iv.ciphertext.tag";
+
+        var problem = AuthentikOAuth.DescribeIdTokenProblem(jwe);
+
+        Assert.Contains("encrypted (JWE)", problem);
+        Assert.Null(AuthentikOAuth.ReadSessionIdFromIdToken(jwe));
+    }
+
+    [Fact]
+    public void DescribeIdTokenProblem_DistinguishesAbsentFromUnparseableFromMissingSid() {
+        Assert.Contains("no id_token", AuthentikOAuth.DescribeIdTokenProblem(null));
+        Assert.Contains("no id_token", AuthentikOAuth.DescribeIdTokenProblem(""));
+        Assert.Contains("not a JWS", AuthentikOAuth.DescribeIdTokenProblem("nodots"));
+        Assert.Contains("did not decode as JSON", AuthentikOAuth.DescribeIdTokenProblem("aaa.!!!not-base64!!!.ccc"));
+        Assert.Contains("no sid claim", AuthentikOAuth.DescribeIdTokenProblem(JwsWith("""{"aud":"client123"}""")));
+    }
+
+    [Fact]
+    public void DescribeIdTokenProblem_IsNullWhenTheTokenCarriesASid() {
+        var token = JwsWith("""{"sid":"session-1"}""");
+
+        Assert.Null(AuthentikOAuth.DescribeIdTokenProblem(token));
+        Assert.Equal("session-1", AuthentikOAuth.ReadSessionIdFromIdToken(token));
+    }
+
+    [Fact]
+    public void ReadAudienceFromIdToken_StillReturnsNullForAnEncryptedTokenRatherThanThrowing() {
+        Assert.Null(AuthentikOAuth.ReadAudienceFromIdToken("header.encryptedkey.iv.ciphertext.tag"));
+        Assert.Null(AuthentikOAuth.ReadAudienceFromIdToken(null));
+    }
+
+    [Fact]
+    public void ReadRsaPrivateKey_ReturnsNullForAbsentPemAndAKeyForAValidOne() {
+        Assert.Null(AuthentikOAuth.ReadRsaPrivateKey(null));
+        Assert.Null(AuthentikOAuth.ReadRsaPrivateKey("   "));
+
+        using var rsa = System.Security.Cryptography.RSA.Create(2048);
+        Assert.NotNull(AuthentikOAuth.ReadRsaPrivateKey(rsa.ExportPkcs8PrivateKeyPem()));
+    }
 }
