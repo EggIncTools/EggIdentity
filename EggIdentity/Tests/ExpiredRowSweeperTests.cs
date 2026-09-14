@@ -34,6 +34,37 @@ public class ExpiredRowSweeperTests {
     }
 
     [Fact]
+    public void RevocationRetention_OutlivesTheLongestPossibleSession() {
+        var longestSession = TimeSpan.FromMinutes(43200);
+
+        Assert.True(
+            ExpiredRowSweeper.RevocationRetention > longestSession,
+            "a revocation must not be forgotten while a token revoked at that moment could still validate");
+    }
+
+    [Fact]
+    public async Task SweepAsync_DropsOldRevocations_KeepsRecentOnes() {
+        if (string.IsNullOrEmpty(ConnString)) return;
+        await using var db = await MakeDbAsync();
+        var store = new RevocationStore(db);
+
+        await store.RevokeAsync("recent-sid", CancellationToken.None);
+        await store.RevokeAsync("ancient-sid", CancellationToken.None);
+        await using (var conn = await db.OpenConnectionAsync()) {
+            await using var cmd = new NpgsqlCommand(
+                "UPDATE revoked_sessions SET revoked_at = now() - $1 WHERE sid = $2", conn);
+            cmd.Parameters.AddWithValue(ExpiredRowSweeper.RevocationRetention + TimeSpan.FromDays(1));
+            cmd.Parameters.AddWithValue("ancient-sid");
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        await new ExpiredRowSweeper(db, TimeSpan.FromMinutes(10)).SweepAsync(CancellationToken.None);
+
+        Assert.True(await store.IsRevokedAsync("recent-sid", CancellationToken.None));
+        Assert.False(await store.IsRevokedAsync("ancient-sid", CancellationToken.None));
+    }
+
+    [Fact]
     public async Task SweepAsync_DeletesExpiredLoginCodes_KeepsLive() {
         if (string.IsNullOrEmpty(ConnString)) return;
         await using var db = await MakeDbAsync();

@@ -10,21 +10,45 @@
                     @if (_rows is null && _rowsError is null) {
                         <p class="wb-note">Loading...</p>
                     }
-                    @foreach (var category in Categories) {
-                        var name = category;
-                        var dirty = DirtyCount(name);
-                        <WorkbenchEntry Selected="@IsSelected(PaneKind.Category, name)" OnClick="@(() => Select(PaneKind.Category, name))">
-                            <Name>@name</Name>
-                            <Trail>
-                                @if (dirty > 0) {
-                                    <span class="badge badge-accent sks-badge" title="Unsaved edits">@dirty</span>
-                                }
-                                @if (HasPendingRestart(name)) {
-                                    <span class="sks-dot" title="Restart pending"></span>
-                                }
-                                <span class="sks-count">@RowCount(name)</span>
-                            </Trail>
-                        </WorkbenchEntry>
+                    @foreach (var group in Nav) {
+                        var current = group;
+                        @if (current.IsLeaf) {
+                            var only = current.Categories[0].Category;
+                            <WorkbenchEntry Selected="@IsSelected(PaneKind.Category, only)" OnClick="@(() => Select(PaneKind.Category, only))">
+                                <Name>@current.Label</Name>
+                                <Trail>@CategoryTrail(only)</Trail>
+                            </WorkbenchEntry>
+                        } else {
+                            var open = IsGroupOpen(current);
+                            <WorkbenchEntry Selected="false" OnClick="@(() => ToggleGroup(current))">
+                                <Name>
+                                    <span class="sks-group-name">
+                                        <Icon Name="@(open ? "chevron-down" : "chevron-right")" Class="icon-sm"/>
+                                        <span>@current.Label</span>
+                                    </span>
+                                </Name>
+                                <Trail>
+                                    @if (GroupDirtyCount(current) is > 0 and var dirty) {
+                                        <span class="badge badge-accent sks-badge" title="Unsaved edits">@dirty</span>
+                                    }
+                                    @if (GroupHasPendingRestart(current)) {
+                                        <span class="sks-dot" title="Restart pending"></span>
+                                    }
+                                    <span class="sks-count">@GroupRowCount(current)</span>
+                                </Trail>
+                            </WorkbenchEntry>
+                            @if (open) {
+                                <div class="sks-subnav">
+                                    @foreach (var entry in current.Categories) {
+                                        var category = entry.Category;
+                                        <WorkbenchEntry Selected="@IsSelected(PaneKind.Category, category)" OnClick="@(() => Select(PaneKind.Category, category))">
+                                            <Name>@entry.Label</Name>
+                                            <Trail>@CategoryTrail(category)</Trail>
+                                        </WorkbenchEntry>
+                                    }
+                                </div>
+                            }
+                        }
                     }
                 </WorkbenchSection>
                 @if (_collections.Count > 0) {
@@ -184,6 +208,16 @@
 </section>
 
 @code {
+    private RenderFragment CategoryTrail(string category) => @<text>
+        @if (DirtyCount(category) is > 0 and var dirty) {
+            <span class="badge badge-accent sks-badge" title="Unsaved edits">@dirty</span>
+        }
+        @if (HasPendingRestart(category)) {
+            <span class="sks-dot" title="Restart pending"></span>
+        }
+        <span class="sks-count">@RowCount(category)</span>
+    </text>;
+
     private RenderFragment ResultsPane() => @<div class="sks-results">
         @{
             var any = false;
@@ -345,64 +379,66 @@
             <p class="sks-error">@_envError</p>
         } else if (_drift is null) {
             <p class="wb-note">Loading drift...</p>
+        } else if (_drift.IsClean && _drift.MissingOptional.Count == 0) {
+            <p class="sks-ok">No drift. @DriftSummary()</p>
         } else {
-            @if (_drift.IsClean) {
-                <p class="sks-ok">No drift.</p>
-            }
+            <div class="sks-drift-tiles">
+                @DriftTile(DriftReason.Undeclared, "Undeclared", "Set on the container, declared by no descriptor.", _drift.Undeclared)
+                @DriftTile(DriftReason.UnusedStackVariable, "Unused stack variables", "Defined on the stack, interpolated by no service.", _drift.UnusedStackVariables)
+                @DriftTile(DriftReason.MissingRequired, "Missing required", "Required by a descriptor, absent everywhere.", _drift.MissingRequired)
+                @DriftTile(DriftReason.MissingOptional, "Optional not set", "Declared, not required, currently unset.", _drift.MissingOptional)
+            </div>
             <p class="sks-counts">@DriftSummary()</p>
-            @DriftGroup("Undeclared keys", _drift.Undeclared)
-            @DriftGroup("Unused stack variables", _drift.UnusedStackVariables)
-            @DriftGroup("Missing required", _drift.MissingRequired)
-            @DriftGroup("Missing optional", _drift.MissingOptional)
-            @DriftGroup("External", _drift.External)
-            @if (_drift.Matched.Count > 0) {
-                <h4 class="sks-group">
-                    <button type="button" class="sks-toggle" @onclick="() => _showMatched = !_showMatched">
-                        <Icon Name="@(_showMatched ? "chevron-down" : "chevron-right")" Class="icon-sm"/>
-                        <span>Matched</span>
-                        <span class="sks-count">@_drift.Matched.Count</span>
-                    </button>
-                </h4>
-                @if (_showMatched) {
-                    @DriftRows(_drift.Matched)
-                }
-            }
         }
     </div>;
 
-    private RenderFragment DriftGroup(string heading, IReadOnlyList<DriftEntry> entries) => @<text>
+    private RenderFragment DriftTile(DriftReason reason, string heading, string explanation, IReadOnlyList<DriftEntry> entries) => @<text>
         @if (entries.Count > 0) {
-            <h4 class="sks-group">@heading <span class="sks-count">@entries.Count</span></h4>
-            @DriftRows(entries)
+            var open = _openDrift.Contains(reason);
+            <section class="@(DriftReport.IsProblem(reason) ? "sks-tile sks-tile-bad" : "sks-tile")">
+                <button type="button" class="sks-tile-head" @onclick="() => ToggleDrift(reason)">
+                    <Icon Name="@(open ? "chevron-down" : "chevron-right")" Class="icon-sm"/>
+                    <span class="sks-tile-title">@heading</span>
+                    <span class="@(DriftReport.IsProblem(reason) ? "badge badge-err sks-badge" : "badge badge-muted sks-badge")">@entries.Count</span>
+                    <span class="sks-tile-why">@explanation</span>
+                </button>
+                @if (open) {
+                    <div class="sks-tile-body">
+                        @if (BulkAction(reason) is { } bulk) {
+                            <div class="sks-tile-bulk">
+                                <button type="button" class="btn-mini btn-danger" disabled="@_busy" @onclick="() => RemoveAllFromStackAsync(entries)">@bulk</button>
+                            </div>
+                        }
+                        <ul class="sks-keys">
+                            @foreach (var entry in entries) {
+                                var key = entry.Key;
+                                <li class="sks-key-item">
+                                    <code class="sks-key">@key</code>
+                                    @if (entry.Origin is { } origin) {
+                                        <span class="badge badge-muted sks-badge">@OriginLabel(origin)</span>
+                                    }
+                                    <span class="sks-key-actions">
+                                        @if (_stackEditor is not null && entry.Reason is DriftReason.Undeclared or DriftReason.UnusedStackVariable) {
+                                            <button type="button" class="btn-mini btn-danger" disabled="@_busy" @onclick="() => OpenStackEdit(key, true)">Remove</button>
+                                        }
+                                        @if (entry.Reason == DriftReason.Undeclared) {
+                                            <button type="button" class="btn-mini" @onclick="() => CopyDescriptorAsync(key)">
+                                                <Icon Name="copy" Class="icon-sm" Icons="Icons"/>
+                                                <span>Descriptor</span>
+                                            </button>
+                                        }
+                                        @if (entry.Reason is DriftReason.MissingRequired or DriftReason.MissingOptional) {
+                                            <button type="button" class="btn-mini" @onclick="() => GoToSetting(key)">Go to setting</button>
+                                        }
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </section>
         }
     </text>;
-
-    private RenderFragment DriftRows(IReadOnlyList<DriftEntry> entries) => @<div class="sks-drift-rows">
-        @foreach (var entry in entries) {
-            var key = entry.Key;
-            <div class="sks-drift-row">
-                <code class="sks-key">@key</code>
-                @if (entry.Origin is { } origin) {
-                    <span class="badge badge-muted sks-badge">@OriginLabel(origin)</span>
-                }
-                <span class="sks-detail">@entry.Detail</span>
-                <span class="sks-actions">
-                    @if (_stackEditor is not null && entry.Reason is DriftReason.Undeclared or DriftReason.UnusedStackVariable) {
-                        <button type="button" class="btn-mini btn-danger" disabled="@_busy" @onclick="() => OpenStackEdit(key, true)">Remove from stack</button>
-                    }
-                    @if (entry.Reason == DriftReason.Undeclared) {
-                        <button type="button" class="btn-mini" @onclick="() => CopyDescriptorAsync(key)">
-                            <Icon Name="copy" Class="icon-sm" Icons="Icons"/>
-                            <span>Copy descriptor</span>
-                        </button>
-                    }
-                    @if (entry.Reason is DriftReason.MissingRequired or DriftReason.MissingOptional) {
-                        <button type="button" class="btn-mini" @onclick="() => GoToSetting(key)">Go to setting</button>
-                    }
-                </span>
-            </div>
-        }
-    </div>;
 
     private RenderFragment StackPane() => @<div class="sks-stack">
         <div class="sks-pane-head">

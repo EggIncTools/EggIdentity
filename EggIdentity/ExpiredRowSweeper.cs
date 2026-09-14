@@ -3,6 +3,8 @@ using Npgsql;
 namespace EggIdentity;
 
 public sealed class ExpiredRowSweeper(NpgsqlDataSource dataSource, TimeSpan interval) {
+    public static readonly TimeSpan RevocationRetention = TimeSpan.FromDays(90);
+
     public async Task RunAsync(CancellationToken ct) {
         using var timer = new PeriodicTimer(interval);
         try {
@@ -17,5 +19,10 @@ public sealed class ExpiredRowSweeper(NpgsqlDataSource dataSource, TimeSpan inte
             await cmd.ExecuteNonQueryAsync(ct);
         await using (var cmd = new NpgsqlCommand("DELETE FROM login_codes WHERE expires_at < now()", conn))
             await cmd.ExecuteNonQueryAsync(ct);
+        await using (var cmd = new NpgsqlCommand(
+            "DELETE FROM revoked_sessions WHERE revoked_at < now() - $1", conn)) {
+            cmd.Parameters.AddWithValue(RevocationRetention);
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
     }
 }

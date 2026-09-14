@@ -10,14 +10,42 @@ public class AppCatalogTests {
             new Dictionary<string, IReadOnlyList<CollectionRow>> { [DeployApps.Key] = rows });
     }
 
-    private static CollectionRow Row(string name, string image, bool enabled = true, string? container = null, string? secret = null) =>
+    private static CollectionRow Row(string name, string image, bool enabled = true, string? container = null, string? secret = null,
+        string environment = DeployApp.ProdEnvironment) =>
         new(DeployApps.Key, name, new Dictionary<string, string?>(StringComparer.Ordinal) {
             ["name"] = name,
             ["image"] = image,
             ["container"] = container,
             ["deploy_secret"] = secret,
             ["enabled"] = enabled ? "true" : "false",
+            ["environment"] = environment,
         }, DateTimeOffset.UnixEpoch, null);
+
+    [Fact]
+    public void FromSnapshot_IgnoresRowsFromAnotherEnvironment() {
+        var rows = Snapshot(
+            Row("eggledger", "ghcr.io/x/ledger:v2"),
+            Row("eggledger", "ghcr.io/x/ledger:latest", environment: DeployApp.SubProdEnvironment));
+
+        var prod = AppCatalog.FromSnapshot(rows);
+        Assert.True(prod.TryGet("eggledger", out var prodApp));
+        Assert.Equal("ghcr.io/x/ledger:v2", prodApp.Image);
+
+        var subprod = AppCatalog.FromSnapshot(rows, DeployApp.SubProdEnvironment);
+        Assert.True(subprod.TryGet("eggledger", out var subApp));
+        Assert.Equal("ghcr.io/x/ledger:latest", subApp.Image);
+    }
+
+    [Fact]
+    public void PromotingATag_CountsAsAChangedApp() {
+        var before = new AppCatalog([new DeployApp { Name = "a", Repository = "ghcr.io/x/a", Tag = "v1" }]);
+        var after = new AppCatalog([new DeployApp { Name = "a", Repository = "ghcr.io/x/a", Tag = "v2" }]);
+
+        var diff = before.DiffTo(after);
+        Assert.Equal(["a"], diff.Changed.Select(a => a.Name));
+        Assert.Empty(diff.Added);
+        Assert.Empty(diff.Removed);
+    }
 
     [Fact]
     public void FromSnapshot_KeepsEnabledRowsKeyedCaseInsensitively() {

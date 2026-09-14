@@ -13,18 +13,22 @@ public sealed record AppCatalogDiff(
 public sealed class AppCatalog {
     private readonly Dictionary<string, DeployApp> _apps;
 
-    public AppCatalog(IEnumerable<DeployApp> apps) {
+    public AppCatalog(IEnumerable<DeployApp> apps, string environment = DeployApp.ProdEnvironment) {
         ArgumentNullException.ThrowIfNull(apps);
+        Environment = string.IsNullOrWhiteSpace(environment) ? DeployApp.ProdEnvironment : environment.Trim();
         _apps = new Dictionary<string, DeployApp>(StringComparer.OrdinalIgnoreCase);
         foreach (var app in apps) {
             if (!app.Enabled || string.IsNullOrWhiteSpace(app.Name)) continue;
+            if (!string.Equals(app.Environment, Environment, StringComparison.OrdinalIgnoreCase)) continue;
             _apps[app.Name] = app;
         }
     }
 
-    public static AppCatalog FromSnapshot(SettingsSnapshot snapshot) {
+    public string Environment { get; }
+
+    public static AppCatalog FromSnapshot(SettingsSnapshot snapshot, string environment = DeployApp.ProdEnvironment) {
         ArgumentNullException.ThrowIfNull(snapshot);
-        return new AppCatalog(snapshot.Collection<DeployApp>(DeployApps.Key));
+        return new AppCatalog(snapshot.Collection<DeployApp>(DeployApps.Key), environment);
     }
 
     public IReadOnlyDictionary<string, DeployApp> Apps => _apps;
@@ -52,6 +56,7 @@ public sealed class AppCatalog {
 
     private static bool SameDeployShape(DeployApp a, DeployApp b) =>
         string.Equals(a.Image, b.Image, StringComparison.Ordinal)
+        && string.Equals(a.Environment, b.Environment, StringComparison.OrdinalIgnoreCase)
         && string.Equals(a.ContainerName, b.ContainerName, StringComparison.Ordinal)
         && a.AutoDeploy == b.AutoDeploy
         && string.Equals(a.DeploySecret, b.DeploySecret, StringComparison.Ordinal)

@@ -1,4 +1,5 @@
 using System.Text;
+using EggIdentity.Settings.AdminUi;
 using EggIdentity.Styles;
 using EggIdentity.Styles.Theming;
 using MonorailCss;
@@ -31,6 +32,7 @@ internal static class Program {
 
         var repoRoot = Path.GetFullPath(Path.Combine(hostProjectDir, ".."));
         var contentFiles = ContentSources.Enumerate(repoRoot).ToList();
+        if (!ValidateExportedClasses(repoRoot, contentFiles)) return 1;
         var finalCss = Compile(SpliceThemeColors(rawSourceText), cssSourcePath, contentFiles);
 
         var outputPath = Path.Combine(hostProjectDir, "wwwroot", "styles.css");
@@ -63,6 +65,27 @@ internal static class Program {
         }
 
         return true;
+    }
+
+    private static bool ValidateExportedClasses(string repoRoot, List<string> contentFiles) {
+        var panelDir = Path.Combine(repoRoot, "EggIdentity.Settings.AdminUi");
+        var panelFiles = contentFiles.Where(f => f.StartsWith(panelDir, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (panelFiles.Count == 0) return true;
+
+        var used = CssBuildText.Scan(panelFiles);
+        var missing = used
+            .Where(token => token.StartsWith("sks-", StringComparison.Ordinal) && token.Length > "sks-".Length)
+            .Where(token => !token.EndsWith('-'))
+            .Where(token => !PanelClasses.All.Contains(token, StringComparer.Ordinal))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        if (missing.Count == 0) return true;
+
+        Console.Error.WriteLine("PanelClasses drift guard failed: EggIdentity.Settings.AdminUi markup uses classes that PanelClasses does not export:");
+        foreach (var token in missing) Console.Error.WriteLine($"  {token}");
+        Console.Error.WriteLine("A consuming app outside this repo compiles its CSS from PanelClasses, so an unexported class renders unstyled there.");
+        return false;
     }
 
     private static bool ValidatePalette() {

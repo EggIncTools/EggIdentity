@@ -16,6 +16,8 @@ public sealed class RequireAuth {
         _store = store;
     }
 
+    public const string UserIdHeader = "X-User-Id";
+
     public static string ExtractToken(string header) =>
         header.StartsWith("Bearer ", StringComparison.Ordinal) ? header["Bearer ".Length..] : header;
 
@@ -33,7 +35,7 @@ public sealed class RequireAuth {
         }
         var slid = DateTimeOffset.UtcNow.AddDays(30).ToUnixTimeSeconds();
         await _store.TouchAsync(token, slid, ctx.RequestAborted);
-        ctx.Request.Headers["X-Discord-ID"] = discordId;
+        ctx.Request.Headers[UserIdHeader] = discordId;
         await _next(ctx);
     }
 

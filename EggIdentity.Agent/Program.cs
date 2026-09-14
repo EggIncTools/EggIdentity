@@ -54,14 +54,15 @@ internal static class Program {
             DockerEngineClient.CreateHttpClient(), EngineCallTimeout, () => Live(cache, AgentSettings.PullTimeout, DefaultPullTimeout));
         var images = new RegistryClient(new HttpClient { Timeout = EngineCallTimeout });
         var events = new DeployEventRing();
-        var service = new DeployService(AppCatalog.FromSnapshot(snapshot), engine, images, events);
+        var environment = snapshot.GetString(AgentSettings.Environment) ?? DeployApp.ProdEnvironment;
+        var service = new DeployService(AppCatalog.FromSnapshot(snapshot, environment), engine, images, events);
         var runtime = new AgentRuntime(
             service, events, engine, PortainerConfig.FromSnapshot(snapshot), snapshot.GetString(AgentSettings.HookSecret));
         var app = Build(args, port, sessionOptions, runtime);
 
         var stopping = app.Lifetime.ApplicationStopping;
         _ = new SettingsChangeListener(dataSource, cache).RunAsync(stopping);
-        _ = new AppCatalogSync(cache, service).RunAsync(CatalogPollInterval, stopping);
+        _ = new AppCatalogSync(cache, service, environment).RunAsync(CatalogPollInterval, stopping);
         _ = Task.Run(async () => {
             await service.ReapAsync(stopping);
             await service.RunPollLoopAsync(() => Live(cache, AgentSettings.WatchInterval, DefaultWatchInterval), stopping);

@@ -4,7 +4,8 @@ namespace EggIdentity.Host;
 
 public static class HostSettings {
     private const string Core = "Core";
-    private const string Identity = "Identity and SSO";
+    private const string Identity = "Identity: SSO";
+    private const string Login = "Identity: login";
     private const string Discord = "Discord";
     private const string Sponsors = "Sponsors";
     private const string Storage = "Storage";
@@ -38,10 +39,10 @@ public static class HostSettings {
             LoginSweepIntervalMinutes, "IDENTITY_LOGIN_SWEEP_INTERVAL_MINUTES", "Expired-row sweep interval (minutes)", Core,
             SettingKind.Number, ApplyTier.RestartRequired, Sensitivity.Plain) { Default = "10" },
         new SettingDescriptor(
-            "identity.local_key", "EGGIDENTITY_LOCAL_KEY", "Local login key", Identity,
+            "identity.local_key", "EGGIDENTITY_LOCAL_KEY", "Local login key", Login,
             SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret),
         new SettingDescriptor(
-            "authentik.authority", "AUTHENTIK_AUTHORITY", "Authentik authority", Identity,
+            "authentik.authority", "AUTHENTIK_AUTHORITY", "Authentik authority", Login,
             SettingKind.Url, ApplyTier.Bootstrap, Sensitivity.Plain) {
             Description = "Gates the login widget. App registrations come from the authentik.apps collection.",
         },
@@ -51,7 +52,7 @@ public static class HostSettings {
             Description = "RSA private key in PEM form, required only when the Authentik provider has an encryption key set. Without it an encrypted id_token yields no session id and revocation stops working. Storing it needs EGGIDENTITY_SETTINGS_KEY on the stack.",
         },
         new SettingDescriptor(
-            "authentik.apps_dir", "AUTHENTIK_APPS_DIR", "Authentik app config directory", Identity,
+            "authentik.apps_dir", "AUTHENTIK_APPS_DIR", "Authentik app config directory", Login,
             SettingKind.Path, ApplyTier.Bootstrap, Sensitivity.Plain) {
             Description = "Deprecated. Only read while the authentik.apps collection is empty; import it with eggidentity-tools import-authentik-apps and unset.",
         },

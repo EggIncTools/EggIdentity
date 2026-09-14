@@ -8,7 +8,7 @@ public static class SessionSettings {
     public const string TtlMinutes = "session.ttl_minutes";
     public const string CookieDomain = "session.cookie_domain";
 
-    private const string Category = "Identity and SSO";
+    private const string Category = "Identity: SSO";
 
     public static ISettingsProvider Provider { get; } = new StaticSettingsProvider([
         new SettingDescriptor(

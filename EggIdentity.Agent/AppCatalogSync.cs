@@ -1,9 +1,10 @@
+using EggIdentity.Deploy;
 using EggIdentity.Settings;
 using EggIdentity.Settings.Store;
 
 namespace EggIdentity.Agent;
 
-public sealed class AppCatalogSync(SettingsCache cache, DeployService service) {
+public sealed class AppCatalogSync(SettingsCache cache, DeployService service, string environment = DeployApp.ProdEnvironment) {
     private SettingsSnapshot? _applied;
 
     public async Task RunAsync(TimeSpan pollInterval, CancellationToken ct) {
@@ -25,7 +26,7 @@ public sealed class AppCatalogSync(SettingsCache cache, DeployService service) {
         if (ReferenceEquals(snapshot, _applied)) return;
         _applied = snapshot;
 
-        var diff = service.Apply(AppCatalog.FromSnapshot(snapshot));
+        var diff = service.Apply(AppCatalog.FromSnapshot(snapshot, environment));
         if (diff.IsEmpty) return;
         Console.WriteLine(
             $"eggidentity-agent: apps changed: +{Describe(diff.Added.Select(a => a.Name))} -{Describe(diff.Removed)} ~{Describe(diff.Changed.Select(a => a.Name))}");

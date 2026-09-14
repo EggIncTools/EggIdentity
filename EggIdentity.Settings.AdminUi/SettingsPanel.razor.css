@@ -299,23 +299,101 @@
     text-overflow: ellipsis;
 }
 
-.sks-drift-rows {
+.sks-drift-tiles {
     display: flex;
     flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
 }
 
-.sks-drift-row {
-    display: grid;
-    grid-template-columns: minmax(10rem, 1fr) auto minmax(8rem, 2fr) auto;
+.sks-tile {
+    border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+.sks-tile-bad {
+    border-color: color-mix(in srgb, var(--color-err, #e5484d) 45%, transparent);
+}
+
+.sks-tile-head {
+    display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.4rem 0.5rem;
-    border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    gap: 0.45rem;
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    background: none;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
 }
 
-.sks-detail {
-    font-size: 0.78rem;
-    opacity: 0.75;
+.sks-tile-title {
+    font-weight: 600;
+}
+
+.sks-tile-why {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.75rem;
+    opacity: 0.65;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sks-tile-body {
+    padding: 0 0.6rem 0.5rem;
+}
+
+.sks-tile-bulk {
+    display: flex;
+    justify-content: flex-end;
+    padding-bottom: 0.35rem;
+}
+
+.sks-keys {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+    gap: 0.15rem 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sks-key-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0;
+    min-width: 0;
+}
+
+.sks-key-item > .sks-key {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sks-key-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.sks-group-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.sks-subnav {
+    display: flex;
+    flex-direction: column;
+    padding-left: 0.85rem;
 }
 
 @media (max-width: 48rem) {
@@ -328,7 +406,7 @@
         max-height: 14rem;
     }
 
-    .sks-drift-row {
+    .sks-keys {
         grid-template-columns: 1fr;
     }
 }

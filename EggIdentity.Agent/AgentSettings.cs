@@ -1,3 +1,4 @@
+using EggIdentity.Deploy;
 using EggIdentity.Settings;
 
 namespace EggIdentity.Agent;
@@ -10,6 +11,7 @@ public static class AgentSettings {
     public const string HookSecret = "deploy.hook_secret";
     public const string DockerHost = "agent.docker_host";
     public const string SelfContainer = "agent.self_container";
+    public const string Environment = "agent.environment";
     public const string PortainerApiUrl = "portainer.api_url";
     public const string PortainerApiKey = "portainer.api_key";
     public const string PortainerStackId = "portainer.stack_id";
@@ -25,6 +27,13 @@ public static class AgentSettings {
             SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
             Description = "The deploy.apps collection and every other stored setting live here.",
             Required = true,
+        },
+        new SettingDescriptor(
+            Environment, "AGENT_ENVIRONMENT", "Environment", Deploy,
+            SettingKind.Enum, ApplyTier.Bootstrap, Sensitivity.Plain) {
+            Default = DeployApp.ProdEnvironment,
+            EnumValues = [DeployApp.ProdEnvironment, DeployApp.SubProdEnvironment],
+            Description = "Which deploy.apps rows this agent manages. An agent never touches rows from another environment.",
         },
         new SettingDescriptor(
             Port, "AGENT_PORT", "Listen port", Core,

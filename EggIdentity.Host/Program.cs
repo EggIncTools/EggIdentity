@@ -4,6 +4,7 @@ using EggIdentity.Auth;
 using EggIdentity.Db;
 using EggIdentity.Fallback;
 using EggIdentity.Host.Components;
+using EggIdentity.Settings.Api;
 using EggIdentity.Settings.Store;
 
 namespace EggIdentity.Host;
@@ -61,6 +62,7 @@ public static class Program {
         if (config.SponsorEnabled) SponsorRoutes.Map(app, config, sponsorSync!);
 
         IdentityApiRoutes.Map(app, config);
+        app.MapAdminApi(new AdminApiOptions("eggidentity", config.ApiSecret));
 
         if (config.AdminEnabled) app.MapRazorComponents<AppHost>().AddInteractiveServerRenderMode();
     }

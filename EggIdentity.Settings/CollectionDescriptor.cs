@@ -25,6 +25,7 @@ public sealed record FieldDescriptor(
     public string? Default { get; init; }
     public IReadOnlyList<string> EnumValues { get; init; } = [];
     public string? Description { get; init; }
+    public bool Legacy { get; init; }
 
     public bool IsSecret => Sensitivity == Sensitivity.Secret;
 }

@@ -38,6 +38,8 @@
   <Project Path="EggIdentity.Resilience/Tests/EggIdentity.Resilience.Tests.csproj" />
   <Project Path="EggIdentity.Settings/EggIdentity.Settings.csproj" />
   <Project Path="EggIdentity.Settings/Tests/EggIdentity.Settings.Tests.csproj" />
+  <Project Path="EggIdentity.Settings.Api/EggIdentity.Settings.Api.csproj" />
+  <Project Path="EggIdentity.Settings.Api/Tests/EggIdentity.Settings.Api.Tests.csproj" />
   <Project Path="EggIdentity.Settings.AdminUi/EggIdentity.Settings.AdminUi.csproj" />
   <Project Path="EggIdentity.Settings.Store/EggIdentity.Settings.Store.csproj" />
   <Project Path="EggIdentity.Settings.Store/Tests/EggIdentity.Settings.Store.Tests.csproj" />

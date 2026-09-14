@@ -76,9 +76,12 @@ public sealed partial class SettingsPanel : IDisposable {
     private readonly HashSet<string> _revealed = new(StringComparer.Ordinal);
 
     private Pane _pane = new(PaneKind.Category, null);
+    private readonly HashSet<string> _openGroups = new(StringComparer.Ordinal);
+    private readonly HashSet<DriftReason> _openDrift = [];
+    private DriftReason? _confirmBulk;
+    private DateTimeOffset _confirmBulkAt;
     private string _query = "";
     private string? _highlightKey;
-    private bool _showMatched;
 
     private bool _busy;
     private string? _status;
@@ -110,14 +113,31 @@ public sealed partial class SettingsPanel : IDisposable {
             if (Categories.Contains(wanted, StringComparer.Ordinal)) return new Pane(PaneKind.Category, wanted);
             if (_collections.Any(c => string.Equals(c.Key, wanted, StringComparison.Ordinal))) return new Pane(PaneKind.Collection, wanted);
         }
-        var categories = Categories;
-        if (categories.Count > 0) return new Pane(PaneKind.Category, categories[0]);
+        var nav = Nav;
+        if (nav.Count > 0 && nav[0].Categories.Count > 0)
+            return new Pane(PaneKind.Category, nav[0].Categories[0].Category);
         if (_collections.Count > 0) return new Pane(PaneKind.Collection, _collections[0].Key);
         return new Pane(PaneKind.Drift, null);
     }
 
     private IReadOnlyList<string> Categories =>
         _rows is null ? [] : [.. _rows.Select(r => r.Descriptor.Category).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
+
+    private IReadOnlyList<NavGroup> Nav =>
+        _rows is null ? [] : SettingsNav.Build(_rows.Select(r => r.Descriptor));
+
+    private bool IsGroupOpen(NavGroup group) =>
+        _openGroups.Contains(group.Key) || (!HasQuery && _pane.Kind == PaneKind.Category && _pane.Key is { } key && group.Covers(key));
+
+    private void ToggleGroup(NavGroup group) {
+        if (!_openGroups.Remove(group.Key)) _openGroups.Add(group.Key);
+    }
+
+    private int GroupRowCount(NavGroup group) => group.Categories.Sum(c => RowCount(c.Category));
+
+    private int GroupDirtyCount(NavGroup group) => group.Categories.Sum(c => DirtyCount(c.Category));
+
+    private bool GroupHasPendingRestart(NavGroup group) => group.Categories.Any(c => HasPendingRestart(c.Category));
 
     private bool HasQuery => _query.Trim().Length > 0;
 
@@ -220,8 +240,8 @@ public sealed partial class SettingsPanel : IDisposable {
 
     private static IReadOnlyList<FieldDescriptor> VisibleFields(CollectionDescriptor descriptor) {
         var display = descriptor.DisplayField ?? descriptor.IdField;
-        var first = descriptor.FindField(display);
-        var rest = descriptor.Fields.Where(f => !string.Equals(f.Name, display, StringComparison.Ordinal));
+        var first = descriptor.FindField(display) is { Legacy: false } found ? found : null;
+        var rest = descriptor.Fields.Where(f => !f.Legacy && !string.Equals(f.Name, display, StringComparison.Ordinal));
         return first is null ? [.. rest] : [first, .. rest];
     }
 
@@ -553,6 +573,58 @@ public sealed partial class SettingsPanel : IDisposable {
     public void Dispose() {
         _disposeCts.Cancel();
         _disposeCts.Dispose();
+    }
+
+    private void ToggleDrift(DriftReason reason) {
+        if (!_openDrift.Remove(reason)) _openDrift.Add(reason);
+        _confirmBulk = null;
+    }
+
+    private string? BulkAction(DriftReason reason) {
+        if (_stackEditor is null) return null;
+        if (reason is not (DriftReason.Undeclared or DriftReason.UnusedStackVariable)) return null;
+        return IsConfirmingBulk(reason) ? "Confirm: remove all from stack" : "Remove all from stack";
+    }
+
+    private bool IsConfirmingBulk(DriftReason reason) =>
+        _confirmBulk == reason && DateTimeOffset.UtcNow - _confirmBulkAt < DeleteConfirmWindow;
+
+    private async Task RemoveAllFromStackAsync(IReadOnlyList<DriftEntry> entries) {
+        if (_stackEditor is null || entries.Count == 0) return;
+        var reason = entries[0].Reason;
+        if (!IsConfirmingBulk(reason)) {
+            _confirmBulk = reason;
+            _confirmBulkAt = DateTimeOffset.UtcNow;
+            _ = ExpireBulkConfirmAsync(reason);
+            return;
+        }
+        _confirmBulk = null;
+        _busy = true;
+        try {
+            var changes = entries.ToDictionary(e => e.Key, _ => (string?)null, StringComparer.Ordinal);
+            var failure = await _stackEditor.ApplyAsync(changes, CancellationToken.None);
+            if (failure is not null) {
+                _envError = failure;
+                return;
+            }
+            Notify(StatusNoteKind.Ok, $"Removed {changes.Count} key(s) from the stack.");
+            await LoadEnvAsync();
+        } catch (Exception e) {
+            _envError = e.Message;
+        } finally {
+            _busy = false;
+        }
+    }
+
+    private async Task ExpireBulkConfirmAsync(DriftReason reason) {
+        try {
+            await Task.Delay(DeleteConfirmWindow, _disposeCts.Token);
+        } catch (OperationCanceledException) {
+            return;
+        }
+        if (_confirmBulk != reason) return;
+        _confirmBulk = null;
+        await InvokeAsync(StateHasChanged);
     }
 
     private string DriftSummary() {

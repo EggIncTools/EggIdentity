@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\EggIdentity.Settings.AdminUi\EggIdentity.Settings.AdminUi.csproj" />
     <ProjectReference Include="..\EggIdentity.Styles\EggIdentity.Styles.csproj" />
     <ProjectReference Include="..\EggIdentity.Fallback\EggIdentity.Fallback.csproj" />
   </ItemGroup>

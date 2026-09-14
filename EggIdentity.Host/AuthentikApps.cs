@@ -14,7 +14,7 @@ public static class AuthentikApps {
     public const string Key = "authentik.apps";
 
     public static CollectionDescriptor Descriptor { get; } = new(
-        Key, "Authentik app registrations", "Identity and SSO",
+        Key, "Authentik app registrations", "Identity: SSO",
         [
             new FieldDescriptor("origin", "Origin", SettingKind.Url) {
                 Required = true,
