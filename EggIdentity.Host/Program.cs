@@ -38,7 +38,7 @@ public static class Program {
     }
 
     private static async Task InitializeAsync(WebApplication app, HostConfig config, HostRuntime runtime) {
-        await using (var conn = await runtime.DataSource.OpenConnectionAsync())
+        await using (var conn = await Database.WaitForAsync(runtime.DataSource))
             await Migrator.MigrateAsync(conn, Path.Combine(AppContext.BaseDirectory, "Migrations"));
 
         await runtime.SettingsStore.MigrateAsync();

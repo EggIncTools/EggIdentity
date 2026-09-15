@@ -180,13 +180,16 @@
         <ModalHost Open="true" Title="@(edit.IsNew ? $"Add {edit.Descriptor.Label}" : $"Edit {edit.Descriptor.Label}")"
                    TitleId="sksRowEditTitle" OnClose="CloseRowEdit">
             <div class="modal-body sks-form">
-                @foreach (var field in edit.Descriptor.Fields) {
+                @foreach (var field in EditableFields(edit)) {
                     var spec = FieldSpec(edit, field);
                     <div class="sks-field">
                         <label class="sks-label" for="@spec.Id">
                             @field.Label
                             @if (field.Required) {
                                 <span class="sks-req">required</span>
+                            }
+                            @if (field.Legacy) {
+                                <span class="badge badge-muted sks-badge" title="Superseded, still in use">legacy</span>
                             }
                         </label>
                         @if (field.Description is { Length: > 0 } fieldDescription) {
@@ -343,7 +346,12 @@
                     <thead>
                     <tr>
                         @foreach (var field in VisibleFields(descriptor)) {
-                            <th>@field.Label</th>
+                            <th>
+                                @field.Label
+                                @if (field.Legacy) {
+                                    <span class="badge badge-muted sks-badge" title="Superseded, still in use">legacy</span>
+                                }
+                            </th>
                         }
                         <th></th>
                     </tr>

@@ -245,12 +245,20 @@ public sealed partial class SettingsPanel : IDisposable {
             ? _collections.FirstOrDefault(c => string.Equals(c.Key, _pane.Key, StringComparison.Ordinal))
             : null;
 
-    private static IReadOnlyList<FieldDescriptor> VisibleFields(CollectionDescriptor descriptor) {
+    private IReadOnlyList<FieldDescriptor> VisibleFields(CollectionDescriptor descriptor) {
         var display = descriptor.DisplayField ?? descriptor.IdField;
         var first = descriptor.FindField(display) is { Legacy: false } found ? found : null;
-        var rest = descriptor.Fields.Where(f => !f.Legacy && !string.Equals(f.Name, display, StringComparison.Ordinal));
+        var rest = descriptor.Fields
+            .Where(f => !string.Equals(f.Name, display, StringComparison.Ordinal))
+            .Where(f => !f.Legacy || IsCarryingValue(descriptor, f));
         return first is null ? [.. rest] : [first, .. rest];
     }
+
+    private static IReadOnlyList<FieldDescriptor> EditableFields(RowEdit edit) =>
+        [.. edit.Descriptor.Fields.Where(f => !f.Legacy || !string.IsNullOrEmpty(edit.Values.GetValueOrDefault(f.Name)))];
+
+    private bool IsCarryingValue(CollectionDescriptor descriptor, FieldDescriptor field) =>
+        CollectionRows(descriptor.Key)?.Any(r => !string.IsNullOrEmpty(r.Get(field.Name))) == true;
 
     private static bool IsSecret(SettingDescriptor d) => d.IsSecret || d.Kind == SettingKind.Secret;
 

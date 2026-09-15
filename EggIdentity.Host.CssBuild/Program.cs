@@ -80,11 +80,30 @@ internal static class Program {
             .Order(StringComparer.Ordinal)
             .ToList();
 
-        if (missing.Count == 0) return true;
+        if (missing.Count > 0) {
+            Console.Error.WriteLine("PanelClasses drift guard failed: EggIdentity.Settings.AdminUi markup uses classes that PanelClasses does not export:");
+            foreach (var token in missing) Console.Error.WriteLine($"  {token}");
+            Console.Error.WriteLine("PanelClasses is the panel's declared class vocabulary; an unexported class means the list has drifted from the markup.");
+            return false;
+        }
 
-        Console.Error.WriteLine("PanelClasses drift guard failed: EggIdentity.Settings.AdminUi markup uses classes that PanelClasses does not export:");
-        foreach (var token in missing) Console.Error.WriteLine($"  {token}");
-        Console.Error.WriteLine("A consuming app outside this repo compiles its CSS from PanelClasses, so an unexported class renders unstyled there.");
+        return ValidateSharedClasses(used);
+    }
+
+    private static bool ValidateSharedClasses(IReadOnlyCollection<string> used) {
+        var declared = PanelClasses.Shared
+            .Where(c => used.Contains(c, StringComparer.Ordinal))
+            .Where(c => !ComponentClasses.All.ContainsKey($".{c}"))
+            .Where(c => !ComponentClasses.All.Keys.Any(k => k.Contains($".{c}", StringComparison.Ordinal)))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        if (declared.Count == 0) return true;
+
+        Console.Error.WriteLine("PanelClasses drift guard failed: the panel uses shared classes that ComponentClasses no longer defines:");
+        foreach (var token in declared) Console.Error.WriteLine($"  {token}");
+        Console.Error.WriteLine("Scoped sks- classes ship in the panel's own bundle, but these come from EggIdentity.Styles.");
+        Console.Error.WriteLine("A consuming app renders them unstyled, and nothing else fails.");
         return false;
     }
 

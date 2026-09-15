@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EggIdentity.Db.csproj" />
+    <ProjectReference Include="..\..\EggIdentity.Resilience\EggIdentity.Resilience.csproj" />
   </ItemGroup>
 
 </Project>
