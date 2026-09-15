@@ -129,14 +129,6 @@ public static class DockerJson {
             return EmptyObject();
         }
 
-        if (hostConfig.ValueKind == JsonValueKind.Object
-            && hostConfig.TryGetProperty("NetworkingConfig", out var configured)
-            && configured.TryGetProperty("EndpointsConfig", out var endpoints)
-            && endpoints.ValueKind == JsonValueKind.Object
-            && endpoints.EnumerateObject().Any()) {
-            return endpoints.Clone();
-        }
-
         if (container.TryGetProperty("NetworkSettings", out var ns)
             && ns.TryGetProperty("Networks", out var live)
             && live.ValueKind == JsonValueKind.Object

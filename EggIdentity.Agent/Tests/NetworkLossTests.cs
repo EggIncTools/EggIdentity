@@ -106,4 +106,21 @@ public class NetworkLossTests {
 
         Assert.Null(DeployService.DescribeNetworkLoss(unknown));
     }
+
+    [Fact]
+    public void ComposeNetworksLandInHostConfigNetworkMode_NotNetworkingConfig() {
+        var live = Parse(RunningOnABridge);
+
+        Assert.Equal("proxy-v6", DockerJson.NetworkMode(live.HostConfig));
+        Assert.True(live.Networks.TryGetProperty("proxy-v6", out _));
+    }
+
+    [Fact]
+    public void AStoppedComposeContainerIsRefused_EvenThoughItsNetworkModeLooksHealthy() {
+        var stopped = Parse(StoppedOnABridge);
+
+        Assert.Equal("proxy-v6", DockerJson.NetworkMode(stopped.HostConfig));
+        Assert.Empty(stopped.Networks.EnumerateObject());
+        Assert.NotNull(DeployService.DescribeNetworkLoss(stopped));
+    }
 }

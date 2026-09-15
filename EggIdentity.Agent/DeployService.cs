@@ -157,8 +157,16 @@ public sealed class DeployService(
     }
 
     public async Task TickAsync(CancellationToken ct) {
-        await Task.WhenAll(States().Select(state => TickOneAsync(state, ct)));
+        var states = States();
+        var others = states.Where(s => !IsSelfApp(s)).ToList();
+        var self = states.Where(IsSelfApp).ToList();
+
+        await Task.WhenAll(others.Select(state => TickOneAsync(state, ct)));
+        foreach (var state in self) await TickOneAsync(state, ct);
     }
+
+    private bool IsSelfApp(AppState state) =>
+        string.Equals(state.Config.ContainerName, SelfContainer.Name(), StringComparison.Ordinal);
 
     public async Task RunPollLoopAsync(Func<TimeSpan> interval, CancellationToken ct) {
         ArgumentNullException.ThrowIfNull(interval);

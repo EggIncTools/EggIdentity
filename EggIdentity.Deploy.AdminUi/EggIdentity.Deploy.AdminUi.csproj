@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EggIdentity.Deploy\EggIdentity.Deploy.csproj" />
+    <ProjectReference Include="..\EggIdentity.Settings.Store\EggIdentity.Settings.Store.csproj" />
     <ProjectReference Include="..\EggIdentity.UI\EggIdentity.UI.csproj" />
   </ItemGroup>
 

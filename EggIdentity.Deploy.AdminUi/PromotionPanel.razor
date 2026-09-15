@@ -1,0 +1,71 @@
+@inject IServiceProvider Services
+
+<section class="dp panel dp-promote">
+    @if (_service is null) {
+        <p class="dp-muted">Promotion needs a settings admin service (call AddEggIdentityPromotion).</p>
+    } else {
+        <div class="panel-head dp-head">
+            <span class="dp-app">Promotion</span>
+            <span class="dp-badges">
+                @if (_busy) {
+                    <span class="badge badge-muted">Working</span>
+                }
+            </span>
+        </div>
+
+        @if (_error is not null) {
+            <p class="dp-error">@_error</p>
+        }
+        @if (_note is not null) {
+            <p class="dp-notice">@_note</p>
+        }
+
+        <WorkbenchLoad T="PromotionView" Items="@_views" LoadingText="Loading apps..."
+                       EmptyText="No production rows in deploy.apps.">
+            <div class="dp-table-wrap">
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        <th>App</th>
+                        <th>Production</th>
+                        <th>Sub-prod</th>
+                        <th>Previous</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var view in context) {
+                        var app = view.App;
+                        <tr>
+                            <td>@app</td>
+                            <td class="dp-mono">@view.ProdTag</td>
+                            <td class="dp-mono">
+                                @if (view.Blocked is null) {
+                                    @view.SubProdTag
+                                } else {
+                                    <span class="dp-muted" title="@view.Blocked">none</span>
+                                }
+                            </td>
+                            <td class="dp-mono">@(string.IsNullOrEmpty(view.PreviousTag) ? "-" : view.PreviousTag)</td>
+                            <td class="dp-row-actions">
+                                <button type="button" class="btn-mini btn-primary"
+                                        disabled="@(_busy || !view.CanPromote)"
+                                        title="@(view.Blocked ?? $"Move production to {view.SubProdTag}")"
+                                        @onclick="() => PromoteAsync(app)">
+                                    @(IsConfirming(PromoteAction, app) ? "Confirm promote" : "Promote")
+                                </button>
+                                <button type="button" class="btn-mini"
+                                        disabled="@(_busy || !view.CanRollBack)"
+                                        title="@(view.CanRollBack ? $"Return production to {view.PreviousTag}" : "No previous tag recorded")"
+                                        @onclick="() => RollBackAsync(app)">
+                                    @(IsConfirming(RollBackAction, app) ? "Confirm rollback" : "Roll back")
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </WorkbenchLoad>
+    }
+</section>
