@@ -1,4 +1,5 @@
 using EggIdentity.Contract;
+using EggIdentity.Settings;
 using EggIdentity.Settings.Store;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -76,16 +77,11 @@ public static class AdminApiRoutes {
 
         group.MapGet("/drift", async (
             [FromServices] IServiceProvider services, CancellationToken ct) => {
-                if (Admin(services) is null) return Unconfigured();
-                if (services.GetService<IEnvSource>() is not { } source) {
-                    return Results.Ok(new AdminDriftResponse {
-                        App = options.AppName,
-                        Available = false,
-                        Unavailable = "this app has no environment source configured",
-                    });
-                }
+                if (Admin(services) is not { } admin) return Unconfigured();
+                var source = services.GetService<IEnvSource>()
+                    ?? new ProcessEnvSource(services.GetRequiredService<SettingsRegistry>());
                 var env = await source.GetAsync(ct);
-                return Results.Ok(AdminWireMapping.ToWire(options.AppName, await Admin(services)!.DriftAsync(env, ct)));
+                return Results.Ok(AdminWireMapping.ToWire(options.AppName, await admin.DriftAsync(env, ct)));
             });
 
         group.MapPost("/restart", async ([FromServices] IServiceProvider services, CancellationToken ct) => {

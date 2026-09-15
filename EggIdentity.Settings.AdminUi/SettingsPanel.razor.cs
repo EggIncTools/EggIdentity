@@ -54,10 +54,10 @@ public sealed partial class SettingsPanel : IDisposable {
 
     [Parameter] public string? UpdatedBy { get; set; }
     [Parameter] public string? InitialSelection { get; set; }
+    [Parameter] public ISettingsAdmin? Admin { get; set; }
 
-    private SettingsAdminService? _admin;
-    private IEnvSource? _envSource;
-    private IRestartTrigger? _restart;
+    private ISettingsAdmin? _admin;
+    private IReadOnlyList<string> _pendingRestartKeys = [];
     private IStackEnvEditor? _stackEditor;
     private ToastService? _toasts;
 
@@ -94,14 +94,12 @@ public sealed partial class SettingsPanel : IDisposable {
     private readonly CancellationTokenSource _disposeCts = new();
 
     protected override async Task OnInitializedAsync() {
-        _admin = Services.GetService<SettingsAdminService>();
-        _envSource = Services.GetService<IEnvSource>();
-        _restart = Services.GetService<IRestartTrigger>();
+        _admin = Admin ?? Local();
         _stackEditor = Services.GetService<IStackEnvEditor>();
         _toasts = Services.GetService<ToastService>();
         if (_admin is null) return;
 
-        _collections = _admin.Collections;
+        _collections = await _admin.GetCollectionsAsync(CancellationToken.None);
         await LoadRowsAsync();
         _pane = ResolveInitialPane();
         await Task.WhenAll(LoadAllCollectionsAsync(), LoadEnvAsync());
@@ -164,7 +162,7 @@ public sealed partial class SettingsPanel : IDisposable {
         _rows?.Any(r => r.PendingRestart && string.Equals(r.Descriptor.Category, category, StringComparison.Ordinal)) == true;
 
     private bool HasPendingRestartFor(string collectionKey) =>
-        _admin?.PendingRestartKeys.Contains(collectionKey, StringComparer.Ordinal) == true;
+        _pendingRestartKeys.Contains(collectionKey, StringComparer.Ordinal);
 
     private int DirtyCount(string? category = null) =>
         _rows?.Count(r => IsDirty(r) && (category is null || string.Equals(r.Descriptor.Category, category, StringComparison.Ordinal))) ?? 0;
@@ -182,11 +180,18 @@ public sealed partial class SettingsPanel : IDisposable {
         || d.Key.Contains(q, StringComparison.OrdinalIgnoreCase)
         || d.EnvKey.Contains(q, StringComparison.OrdinalIgnoreCase);
 
+    private LocalSettingsAdmin? Local() {
+        if (Services.GetService<SettingsAdminService>() is not { } service) return null;
+        return new LocalSettingsAdmin(
+            "", service, Services.GetService<IEnvSource>(), Services.GetService<IRestartTrigger>());
+    }
+
     private async Task LoadRowsAsync() {
         if (_admin is null) return;
         _rowsError = null;
         try {
             _rows = await _admin.GetRowsAsync(CancellationToken.None);
+            _pendingRestartKeys = await _admin.PendingRestartKeysAsync(CancellationToken.None);
         } catch (Exception e) {
             _rowsError = e.Message;
         }
@@ -208,11 +213,13 @@ public sealed partial class SettingsPanel : IDisposable {
     }
 
     private async Task LoadEnvAsync() {
-        if (_envSource is null || _admin is null) return;
+        if (_admin is null) return;
         _envError = null;
         try {
-            _env = await _envSource.GetAsync(CancellationToken.None);
-            _drift = await _admin.DriftAsync(_env, CancellationToken.None);
+            _env = Services.GetService<IEnvSource>() is { } source
+                ? await source.GetAsync(CancellationToken.None)
+                : null;
+            _drift = await _admin.DriftAsync(CancellationToken.None);
         } catch (Exception e) {
             _envError = e.Message;
         }
@@ -423,15 +430,16 @@ public sealed partial class SettingsPanel : IDisposable {
     }
 
     private async Task RestartAsync() {
-        if (_restart is null || _admin is null) return;
+        if (_admin is null || !_admin.CanRestart) return;
         _busy = true;
         try {
-            var failure = await _restart.RestartAsync(CancellationToken.None);
-            if (failure is not null) {
-                Notify(StatusNoteKind.Error, failure);
+            var result = await _admin.RestartAsync(CancellationToken.None);
+            if (!result.Ok) {
+                Notify(StatusNoteKind.Error, result.Error ?? "restart failed");
                 return;
             }
             _admin.ClearPendingRestart();
+            _pendingRestartKeys = [];
             Notify(StatusNoteKind.Ok, "Restart requested.");
         } catch (Exception e) {
             Notify(StatusNoteKind.Error, e.Message);

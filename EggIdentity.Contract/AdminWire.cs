@@ -14,6 +14,8 @@ public sealed record AdminSettingWire {
     public bool Secret { get; init; }
     public bool Editable { get; init; }
     public bool PendingRestart { get; init; }
+    public bool AllowBootstrapEdit { get; init; }
+    public string? Default { get; init; }
     public IReadOnlyList<string> EnumValues { get; init; } = [];
 }
 
@@ -54,8 +56,11 @@ public sealed record AdminCollectionWire {
 }
 
 public sealed record AdminCollectionRowWire {
+    public string Collection { get; init; } = "";
     public string Id { get; init; } = "";
     public IReadOnlyDictionary<string, string?> Values { get; init; } = new Dictionary<string, string?>();
+    public DateTimeOffset UpdatedAt { get; init; }
+    public string? UpdatedBy { get; init; }
 }
 
 public sealed record AdminCollectionResponse {

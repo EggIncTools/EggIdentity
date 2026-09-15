@@ -67,7 +67,7 @@
                         }
                     </WorkbenchSection>
                 }
-                @if (_envSource is not null) {
+                @if (_env is not null) {
                     <WorkbenchSection Label="Environment">
                         <WorkbenchEntry Selected="@IsSelected(PaneKind.Drift)" OnClick="@(() => Select(PaneKind.Drift))"
                                         Tone="@(_drift is { IsClean: false } ? WorkbenchTone.Warn : WorkbenchTone.Normal)">
@@ -112,11 +112,11 @@
                 </div>
 
                 <footer class="sks-footer">
-                    @if (_admin.HasPendingRestart) {
+                    @if (_pendingRestartKeys.Count > 0) {
                         <div class="sks-restart">
                             <Icon Name="warning" Class="icon-sm"/>
-                            <span>@_admin.PendingRestartKeys.Count change(s) need a restart</span>
-                            @if (_restart is not null) {
+                            <span>@_pendingRestartKeys.Count change(s) need a restart</span>
+                            @if (_admin.CanRestart) {
                                 <button type="button" class="btn-mini" disabled="@_busy" @onclick="RestartAsync">Restart</button>
                             }
                         </div>
@@ -161,7 +161,7 @@
                 }
                 <div class="sks-modal-actions">
                     @if (stack.Applied) {
-                        @if (_restart is not null) {
+                        @if (_admin?.CanRestart == true) {
                             <button type="button" class="btn-primary" disabled="@_busy" @onclick="RestartFromStackEditAsync">Restart</button>
                         }
                         <button type="button" class="btn-secondary" @onclick="CloseStackEdit">Close</button>
