@@ -130,6 +130,21 @@ public class SettingsValidationTests {
     }
 
     [Fact]
+    public void Path_MustExistAndBeReadable() {
+        var dir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(dir);
+        var file = Path.Combine(dir, "key.pem");
+        File.WriteAllText(file, "-----BEGIN PRIVATE KEY-----");
+        try {
+            Assert.Null(SettingsValidation.Validate(Of(SettingKind.Path), file));
+            Assert.Null(SettingsValidation.Validate(Of(SettingKind.Path), dir));
+            Assert.NotNull(SettingsValidation.Validate(Of(SettingKind.Path), Path.Combine(dir, "absent.pem")));
+        } finally {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Fact]
     public void Row_RequiresRequiredFields() {
         var error = SettingsValidation.ValidateRow(Apps, Row(("name", "a")));
 

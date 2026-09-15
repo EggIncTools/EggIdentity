@@ -49,10 +49,10 @@ public static class LandingPage {
             </div>
 
             <div class="links">
-                <a href="https://eggledger.davidarthurcole.me" target="_blank" rel="noopener"><span class="icon">{IconLaunch}</span>EggLedger</a>
-                <a href="https://eggincognito.davidarthurcole.me" target="_blank" rel="noopener"><span class="icon">{IconLaunch}</span>EggIncognito</a>
+                <a href="https://eggledger.egginc.tools" target="_blank" rel="noopener"><span class="icon">{IconLaunch}</span>EggLedger</a>
+                <a href="https://eggincognito.egginc.tools" target="_blank" rel="noopener"><span class="icon">{IconLaunch}</span>EggIncognito</a>
                 <a href="https://github.com/EggIncTools/eggidentity" target="_blank" rel="noopener"><span class="icon">{IconGithub}</span>GitHub repository</a>
-                <a href="https://discord.davidarthurcole.me" target="_blank" rel="noopener"><span class="icon">{IconDiscord}</span>Discord server</a>
+                <a href="https://discord.egginc.tools" target="_blank" rel="noopener"><span class="icon">{IconDiscord}</span>Discord server</a>
                 <a href="/terms"><span class="icon">{IconDoc}</span>Terms of Service</a>
                 <a href="/privacy"><span class="icon">{IconDoc}</span>Privacy &amp; Cookies</a>
             </div>

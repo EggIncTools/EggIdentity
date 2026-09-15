@@ -31,6 +31,7 @@ public static class SettingsValidation {
                 ? null : "expected a Discord snowflake id",
             SettingKind.Enum => enumValues.Contains(value, StringComparer.Ordinal)
                 ? null : $"expected one of: {string.Join(", ", enumValues)}",
+            SettingKind.Path => ValidatePath(value),
             SettingKind.CidrList => ValidateCidrList(value),
             SettingKind.Json => ValidateJson(value),
             SettingKind.ReadOnly => "this setting is read-only",
@@ -66,6 +67,23 @@ public static class SettingsValidation {
 
     private static bool IsPathSafeToken(string id) =>
         id.All(c => char.IsAsciiLetterOrDigit(c) || IdPunctuation.Contains(c, StringComparison.Ordinal));
+
+    private static string? ValidatePath(string value) {
+        try {
+            if (Directory.Exists(value)) {
+                Directory.EnumerateFileSystemEntries(value).GetEnumerator().MoveNext();
+                return null;
+            }
+            using var _ = File.OpenRead(value);
+            return null;
+        } catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException) {
+            return "no file or directory exists at this path";
+        } catch (UnauthorizedAccessException) {
+            return "this path exists but is not readable";
+        } catch (Exception e) when (e is IOException or ArgumentException or NotSupportedException) {
+            return $"this path could not be read: {e.Message}";
+        }
+    }
 
     private static string? ValidateCidrList(string value) {
         foreach (var entry in SettingsFormat.ParseList(value)) {

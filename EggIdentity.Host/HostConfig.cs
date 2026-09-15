@@ -1,6 +1,7 @@
 using EggIdentity.Auth;
 using EggIdentity.Config;
 using EggIdentity.Deploy;
+using EggIdentity.Settings;
 
 namespace EggIdentity.Host;
 
@@ -32,6 +33,14 @@ internal sealed class HostConfig {
 
     public string? SharedFileLookup(string key) => SharedFileValues.GetValueOrDefault(key);
 
+    private static string? ReadPemOrFile(string envKey, string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (value.Contains("-----BEGIN", StringComparison.Ordinal)) return value;
+        if (SettingsValidation.ValidateKind(SettingKind.Path, value, []) is string error)
+            throw new InvalidOperationException($"{envKey} is not PEM text, and as a path {error}: \"{value}\"");
+        return File.ReadAllText(value);
+    }
+
     public static HostConfig FromEnvironment() {
         var connString = Environment.GetEnvironmentVariable("IDENTITY_DB_CONNECTION")
             ?? throw new InvalidOperationException("IDENTITY_DB_CONNECTION is required");
@@ -40,7 +49,8 @@ internal sealed class HostConfig {
 
         var authentikAuthority = Environment.GetEnvironmentVariable("AUTHENTIK_AUTHORITY");
         var authentikAppsDir = Environment.GetEnvironmentVariable("AUTHENTIK_APPS_DIR");
-        var authentikTokenDecryptionKey = Environment.GetEnvironmentVariable("AUTHENTIK_TOKEN_DECRYPTION_KEY");
+        var authentikTokenDecryptionKey = ReadPemOrFile(
+            "AUTHENTIK_TOKEN_DECRYPTION_KEY", Environment.GetEnvironmentVariable("AUTHENTIK_TOKEN_DECRYPTION_KEY"));
         var loginWidgetEnabled = !string.IsNullOrEmpty(authentikAuthority);
 
         var sessionOptions = SessionCookieOptions.FromEnvironment();

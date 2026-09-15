@@ -79,9 +79,9 @@ public static class LegalPages {
             <section>
                 <h2>The short version</h2>
                 <p>
-                    EggIdentity is the shared login and session backbone behind davidarthurcole.me's
-                    Egg, Inc. tools, currently <a href="https://eggledger.davidarthurcole.me" target="_blank" rel="noopener">EggLedger</a>
-                    and <a href="https://eggincognito.davidarthurcole.me" target="_blank" rel="noopener">EggIncognito</a>.
+                    EggIdentity is the shared login and session backbone behind egginc.tools's
+                    Egg, Inc. tools, currently <a href="https://eggledger.egginc.tools" target="_blank" rel="noopener">EggLedger</a>
+                    and <a href="https://eggincognito.egginc.tools" target="_blank" rel="noopener">EggIncognito</a>.
                     It exists so you can sign in once and stay signed in across those sites. It stores
                     only the identity data needed to recognise you and apply your role or perks. There is
                     no advertising, no third-party tracking, no analytics, and payment data is never
@@ -92,10 +92,10 @@ public static class LegalPages {
             <section>
                 <h2>What EggIdentity is</h2>
                 <p>
-                    EggIdentity runs at eggidentity.davidarthurcole.me and is operated by an individual,
+                    EggIdentity runs at eggidentity.egginc.tools and is operated by an individual,
                     David Cole, not a company. It sits between you, an OAuth provider you choose (Discord,
                     Google, Microsoft, or GitHub) via a self-hosted Authentik instance at
-                    auth.davidarthurcole.me, and the app you are signing into. EggIdentity never sees or
+                    auth.egginc.tools, and the app you are signing into. EggIdentity never sees or
                     stores your password; that is handled entirely by the provider and Authentik.
                 </p>
             </section>
@@ -122,7 +122,7 @@ public static class LegalPages {
                 <h2>Single sign-on cookie</h2>
                 <p>
                     Logging in to any app that uses EggIdentity sets one shared session cookie, scoped to
-                    the whole davidarthurcole.me domain, so you do not have to log in again on the other
+                    the whole egginc.tools domain, so you do not have to log in again on the other
                     apps. The cookie holds a signed token containing your account id, role, and a session
                     id - it does not carry your password or provider tokens. Signing out of any app clears
                     the cookie everywhere, and the session id is revoked server-side so a copy of an old
@@ -151,7 +151,7 @@ public static class LegalPages {
                     cookies, so there is no consent banner to click through.
                 </p>
                 <ul>
-                    <li><strong>eggidentity_session.</strong> The shared sign-in cookie described above. HttpOnly, scoped to davidarthurcole.me, removed on logout or expiry.</li>
+                    <li><strong>eggidentity_session.</strong> The shared sign-in cookie described above. HttpOnly, scoped to egginc.tools, removed on logout or expiry.</li>
                     <li><strong>eggidentity_idhint.</strong> A short-lived, HttpOnly cookie used only to support clean logout and account re-linking with the OAuth provider. Not used to identify you anywhere else.</li>
                     <li><strong>Antiforgery token cookie.</strong> Present on the admin panel only, protects form submissions against cross-site request forgery. Does not identify you.</li>
                 </ul>
@@ -171,12 +171,12 @@ public static class LegalPages {
                 <p>To remove the data stored about you:</p>
                 <ul>
                     <li>Revoke access from your Discord, Google, Microsoft, or GitHub account's authorized-apps settings to cut the connection at the provider.</li>
-                    <li>Clear cookies for davidarthurcole.me sites to remove the local session.</li>
+                    <li>Clear cookies for egginc.tools sites to remove the local session.</li>
                     <li>
                         Contact the operator through the
                         <a href="https://github.com/EggIncTools/eggidentity" target="_blank" rel="noopener">GitHub repository</a>
                         or the project
-                        <a href="https://discord.davidarthurcole.me" target="_blank" rel="noopener">Discord server</a>
+                        <a href="https://discord.egginc.tools" target="_blank" rel="noopener">Discord server</a>
                         to request deletion of your stored account record.
                     </li>
                 </ul>
@@ -220,13 +220,13 @@ public static class LegalPages {
                 <p>
                     EggIdentity is shared login and session infrastructure built for the operator's own
                     suite of Egg, Inc. fan tools, currently
-                    <a href="https://eggledger.davidarthurcole.me" target="_blank" rel="noopener">EggLedger</a>
-                    and <a href="https://eggincognito.davidarthurcole.me" target="_blank" rel="noopener">EggIncognito</a>,
+                    <a href="https://eggledger.egginc.tools" target="_blank" rel="noopener">EggLedger</a>
+                    and <a href="https://eggincognito.egginc.tools" target="_blank" rel="noopener">EggIncognito</a>,
                     plus the small deploy/ops agent used to run them. It is not a general-purpose identity
                     provider and is not offered as a standalone product; you encounter it only because it
                     is what one of those apps uses to sign you in. It is not a game client, a cheat, or a
                     service operated by Egg, Inc.'s developer. The hosted instance at
-                    eggidentity.davidarthurcole.me is run by an individual, David Cole, not a company.
+                    eggidentity.egginc.tools is run by an individual, David Cole, not a company.
                 </p>
             </section>
 
@@ -299,7 +299,7 @@ public static class LegalPages {
                     Questions about these terms can go to the operator through the
                     <a href="https://github.com/EggIncTools/eggidentity" target="_blank" rel="noopener">GitHub repository</a>
                     or the project
-                    <a href="https://discord.davidarthurcole.me" target="_blank" rel="noopener">Discord server</a>.
+                    <a href="https://discord.egginc.tools" target="_blank" rel="noopener">Discord server</a>.
                 </p>
             </section>
         </main>

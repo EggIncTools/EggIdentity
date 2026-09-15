@@ -10,7 +10,7 @@ public class SessionIssuerTests {
     private static SessionCookieOptions Options() => new() {
         SigningSecret = "super-secret-signing-key-of-sufficient-length",
         CookieName = "eggidentity_session",
-        CookieDomain = "davidarthurcole.me",
+        CookieDomain = "egginc.tools",
         Ttl = TimeSpan.FromMinutes(480),
     };
 
@@ -25,7 +25,7 @@ public class SessionIssuerTests {
 
         var setCookie = ctx.Response.Headers.SetCookie.ToString();
         Assert.Contains("eggidentity_session=", setCookie, StringComparison.Ordinal);
-        Assert.Contains("domain=davidarthurcole.me", setCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("domain=egginc.tools", setCookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("path=/", setCookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("httponly", setCookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("secure", setCookie, StringComparison.OrdinalIgnoreCase);

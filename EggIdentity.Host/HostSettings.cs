@@ -49,7 +49,7 @@ public static class HostSettings {
         new SettingDescriptor(
             TokenDecryptionKey, "AUTHENTIK_TOKEN_DECRYPTION_KEY", "Authentik token decryption key", Identity,
             SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
-            Description = "RSA private key in PEM form, required only when the Authentik provider has an encryption key set. Without it an encrypted id_token yields no session id and revocation stops working. Storing it needs EGGIDENTITY_SETTINGS_KEY on the stack.",
+            Description = "RSA private key, required only when the Authentik provider has an encryption key set. Accepts PEM text or a path to a PEM file, and is read at startup from the environment only. Without it an encrypted id_token yields no session id and revocation stops working.",
         },
         new SettingDescriptor(
             "authentik.apps_dir", "AUTHENTIK_APPS_DIR", "Authentik app config directory", Login,

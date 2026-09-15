@@ -63,7 +63,7 @@ jobs:
     uses: ./.github/workflows/notify-agent.yml
     with:
       app: eggidentity
-      agent-url: https://egghook.davidarthurcole.me/agent
+      agent-url: https://egghook.egginc.tools/agent
       digest: ${{ needs.docker-identity-host.outputs.digest }}
       revision: ${{ github.sha }}
       version: ${{ github.ref_name }}
@@ -75,7 +75,7 @@ jobs:
     uses: ./.github/workflows/notify-agent.yml
     with:
       app: eggidentity-agent
-      agent-url: https://egghook.davidarthurcole.me/agent
+      agent-url: https://egghook.egginc.tools/agent
       digest: ${{ needs.docker-agent.outputs.digest }}
       revision: ${{ github.sha }}
       version: ${{ github.ref_name }}
