@@ -1,3 +1,4 @@
+using System.Text.Json;
 using EggIdentity.Contract;
 using EggIdentity.Deploy;
 using EggIdentity.Resilience;
@@ -235,6 +236,11 @@ public sealed class DeployService(
         events.Publish(cfg.Name, DeployPhase.Pulled, $"pulled {Short(pulled.Revision)}",
             fromRevision: old.Revision, toRevision: pulled.Revision, version: pulled.Version, digest: pulledDigest);
 
+        if (DescribeNetworkLoss(old) is { } loss) {
+            events.Publish(cfg.Name, DeployPhase.Failed, loss, fromRevision: old.Revision, digest: pulledDigest);
+            throw new InvalidOperationException(loss);
+        }
+
         if (_isSelf(old)) {
             events.Publish(cfg.Name, DeployPhase.Recreating, "handing off to swap helper",
                 fromRevision: old.Revision, toRevision: pulled.Revision, version: pulled.Version, digest: pulledDigest);
@@ -297,8 +303,24 @@ public sealed class DeployService(
         Console.WriteLine($"deploy {cfg.Name}: swap helper started, this process will be stopped by it");
     }
 
-    private static ContainerSpec Replacement(DeployApp cfg, ContainerInfo old) =>
-        new(cfg.ContainerName, cfg.Image, old.Config, old.HostConfig, old.Networks) { ImageConfig = old.ImageConfig };
+    private static ContainerSpec Replacement(DeployApp cfg, ContainerInfo old) {
+        if (DescribeNetworkLoss(old) is { } loss) throw new InvalidOperationException(loss);
+        return new ContainerSpec(cfg.ContainerName, cfg.Image, old.Config, old.HostConfig, old.Networks) {
+            ImageConfig = old.ImageConfig,
+        };
+    }
+
+    internal static string? DescribeNetworkLoss(ContainerInfo old) {
+        ArgumentNullException.ThrowIfNull(old);
+        if (DockerJson.NetworkMode(old.HostConfig) is not { Length: > 0 } mode) return null;
+        if (DockerJson.IsNonAttachable(mode)) return null;
+        if (old.Networks.ValueKind == JsonValueKind.Object && old.Networks.EnumerateObject().Any()) return null;
+
+        return $"refusing to recreate {old.Name}: its HostConfig asks for network \"{mode}\", but the engine "
+            + "reports no endpoints, so recreating from this would attach the new container to nothing. "
+            + "Docker only reports endpoints for a running container, so this usually means it was inspected "
+            + "while stopped or crashlooping. Redeploy the stack to restore it.";
+    }
 
     internal static string? ImageMismatch(ContainerInfo running, ImageRef expected) {
         if (running.Image.Length == 0 || running.Image.StartsWith("sha256:", StringComparison.Ordinal)) return null;

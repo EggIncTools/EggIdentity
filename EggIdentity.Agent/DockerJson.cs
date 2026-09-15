@@ -21,9 +21,7 @@ public static class DockerJson {
         var name = (container.TryGetProperty("Name", out var n) ? n.GetString() : null) ?? "";
         var config = container.TryGetProperty("Config", out var c) ? c.Clone() : EmptyObject();
         var hostConfig = container.TryGetProperty("HostConfig", out var h) ? h.Clone() : EmptyObject();
-        var networks = container.TryGetProperty("NetworkSettings", out var ns) && ns.TryGetProperty("Networks", out var nw)
-            ? nw.Clone()
-            : EmptyObject();
+        var networks = ReadNetworks(container, hostConfig);
         var running = container.TryGetProperty("State", out var state)
             && state.TryGetProperty("Running", out var r)
             && r.ValueKind == JsonValueKind.True;
@@ -122,6 +120,41 @@ public static class DockerJson {
         foreach (var value in values) array.Add(value);
         return array;
     }
+
+    private static JsonElement ReadNetworks(JsonElement container, JsonElement hostConfig) {
+        if (hostConfig.ValueKind == JsonValueKind.Object
+            && hostConfig.TryGetProperty("NetworkMode", out var mode)
+            && mode.GetString() is { Length: > 0 } modeName
+            && IsNonAttachable(modeName)) {
+            return EmptyObject();
+        }
+
+        if (hostConfig.ValueKind == JsonValueKind.Object
+            && hostConfig.TryGetProperty("NetworkingConfig", out var configured)
+            && configured.TryGetProperty("EndpointsConfig", out var endpoints)
+            && endpoints.ValueKind == JsonValueKind.Object
+            && endpoints.EnumerateObject().Any()) {
+            return endpoints.Clone();
+        }
+
+        if (container.TryGetProperty("NetworkSettings", out var ns)
+            && ns.TryGetProperty("Networks", out var live)
+            && live.ValueKind == JsonValueKind.Object
+            && live.EnumerateObject().Any()) {
+            return live.Clone();
+        }
+
+        return EmptyObject();
+    }
+
+    public static string? NetworkMode(JsonElement hostConfig) =>
+        hostConfig.ValueKind == JsonValueKind.Object
+        && hostConfig.TryGetProperty("NetworkMode", out var mode)
+            ? mode.GetString()
+            : null;
+
+    public static bool IsNonAttachable(string networkMode) =>
+        networkMode is "host" or "none" || networkMode.StartsWith("container:", StringComparison.Ordinal);
 
     public static bool IsAutoContainerId(string? text) =>
         text is { Length: 12 } && text.All(ch => ch is >= '0' and <= '9' or >= 'a' and <= 'f');
