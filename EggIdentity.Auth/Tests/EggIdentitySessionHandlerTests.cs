@@ -18,6 +18,9 @@ public class EggIdentitySessionHandlerTests {
         Ttl = TimeSpan.FromMinutes(480),
     };
 
+    private static EggIdentitySessionOptions Options(SessionCookieOptions cookie) =>
+        new() { Cookie = cookie, RequireRevocationCheck = false };
+
     private static async Task<EggIdentitySessionHandler> HandlerAsync(EggIdentitySessionOptions options, HttpContext context) {
         var clock = new FixedClock(Now);
         var cache = new SessionRevocationCache(clock, TimeSpan.FromSeconds(30));
@@ -36,7 +39,7 @@ public class EggIdentitySessionHandlerTests {
 
     [Fact]
     public async Task NoCookie_ReturnsNoResult() {
-        var handler = await HandlerAsync(new EggIdentitySessionOptions { Cookie = Cookie() }, ContextWithCookie(null));
+        var handler = await HandlerAsync(Options(Cookie()), ContextWithCookie(null));
 
         var result = await handler.AuthenticateAsync();
 
@@ -47,7 +50,7 @@ public class EggIdentitySessionHandlerTests {
     public async Task ValidCookie_Succeeds() {
         var cookie = Cookie();
         var token = SessionToken.Issue(cookie, new SessionUser("11111111-1111-1111-1111-111111111111", "sid", "admin"), Now);
-        var handler = await HandlerAsync(new EggIdentitySessionOptions { Cookie = cookie }, ContextWithCookie(token));
+        var handler = await HandlerAsync(Options(cookie), ContextWithCookie(token));
 
         var result = await handler.AuthenticateAsync();
 
@@ -61,6 +64,7 @@ public class EggIdentitySessionHandlerTests {
         var token = SessionToken.Issue(cookie, new SessionUser("11111111-1111-1111-1111-111111111111", "sid", "admin"), Now);
         var options = new EggIdentitySessionOptions {
             Cookie = cookie,
+            RequireRevocationCheck = false,
             OnValidated = (principal, _, _) => {
                 ((ClaimsIdentity)principal.Identity!).AddClaim(new Claim("egi:supporter", "true"));
                 return Task.CompletedTask;
@@ -81,8 +85,31 @@ public class EggIdentitySessionHandlerTests {
         var options = new EggIdentitySessionOptions {
             Cookie = cookie,
             OnValidated = (_, _, _) => throw new InvalidOperationException("benefit lookup down"),
+            RequireRevocationCheck = false,
         };
         var handler = await HandlerAsync(options, ContextWithCookie(token));
+
+        var result = await handler.AuthenticateAsync();
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task RevocationRequiredButNoClient_FailsClosed() {
+        var cookie = Cookie();
+        var token = SessionToken.Issue(cookie, new SessionUser("11111111-1111-1111-1111-111111111111", "sid", "admin"), Now);
+        var handler = await HandlerAsync(new EggIdentitySessionOptions { Cookie = cookie }, ContextWithCookie(token));
+
+        var result = await handler.AuthenticateAsync();
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task RevocationOptedOut_NoClientStillSucceeds() {
+        var cookie = Cookie();
+        var token = SessionToken.Issue(cookie, new SessionUser("11111111-1111-1111-1111-111111111111", "sid", "admin"), Now);
+        var handler = await HandlerAsync(Options(cookie), ContextWithCookie(token));
 
         var result = await handler.AuthenticateAsync();
 

@@ -22,11 +22,9 @@
     <ProjectReference Include="..\EggIdentity.Bot\EggIdentity.Bot.csproj" />
     <ProjectReference Include="..\EggIdentity.Brand\EggIdentity.Brand.csproj" />
     <ProjectReference Include="..\EggIdentity.Client\EggIdentity.Client.csproj" />
-    <ProjectReference Include="..\EggIdentity.Config\EggIdentity.Config.csproj" />
     <ProjectReference Include="..\EggIdentity.Deploy\EggIdentity.Deploy.csproj" />
     <ProjectReference Include="..\EggIdentity.Deploy.AdminUi\EggIdentity.Deploy.AdminUi.csproj" />
     <ProjectReference Include="..\EggIdentity.Fallback\EggIdentity.Fallback.csproj" />
-    <ProjectReference Include="..\EggIdentity.Bot.AdminUi\EggIdentity.Bot.AdminUi.csproj" />
     <ProjectReference Include="..\EggIdentity.Settings\EggIdentity.Settings.csproj" />
     <ProjectReference Include="..\EggIdentity.Settings.Store\EggIdentity.Settings.Store.csproj" />
     <ProjectReference Include="..\EggIdentity.Settings.AdminUi\EggIdentity.Settings.AdminUi.csproj" />
@@ -54,8 +52,8 @@
     <_StylesInput Include="..\EggIdentity.UI\**\*.razor;..\EggIdentity.UI\**\*.razor.cs" />
     <_StylesInput Include="..\EggIdentity.Settings.AdminUi\**\*.razor;..\EggIdentity.Settings.AdminUi\**\*.razor.cs" />
     <_StylesInput Include="..\EggIdentity.Deploy.AdminUi\**\*.razor;..\EggIdentity.Deploy.AdminUi\**\*.razor.cs" />
-    <_StylesInput Include="..\EggIdentity.Bot.AdminUi\**\*.razor;..\EggIdentity.Bot.AdminUi\**\*.razor.cs" />
-    <_StylesInput Include="..\EggIdentity.Metrics.AdminUi\**\*.razor;..\EggIdentity.Metrics.AdminUi\**\*.razor.cs" />
+    <_StylesInput Include="..\EggIdentity.Bot\**\*.razor;..\EggIdentity.Bot\**\*.razor.cs" />
+    <_StylesInput Include="..\EggIdentity.Metrics\**\*.razor;..\EggIdentity.Metrics\**\*.razor.cs" />
     <_StylesInput Include="..\EggIdentity.AdminUi\**\*.razor;..\EggIdentity.AdminUi\**\*.razor.cs" />
     <_StylesInput Include="..\EggIdentity.Fallback\FallbackPages.cs" />
   </ItemGroup>

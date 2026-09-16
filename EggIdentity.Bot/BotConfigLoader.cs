@@ -1,4 +1,4 @@
-namespace EggIdentity.Config;
+namespace EggIdentity.Bot;
 
 public sealed record BotConfigValues(
     string? Token,

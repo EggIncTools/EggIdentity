@@ -8,8 +8,8 @@ public static class ContentSources {
         "EggIdentity.UI",
         "EggIdentity.Settings.AdminUi",
         "EggIdentity.Deploy.AdminUi",
-        "EggIdentity.Bot.AdminUi",
-        "EggIdentity.Metrics.AdminUi",
+        "EggIdentity.Bot",
+        "EggIdentity.Metrics",
         "EggIdentity.AdminUi",
     ];
 

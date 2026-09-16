@@ -1,5 +1,4 @@
 using Discord;
-using EggIdentity.Config;
 using EggIdentity.Contract;
 using EggIdentity.Db;
 using Microsoft.AspNetCore.Builder;

@@ -1,5 +1,5 @@
 using EggIdentity.Auth;
-using EggIdentity.Config;
+using EggIdentity.Bot;
 using EggIdentity.Deploy;
 using EggIdentity.Settings;
 

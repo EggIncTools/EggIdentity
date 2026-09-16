@@ -14,33 +14,7 @@ jobs:
     uses: ./.github/workflows/nuget-publish.yml
     with:
       dotnet-version: "10.0.x"
-      pack-targets: |
-        EggIdentity.Contract/EggIdentity.Contract.csproj
-        EggIdentity.Db/EggIdentity.Db.csproj
-        EggIdentity.Deploy/EggIdentity.Deploy.csproj
-        EggIdentity.Deploy.AdminUi/EggIdentity.Deploy.AdminUi.csproj
-        EggIdentity.Auth/EggIdentity.Auth.csproj
-        EggIdentity.Bot/EggIdentity.Bot.csproj
-        EggIdentity.Bot.AdminUi/EggIdentity.Bot.AdminUi.csproj
-        EggIdentity.Brand/EggIdentity.Brand.csproj
-        EggIdentity.CodeStyle/EggIdentity.CodeStyle.csproj
-        EggIdentity.Config/EggIdentity.Config.csproj
-        EggIdentity.Fallback/EggIdentity.Fallback.csproj
-        EggIdentity.Filtering/EggIdentity.Filtering.csproj
-        EggIdentity.Icons/EggIdentity.Icons.csproj
-        EggIdentity/EggIdentity.csproj
-        EggIdentity.Client/EggIdentity.Client.csproj
-        EggIdentity.AdminUi/EggIdentity.AdminUi.csproj
-        EggIdentity.Metrics/EggIdentity.Metrics.csproj
-        EggIdentity.Metrics.AdminUi/EggIdentity.Metrics.AdminUi.csproj
-        EggIdentity.Resilience/EggIdentity.Resilience.csproj
-        EggIdentity.Settings/EggIdentity.Settings.csproj
-        EggIdentity.Settings.Store/EggIdentity.Settings.Store.csproj
-        EggIdentity.Settings.Api/EggIdentity.Settings.Api.csproj
-        EggIdentity.Settings.AdminUi/EggIdentity.Settings.AdminUi.csproj
-        EggIdentity.Styles/EggIdentity.Styles.csproj
-        EggIdentity.StyleVerify/EggIdentity.StyleVerify.csproj
-        EggIdentity.UI/EggIdentity.UI.csproj
+      solution: EggIdentity.slnx
 
   docker-identity-host:
     uses: ./.github/workflows/docker-publish.yml

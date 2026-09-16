@@ -4,7 +4,10 @@ on:
   workflow_call:
     inputs:
       pack-targets:
-        required: true
+        required: false
+        type: string
+      solution:
+        required: false
         type: string
       dotnet-version:
         type: string
@@ -46,12 +49,21 @@ jobs:
       - name: Pack
         run: |
           set -euo pipefail
-          dotnet new sln -n pack-targets -o pack-targets-sln
-          while IFS= read -r proj; do
-            [ -z "$proj" ] && continue
-            dotnet sln pack-targets-sln/pack-targets.slnx add "$proj"
-          done <<< "${{ inputs.pack-targets }}"
-          dotnet pack pack-targets-sln/pack-targets.slnx -c Release -o nupkgs
+          targets=$(printf '%s' "${{ inputs.pack-targets }}" | sed '/^[[:space:]]*$/d')
+          solution="${{ inputs.solution }}"
+          if [ -n "$targets" ]; then
+            dotnet new sln -n pack-targets -o pack-targets-sln
+            while IFS= read -r proj; do
+              [ -z "$proj" ] && continue
+              dotnet sln pack-targets-sln/pack-targets.slnx add "$proj"
+            done <<< "$targets"
+            dotnet pack pack-targets-sln/pack-targets.slnx -c Release -o nupkgs
+          elif [ -n "$solution" ]; then
+            dotnet pack "$solution" -c Release -o nupkgs
+          else
+            echo "nuget-publish needs either pack-targets or solution" >&2
+            exit 1
+          fi
 
       - name: Push to GitHub Packages
         run: |

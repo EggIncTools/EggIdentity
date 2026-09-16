@@ -1,6 +1,6 @@
 using EggIdentity.Contract;
 
-namespace EggIdentity.Metrics.AdminUi;
+namespace EggIdentity.Metrics;
 
 public interface ITrafficSource {
     Task<TrafficSnapshot> GetSnapshotAsync(CancellationToken ct);

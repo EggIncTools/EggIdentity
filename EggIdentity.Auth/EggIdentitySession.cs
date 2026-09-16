@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -17,6 +18,23 @@ public static class EggIdentitySessionDefaults {
 public sealed class EggIdentitySessionOptions : AuthenticationSchemeOptions {
     public SessionCookieOptions Cookie { get; set; } = null!;
     public Func<ClaimsPrincipal, HttpContext, CancellationToken, Task>? OnValidated { get; set; }
+    public bool RequireRevocationCheck { get; set; } = true;
+}
+
+internal sealed class SessionRevocationGuard(IServiceProvider services, string scheme) : IHostedService {
+    public Task StartAsync(CancellationToken cancellationToken) {
+        var options = services.GetRequiredService<IOptionsMonitor<EggIdentitySessionOptions>>().Get(scheme);
+        if (!options.RequireRevocationCheck) return Task.CompletedTask;
+        if (services.GetService<IdentityApiClient>() is not null) return Task.CompletedTask;
+        throw new InvalidOperationException(
+            $"The \"{scheme}\" authentication scheme checks whether a session has been revoked, which needs an "
+            + "IdentityApiClient in the service collection, and none is registered. Without it a revoked session "
+            + "stays usable until its cookie expires on its own. Register one (services.AddHttpClient<IdentityApiClient>"
+            + "(...) pointed at the identity API), or, if this app genuinely has no identity API to reach, pass "
+            + "requireRevocationCheck: false to AddEggIdentitySession to say so deliberately.");
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
 public sealed class EggIdentitySessionHandler(
@@ -38,7 +56,10 @@ public sealed class EggIdentitySessionHandler(
         var sid = principal.FindFirstValue(SessionClaims.SessionId);
         if (!string.IsNullOrEmpty(sid)) {
             var identity = Context.RequestServices.GetService<IdentityApiClient>();
-            if (identity is not null) {
+            if (identity is null) {
+                if (Options.RequireRevocationCheck)
+                    return AuthenticateResult.Fail("session revocation cannot be checked");
+            } else {
                 bool revoked;
                 try {
                     revoked = await revocations.IsRevokedAsync(
@@ -75,14 +96,17 @@ public static class EggIdentitySessionExtensions {
         SessionCookieOptions cookie,
         Func<ClaimsPrincipal, HttpContext, CancellationToken, Task>? onValidated = null,
         TimeSpan? revocationCacheTtl = null,
-        string scheme = EggIdentitySessionDefaults.Scheme) {
+        string scheme = EggIdentitySessionDefaults.Scheme,
+        bool requireRevocationCheck = true) {
         var ttl = revocationCacheTtl ?? TimeSpan.FromSeconds(30);
         builder.Services.TryAddSingleton(TimeProvider.System);
         builder.Services.TryAddSingleton(sp =>
             new SessionRevocationCache(sp.GetRequiredService<TimeProvider>(), ttl));
+        builder.Services.AddSingleton<IHostedService>(sp => new SessionRevocationGuard(sp, scheme));
         return builder.AddScheme<EggIdentitySessionOptions, EggIdentitySessionHandler>(scheme, o => {
             o.Cookie = cookie;
             o.OnValidated = onValidated;
+            o.RequireRevocationCheck = requireRevocationCheck;
         });
     }
 }

@@ -85,7 +85,7 @@ internal static class Program {
         builder.Services.AddHttpClient();
         if (sessionOptions is not null) {
             builder.Services.AddAuthentication(EggIdentitySessionDefaults.Scheme)
-                .AddEggIdentitySession(sessionOptions);
+                .AddEggIdentitySession(sessionOptions, requireRevocationCheck: false);
             builder.Services.AddAuthorization();
         }
         builder.WebHost.UseUrls($"http://*:{port}");
