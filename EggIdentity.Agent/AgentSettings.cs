@@ -8,6 +8,7 @@ public static class AgentSettings {
     public const string Port = "agent.port";
     public const string WatchInterval = "agent.watch_interval";
     public const string PullTimeout = "agent.pull_timeout";
+    public const string RedeployTimeout = "agent.redeploy_timeout";
     public const string HookSecret = "deploy.hook_secret";
     public const string DockerHost = "agent.docker_host";
     public const string SelfContainer = "agent.self_container";
@@ -57,6 +58,12 @@ public static class AgentSettings {
         new SettingDescriptor(
             PullTimeout, "AGENT_PULL_TIMEOUT", "Image pull timeout", Deploy,
             SettingKind.Duration, ApplyTier.Live, Sensitivity.Plain) { Default = "10m" },
+        new SettingDescriptor(
+            RedeployTimeout, "AGENT_REDEPLOY_TIMEOUT", "Redeploy timeout", Deploy,
+            SettingKind.Duration, ApplyTier.Live, Sensitivity.Plain) {
+            Default = "5m",
+            Description = "How long to wait for Portainer to bring the container up on the pulled image after the webhook is accepted.",
+        },
         new SettingDescriptor(
             HookSecret, "DEPLOY_HOOK_SECRET", "CI hook secret", Deploy,
             SettingKind.Secret, ApplyTier.RestartRequired, Sensitivity.Secret) {

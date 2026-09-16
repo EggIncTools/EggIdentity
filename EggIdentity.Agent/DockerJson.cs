@@ -1,7 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 namespace EggIdentity.Agent;
 
@@ -14,14 +13,10 @@ public sealed record PullProgress(string? Status, string? Id, string? Progress, 
 }
 
 public static class DockerJson {
-    private static readonly string[] EndpointInputKeys = ["IPAMConfig", "Links", "Aliases", "NetworkID", "DriverOpts"];
-
     public static ContainerInfo ParseContainer(JsonElement container, JsonElement? image) {
         var id = container.GetProperty("Id").GetString() ?? "";
         var name = (container.TryGetProperty("Name", out var n) ? n.GetString() : null) ?? "";
-        var config = container.TryGetProperty("Config", out var c) ? c.Clone() : EmptyObject();
-        var hostConfig = container.TryGetProperty("HostConfig", out var h) ? h.Clone() : EmptyObject();
-        var networks = ReadNetworks(container, hostConfig);
+        var config = container.TryGetProperty("Config", out var c) ? c : EmptyObject();
         var running = container.TryGetProperty("State", out var state)
             && state.TryGetProperty("Running", out var r)
             && r.ValueKind == JsonValueKind.True;
@@ -30,144 +25,20 @@ public static class DockerJson {
         var labels = ReadStringMap(config, "Labels");
         var env = ReadStringList(config, "Env");
         var repoDigests = new List<string>();
-        var imageConfig = EmptyObject();
         if (image is { } imageElement) {
             repoDigests = ReadStringList(imageElement, "RepoDigests");
             if (imageElement.TryGetProperty("Config", out var ic) && ic.ValueKind == JsonValueKind.Object) {
-                imageConfig = ic.Clone();
-                foreach (var (k, v) in ReadStringMap(imageConfig, "Labels"))
+                foreach (var (k, v) in ReadStringMap(ic, "Labels"))
                     labels.TryAdd(k, v);
             }
         }
-        return new ContainerInfo(id, name.TrimStart('/'), imageRef, imageId, repoDigests, env, labels, running, config, hostConfig, networks) {
-            ImageConfig = imageConfig,
-        };
+        return new ContainerInfo(id, name.TrimStart('/'), imageRef, imageId, repoDigests, env, labels, running);
     }
 
     public static ImageInfo ParseImage(JsonElement image) {
         var id = image.GetProperty("Id").GetString() ?? "";
         var config = image.TryGetProperty("Config", out var c) ? c : EmptyObject();
         return new ImageInfo(id, ReadStringList(image, "RepoDigests"), ReadStringMap(config, "Labels"), ReadStringList(config, "Env"));
-    }
-
-    public static string BuildCreateBody(ContainerSpec spec) {
-        ArgumentNullException.ThrowIfNull(spec);
-
-        var body = ObjectNode(spec.Config);
-        StripImageDefaults(body, spec.ImageConfig);
-        body["Image"] = spec.Image;
-        body.Remove("MacAddress");
-        if (IsAutoContainerId(body["Hostname"]?.GetValue<string>())) body.Remove("Hostname");
-        if (spec.Cmd is not null) body["Cmd"] = StringArray(spec.Cmd);
-
-        var host = ObjectNode(spec.HostConfig);
-        if (spec.Binds is not null) host["Binds"] = StringArray(spec.Binds);
-        if (spec.AutoRemove) host["AutoRemove"] = true;
-        if (spec.NetworkMode is not null) host["NetworkMode"] = spec.NetworkMode;
-        body["HostConfig"] = host;
-
-        var endpoints = new JsonObject();
-        if (spec.Networks.ValueKind == JsonValueKind.Object) {
-            foreach (var network in spec.Networks.EnumerateObject())
-                endpoints[network.Name] = ShapeEndpoint(network.Value);
-        }
-        body["NetworkingConfig"] = new JsonObject { ["EndpointsConfig"] = endpoints };
-
-        return body.ToJsonString();
-    }
-
-    public static JsonElement ToElement(JsonNode node) {
-        ArgumentNullException.ThrowIfNull(node);
-        using var doc = JsonDocument.Parse(node.ToJsonString());
-        return doc.RootElement.Clone();
-    }
-
-    private static readonly string[] ImageScalarKeys = ["Cmd", "Entrypoint", "WorkingDir", "User", "StopSignal", "StopTimeout", "Healthcheck", "Shell"];
-    private static readonly string[] ImageMapKeys = ["Labels", "ExposedPorts", "Volumes"];
-
-    private static void StripImageDefaults(JsonObject body, JsonElement image) {
-        if (image.ValueKind != JsonValueKind.Object) return;
-        foreach (var key in ImageScalarKeys) {
-            if (!body.TryGetPropertyValue(key, out var value)) continue;
-            if (SameAsImage(value, image, key)) body.Remove(key);
-        }
-        foreach (var key in ImageMapKeys) {
-            if (body[key] is not JsonObject map || !image.TryGetProperty(key, out var imageMap) || imageMap.ValueKind != JsonValueKind.Object) continue;
-            foreach (var entry in imageMap.EnumerateObject()) {
-                if (map.TryGetPropertyValue(entry.Name, out var value) && JsonNode.DeepEquals(value, JsonNode.Parse(entry.Value.GetRawText())))
-                    map.Remove(entry.Name);
-            }
-        }
-        if (body["Env"] is JsonArray env && image.TryGetProperty("Env", out var imageEnv) && imageEnv.ValueKind == JsonValueKind.Array) {
-            var defaults = imageEnv.EnumerateArray().Select(e => e.GetString()).Where(e => e is not null).ToHashSet(StringComparer.Ordinal);
-            for (var i = env.Count - 1; i >= 0; i--) {
-                if (env[i]?.GetValue<string>() is { } line && defaults.Contains(line)) env.RemoveAt(i);
-            }
-        }
-    }
-
-    private static bool SameAsImage(JsonNode? value, JsonElement image, string key) {
-        var hasImageValue = image.TryGetProperty(key, out var imageValue) && imageValue.ValueKind != JsonValueKind.Null;
-        if (!hasImageValue) return value is null;
-        return JsonNode.DeepEquals(value, JsonNode.Parse(imageValue.GetRawText()));
-    }
-
-    private static JsonObject ObjectNode(JsonElement element) =>
-        element.ValueKind == JsonValueKind.Object ? JsonNode.Parse(element.GetRawText())!.AsObject() : [];
-
-    private static JsonArray StringArray(IEnumerable<string> values) {
-        var array = new JsonArray();
-        foreach (var value in values) array.Add(value);
-        return array;
-    }
-
-    private static JsonElement ReadNetworks(JsonElement container, JsonElement hostConfig) {
-        if (hostConfig.ValueKind == JsonValueKind.Object
-            && hostConfig.TryGetProperty("NetworkMode", out var mode)
-            && mode.GetString() is { Length: > 0 } modeName
-            && IsNonAttachable(modeName)) {
-            return EmptyObject();
-        }
-
-        if (container.TryGetProperty("NetworkSettings", out var ns)
-            && ns.TryGetProperty("Networks", out var live)
-            && live.ValueKind == JsonValueKind.Object
-            && live.EnumerateObject().Any()) {
-            return live.Clone();
-        }
-
-        return EmptyObject();
-    }
-
-    public static string? NetworkMode(JsonElement hostConfig) =>
-        hostConfig.ValueKind == JsonValueKind.Object
-        && hostConfig.TryGetProperty("NetworkMode", out var mode)
-            ? mode.GetString()
-            : null;
-
-    public static bool IsNonAttachable(string networkMode) =>
-        networkMode is "host" or "none" || networkMode.StartsWith("container:", StringComparison.Ordinal);
-
-    public static bool IsAutoContainerId(string? text) =>
-        text is { Length: 12 } && text.All(ch => ch is >= '0' and <= '9' or >= 'a' and <= 'f');
-
-    private static JsonObject ShapeEndpoint(JsonElement endpoint) {
-        var shaped = new JsonObject();
-        if (endpoint.ValueKind != JsonValueKind.Object) return shaped;
-        foreach (var key in EndpointInputKeys) {
-            if (!endpoint.TryGetProperty(key, out var value) || value.ValueKind == JsonValueKind.Null) continue;
-            if (key == "Aliases") {
-                var aliases = new JsonArray();
-                foreach (var alias in value.EnumerateArray()) {
-                    var text = alias.GetString();
-                    if (text is not null && !IsAutoContainerId(text)) aliases.Add(text);
-                }
-                shaped[key] = aliases;
-                continue;
-            }
-            shaped[key] = JsonNode.Parse(value.GetRawText());
-        }
-        return shaped;
     }
 
     public static string DemuxLogStream(ReadOnlySpan<byte> data) {

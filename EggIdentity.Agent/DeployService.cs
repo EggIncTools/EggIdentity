@@ -1,4 +1,3 @@
-using System.Text.Json;
 using EggIdentity.Contract;
 using EggIdentity.Deploy;
 using EggIdentity.Resilience;
@@ -6,16 +5,26 @@ using EggIdentity.Resilience;
 namespace EggIdentity.Agent;
 
 public sealed class DeployService(
-    AppCatalog catalog, IDockerEngine engine, IImageRegistry images, DeployEventRing events,
-    TimeProvider? time = null, Func<ContainerInfo, bool>? isSelf = null) {
+    AppCatalog catalog, IDockerEngine engine, IImageRegistry images, IStackWebhook webhook, DeployEventRing events,
+    TimeProvider? time = null, Func<TimeSpan>? redeployTimeout = null) {
     private static readonly RetryOptions RegistryRetry = new() {
         MaxAttempts = 3,
         BaseDelay = TimeSpan.FromMilliseconds(500),
         MaxDelay = TimeSpan.FromSeconds(5),
     };
 
+    private static readonly RetryOptions WebhookRetry = new() {
+        MaxAttempts = 6,
+        BaseDelay = TimeSpan.FromSeconds(5),
+        MaxDelay = TimeSpan.FromSeconds(30),
+        ShouldRetry = e => e is StackBusyException,
+    };
+
+    private static readonly TimeSpan RedeployPoll = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan DefaultRedeployTimeout = TimeSpan.FromMinutes(5);
+
     private readonly TimeProvider _clock = time ?? TimeProvider.System;
-    private readonly Func<ContainerInfo, bool> _isSelf = isSelf ?? SelfContainer.IsSelf;
+    private readonly Func<TimeSpan> _redeployTimeout = redeployTimeout ?? (() => DefaultRedeployTimeout);
     private readonly Lock _gate = new();
     private readonly Dictionary<string, AppState> _apps = catalog.Apps.ToDictionary(
         kv => kv.Key, kv => new AppState(kv.Value), StringComparer.OrdinalIgnoreCase);
@@ -181,24 +190,6 @@ public sealed class DeployService(
         }
     }
 
-    public async Task ReapAsync(CancellationToken ct) {
-        foreach (var state in States()) {
-            var container = state.Config.ContainerName;
-            var oldName = OldName(container);
-            try {
-                var old = await engine.InspectContainerAsync(oldName, ct);
-                if (old is null) continue;
-                var current = await engine.InspectContainerAsync(container, ct);
-                if (current is null || !current.Running) continue;
-                await engine.RemoveAsync(old.Id, ct);
-                events.Publish(state.Config.Name, DeployPhase.Deployed, $"removed leftover {oldName} after a previous recreate",
-                    fromRevision: old.Revision, toRevision: current.Revision, version: current.Version, digest: PickDigest(current, state.Image));
-            } catch (Exception e) {
-                events.Publish(state.Config.Name, DeployPhase.Failed, $"reap {oldName} failed: {e.Message}");
-            }
-        }
-    }
-
     private async Task TickOneAsync(AppState state, CancellationToken ct) {
         if (state.Gate.InProgress) return;
         DeployStatus status;
@@ -224,6 +215,10 @@ public sealed class DeployService(
             events.Publish(cfg.Name, DeployPhase.Failed, $"deploy ({reason}) aborted: container {container} not found");
             return;
         }
+        if (string.IsNullOrWhiteSpace(cfg.WebhookUrl) || !Uri.TryCreate(cfg.WebhookUrl, UriKind.Absolute, out var url)) {
+            events.Publish(cfg.Name, DeployPhase.Failed, $"deploy ({reason}) aborted: deploy.apps row {cfg.Name} has no usable webhook_url");
+            return;
+        }
         var old = observation.Running;
         if (!observation.UpdateAvailable) {
             events.Publish(cfg.Name, DeployPhase.UpToDate, $"already up to date at {Short(old.Revision)} ({reason})",
@@ -244,21 +239,10 @@ public sealed class DeployService(
         events.Publish(cfg.Name, DeployPhase.Pulled, $"pulled {Short(pulled.Revision)}",
             fromRevision: old.Revision, toRevision: pulled.Revision, version: pulled.Version, digest: pulledDigest);
 
-        if (DescribeNetworkLoss(old) is { } loss) {
-            events.Publish(cfg.Name, DeployPhase.Failed, loss, fromRevision: old.Revision, digest: pulledDigest);
-            throw new InvalidOperationException(loss);
-        }
-
-        if (_isSelf(old)) {
-            events.Publish(cfg.Name, DeployPhase.Recreating, "handing off to swap helper",
-                fromRevision: old.Revision, toRevision: pulled.Revision, version: pulled.Version, digest: pulledDigest);
-            await SelfSwapAsync(cfg, old, ct);
-            return;
-        }
-
-        events.Publish(cfg.Name, DeployPhase.Recreating, $"recreating {container}",
+        events.Publish(cfg.Name, DeployPhase.Recreating, $"asking Portainer to redeploy {container}",
             fromRevision: old.Revision, toRevision: pulled.Revision, version: pulled.Version, digest: pulledDigest);
-        await RecreateAsync(cfg, old, ct);
+        await Retry.RunAsync(token => webhook.InvokeAsync(url, token), WebhookRetry, _clock, ct);
+        await WaitForRedeployAsync(cfg, pulled, ct);
 
         lock (state.Sync) {
             state.RunningDigest = pulledDigest;
@@ -269,65 +253,21 @@ public sealed class DeployService(
             fromRevision: old.Revision, toRevision: pulled.Revision, version: pulled.Version, digest: pulledDigest);
     }
 
-    private async Task RecreateAsync(DeployApp cfg, ContainerInfo old, CancellationToken ct) {
-        var container = cfg.ContainerName;
-        var oldName = OldName(container);
-        await engine.RenameAsync(old.Id, oldName, ct);
-
-        string? newId = null;
-        var oldStopped = false;
-        try {
-            newId = await engine.CreateAsync(Replacement(cfg, old), ct);
+    private async Task WaitForRedeployAsync(DeployApp cfg, ImageInfo pulled, CancellationToken ct) {
+        var started = _clock.GetUtcNow();
+        var timeout = _redeployTimeout();
+        while (true) {
+            ContainerInfo? running = null;
             try {
-                await engine.StartAsync(newId, ct);
-            } catch (Exception first) when (first is not OperationCanceledException) {
-                Console.WriteLine($"deploy {cfg.Name}: start alongside old failed ({first.Message}), stopping old first");
-                await engine.StopAsync(old.Id, ct);
-                oldStopped = true;
-                await engine.StartAsync(newId, ct);
+                running = await engine.InspectContainerAsync(cfg.ContainerName, ct);
+            } catch (Exception e) when (e is not OperationCanceledException) {
+                Console.WriteLine($"deploy {cfg.Name}: inspect while Portainer redeploys: {e.Message}");
             }
-        } catch (Exception e) {
-            await RollbackAsync(cfg, old, newId, oldStopped, e, ct);
-            throw;
+            if (running is { Running: true } && running.ImageId == pulled.Id) return;
+            if (_clock.GetUtcNow() - started >= timeout)
+                throw new InvalidOperationException($"{cfg.ContainerName} did not come up on {Short(pulled.Revision)} within {timeout}; check the stack in Portainer");
+            await Task.Delay(RedeployPoll, _clock, ct);
         }
-
-        if (!oldStopped) await StopQuietAsync(old.Id, ct);
-        await engine.RemoveAsync(old.Id, ct);
-    }
-
-    private async Task SelfSwapAsync(DeployApp cfg, ContainerInfo old, CancellationToken ct) {
-        var container = cfg.ContainerName;
-        await engine.RenameAsync(old.Id, OldName(container), ct);
-
-        string? newId = null;
-        try {
-            newId = await engine.CreateAsync(Replacement(cfg, old), ct);
-            var helperId = await engine.CreateAsync(SwapHelper.Spec(cfg.Image, container, old, newId), ct);
-            await engine.StartAsync(helperId, ct);
-        } catch (Exception e) {
-            await RollbackAsync(cfg, old, newId, oldStopped: false, e, ct);
-            throw;
-        }
-        Console.WriteLine($"deploy {cfg.Name}: swap helper started, this process will be stopped by it");
-    }
-
-    private static ContainerSpec Replacement(DeployApp cfg, ContainerInfo old) {
-        if (DescribeNetworkLoss(old) is { } loss) throw new InvalidOperationException(loss);
-        return new ContainerSpec(cfg.ContainerName, cfg.Image, old.Config, old.HostConfig, old.Networks) {
-            ImageConfig = old.ImageConfig,
-        };
-    }
-
-    internal static string? DescribeNetworkLoss(ContainerInfo old) {
-        ArgumentNullException.ThrowIfNull(old);
-        if (DockerJson.NetworkMode(old.HostConfig) is not { Length: > 0 } mode) return null;
-        if (DockerJson.IsNonAttachable(mode)) return null;
-        if (old.Networks.ValueKind == JsonValueKind.Object && old.Networks.EnumerateObject().Any()) return null;
-
-        return $"refusing to recreate {old.Name}: its HostConfig asks for network \"{mode}\", but the engine "
-            + "reports no endpoints, so recreating from this would attach the new container to nothing. "
-            + "Docker only reports endpoints for a running container, so this usually means it was inspected "
-            + "while stopped or crashlooping. Redeploy the stack to restore it.";
     }
 
     internal static string? ImageMismatch(ContainerInfo running, ImageRef expected) {
@@ -341,27 +281,6 @@ public sealed class DeployService(
         return string.Equals(actual.Name, expected.Name, StringComparison.OrdinalIgnoreCase)
             ? null
             : $"container {running.Name} runs {actual.Name}, but the deploy.apps row says {expected.Name}; fix the row before deploying";
-    }
-
-    private async Task RollbackAsync(DeployApp cfg, ContainerInfo old, string? newId, bool oldStopped, Exception cause, CancellationToken ct) {
-        Console.WriteLine($"deploy {cfg.Name}: rolling back after: {cause.Message}");
-        if (newId is not null) {
-            await StopQuietAsync(newId, ct);
-            await QuietAsync($"remove {newId}", token => engine.RemoveAsync(newId, token), ct);
-        }
-        await QuietAsync($"rename {old.Id} -> {cfg.ContainerName}", token => engine.RenameAsync(old.Id, cfg.ContainerName, token), ct);
-        if (oldStopped) await QuietAsync($"start {old.Id}", token => engine.StartAsync(old.Id, token), ct);
-    }
-
-    private Task StopQuietAsync(string id, CancellationToken ct) =>
-        QuietAsync($"stop {id}", token => engine.StopAsync(id, token), ct);
-
-    private static async Task QuietAsync(string what, Func<CancellationToken, Task> op, CancellationToken ct) {
-        try {
-            await op(ct);
-        } catch (Exception e) when (e is not OperationCanceledException) {
-            Console.WriteLine($"deploy: {what}: {e.Message}");
-        }
     }
 
     private async Task<Observation> ObserveAsync(AppState state, CancellationToken ct) {
@@ -426,8 +345,6 @@ public sealed class DeployService(
 
     private AppState Require(string app) =>
         TryGetState(app, out var state) ? state : throw new KeyNotFoundException($"unknown app \"{app}\"");
-
-    internal static string OldName(string container) => container + "-old";
 
     internal static string? PickDigest(ContainerInfo container, ImageRef image) => PickDigest(container.RepoDigests, image);
 

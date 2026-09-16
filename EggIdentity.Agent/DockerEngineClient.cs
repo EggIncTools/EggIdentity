@@ -66,35 +66,8 @@ public sealed class DockerEngineClient(HttpClient http, TimeSpan callTimeout, Fu
             }
         }, pullTimeout(), ct: ct);
 
-    public Task RenameAsync(string name, string newName, CancellationToken ct) =>
-        Deadline.RunAsync($"rename {name} to {newName}",
-            token => PostAsync($"containers/{Uri.EscapeDataString(name)}/rename?name={Uri.EscapeDataString(newName)}", null, token),
-            callTimeout, ct: ct);
-
-    public Task<string> CreateAsync(ContainerSpec spec, CancellationToken ct) {
-        ArgumentNullException.ThrowIfNull(spec);
-        return Deadline.RunAsync($"create {spec.Name}", async token => {
-            var body = DockerJson.BuildCreateBody(spec);
-            using var doc = await PostAsync($"containers/create?name={Uri.EscapeDataString(spec.Name)}", body, token);
-            return doc?.RootElement.GetProperty("Id").GetString() ?? throw new InvalidOperationException($"create {spec.Name}: engine returned no Id");
-        }, callTimeout, ct: ct);
-    }
-
-    public Task StartAsync(string name, CancellationToken ct) =>
-        Deadline.RunAsync($"start {name}", token => PostAsync($"containers/{Uri.EscapeDataString(name)}/start", null, token), callTimeout, ct: ct);
-
-    public Task StopAsync(string name, CancellationToken ct) =>
-        Deadline.RunAsync($"stop {name}", token => PostAsync($"containers/{Uri.EscapeDataString(name)}/stop?t=30", null, token), callTimeout + TimeSpan.FromSeconds(30), ct: ct);
-
     public Task RestartAsync(string name, CancellationToken ct) =>
-        Deadline.RunAsync($"restart {name}", token => PostAsync($"containers/{Uri.EscapeDataString(name)}/restart?t=30", null, token), callTimeout + TimeSpan.FromSeconds(30), ct: ct);
-
-    public Task RemoveAsync(string name, CancellationToken ct) =>
-        Deadline.RunAsync($"remove {name}", async token => {
-            using var response = await http.DeleteAsync(new Uri($"containers/{Uri.EscapeDataString(name)}?force=true", UriKind.Relative), token);
-            if (response.StatusCode == HttpStatusCode.NotFound) return;
-            if (!response.IsSuccessStatusCode) throw await FailureAsync("remove", response, token);
-        }, callTimeout, ct: ct);
+        Deadline.RunAsync($"restart {name}", token => PostAsync($"containers/{Uri.EscapeDataString(name)}/restart?t=30", token), callTimeout + TimeSpan.FromSeconds(30), ct: ct);
 
     public Task<string> LogsTailAsync(string name, int lines, CancellationToken ct) =>
         Deadline.RunAsync($"logs {name}", async token => {
@@ -111,13 +84,10 @@ public sealed class DockerEngineClient(HttpClient http, TimeSpan callTimeout, Fu
         return JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
     }
 
-    private async Task<JsonDocument?> PostAsync(string path, string? jsonBody, CancellationToken ct) {
-        using var content = jsonBody is null ? null : new StringContent(jsonBody, Encoding.UTF8, "application/json");
-        using var response = await http.PostAsync(new Uri(path, UriKind.Relative), content, ct);
-        if (response.StatusCode == HttpStatusCode.NotModified) return null;
+    private async Task PostAsync(string path, CancellationToken ct) {
+        using var response = await http.PostAsync(new Uri(path, UriKind.Relative), null, ct);
+        if (response.StatusCode == HttpStatusCode.NotModified) return;
         if (!response.IsSuccessStatusCode) throw await FailureAsync("POST " + path, response, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return string.IsNullOrWhiteSpace(body) ? null : JsonDocument.Parse(body);
     }
 
     private static async Task<InvalidOperationException> FailureAsync(string what, HttpResponseMessage response, CancellationToken ct) {

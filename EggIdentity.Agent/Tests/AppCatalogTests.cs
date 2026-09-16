@@ -91,6 +91,18 @@ public class AppCatalogTests {
     }
 
     [Fact]
+    public void DiffTo_ChangedWebhookUrl_IsChanged() {
+        var before = new AppCatalog([new DeployApp { Name = "a", Image = "img:a", WebhookUrl = "https://portainer.test/api/stacks/webhooks/one" }]);
+        var after = new AppCatalog([new DeployApp { Name = "a", Image = "img:a", WebhookUrl = "https://portainer.test/api/stacks/webhooks/two" }]);
+
+        var diff = before.DiffTo(after);
+
+        Assert.Empty(diff.Added);
+        Assert.Empty(diff.Removed);
+        Assert.Equal(["a"], diff.Changed.Select(x => x.Name));
+    }
+
+    [Fact]
     public void DiffTo_SameShape_IsEmpty() {
         var a = new AppCatalog([new DeployApp { Name = "a", Image = "img:a", Container = "a", DeploySecret = "x" }]);
         var b = new AppCatalog([new DeployApp { Name = "A", Image = "img:a", Container = "a", DeploySecret = "x" }]);

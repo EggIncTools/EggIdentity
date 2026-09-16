@@ -20,14 +20,10 @@ internal static class Program {
     private static readonly TimeSpan EngineCallTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan DefaultWatchInterval = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan DefaultPullTimeout = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan DefaultRedeployTimeout = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan CatalogPollInterval = TimeSpan.FromSeconds(2);
 
     private static async Task<int> Main(string[] args) {
-        if (SwapHelper.TryParseArgs(args, out var swap)) {
-            var helperEngine = new DockerEngineClient(DockerEngineClient.CreateHttpClient(), EngineCallTimeout, () => DefaultPullTimeout);
-            return await SwapHelper.RunAsync(helperEngine, swap, Console.Error);
-        }
-
         var connString = Environment.GetEnvironmentVariable("IDENTITY_DB_CONNECTION");
         if (string.IsNullOrEmpty(connString)) {
             Console.Error.WriteLine("eggidentity-agent: IDENTITY_DB_CONNECTION is required; apps are read from the deploy.apps settings collection");
@@ -53,9 +49,12 @@ internal static class Program {
         var engine = new DockerEngineClient(
             DockerEngineClient.CreateHttpClient(), EngineCallTimeout, () => Live(cache, AgentSettings.PullTimeout, DefaultPullTimeout));
         var images = new RegistryClient(new HttpClient { Timeout = EngineCallTimeout });
+        var webhook = new StackWebhookClient(new HttpClient { Timeout = EngineCallTimeout });
         var events = new DeployEventRing();
         var environment = snapshot.GetString(AgentSettings.Environment) ?? DeployApp.ProdEnvironment;
-        var service = new DeployService(AppCatalog.FromSnapshot(snapshot, environment), engine, images, events);
+        var service = new DeployService(
+            AppCatalog.FromSnapshot(snapshot, environment), engine, images, webhook, events,
+            redeployTimeout: () => Live(cache, AgentSettings.RedeployTimeout, DefaultRedeployTimeout));
         var runtime = new AgentRuntime(
             service, events, engine, PortainerConfig.FromSnapshot(snapshot), snapshot.GetString(AgentSettings.HookSecret));
         var app = Build(args, port, sessionOptions, runtime);
@@ -63,10 +62,7 @@ internal static class Program {
         var stopping = app.Lifetime.ApplicationStopping;
         _ = new SettingsChangeListener(dataSource, cache).RunAsync(stopping);
         _ = new AppCatalogSync(cache, service, environment).RunAsync(CatalogPollInterval, stopping);
-        _ = Task.Run(async () => {
-            await service.ReapAsync(stopping);
-            await service.RunPollLoopAsync(() => Live(cache, AgentSettings.WatchInterval, DefaultWatchInterval), stopping);
-        }, stopping);
+        _ = service.RunPollLoopAsync(() => Live(cache, AgentSettings.WatchInterval, DefaultWatchInterval), stopping);
 
         var names = service.AppNames;
         Console.WriteLine($"eggidentity-agent: watching {names.Count} app(s) from deploy.apps: {string.Join(", ", names)}");

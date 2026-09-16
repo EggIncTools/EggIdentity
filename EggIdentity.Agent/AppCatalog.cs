@@ -60,5 +60,6 @@ public sealed class AppCatalog {
         && string.Equals(a.ContainerName, b.ContainerName, StringComparison.Ordinal)
         && a.AutoDeploy == b.AutoDeploy
         && string.Equals(a.DeploySecret, b.DeploySecret, StringComparison.Ordinal)
-        && string.Equals(a.RepoUrl, b.RepoUrl, StringComparison.Ordinal);
+        && string.Equals(a.RepoUrl, b.RepoUrl, StringComparison.Ordinal)
+        && string.Equals(a.WebhookUrl, b.WebhookUrl, StringComparison.Ordinal);
 }

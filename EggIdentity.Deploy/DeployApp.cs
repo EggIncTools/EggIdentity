@@ -15,6 +15,7 @@ public sealed record DeployApp {
     public string? Container { get; init; }
     public string? RepoUrl { get; init; }
     public string? DeploySecret { get; init; }
+    public string? WebhookUrl { get; init; }
     public bool AutoDeploy { get; init; } = true;
     public bool Enabled { get; init; } = true;
     public string? PublicUrl { get; init; }
@@ -138,6 +139,9 @@ public static class DeployApps {
             },
             new FieldDescriptor("deploy_secret", "Deploy secret", SettingKind.Secret, Sensitivity.Secret) {
                 Description = "Bearer accepted on POST /deploy/{app} for this app.",
+            },
+            new FieldDescriptor("webhook_url", "Portainer webhook", SettingKind.Url, Sensitivity.Secret) {
+                Description = "Portainer stack webhook the agent POSTs after pulling a new image. Portainer recreates the container from the compose file, so networks and env always match the stack.",
             },
             new FieldDescriptor("auto_deploy", "Auto deploy", SettingKind.Bool) { Default = "true" },
             new FieldDescriptor("enabled", "Enabled", SettingKind.Bool) { Default = "true" },

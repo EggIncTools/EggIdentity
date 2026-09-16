@@ -15,15 +15,7 @@ public class DockerJsonTests {
         "Labels": { "com.docker.compose.project": "stack", "com.docker.compose.service": "eggledger" },
         "MacAddress": "02:42:ac:11:00:02" },
       "HostConfig": { "RestartPolicy": { "Name": "always" }, "Binds": ["/data:/data"] },
-      "NetworkSettings": { "Networks": { "stack_default": { "IPAMConfig": null,
-        "Links": null,
-        "Aliases": ["eggledger", "0123456789ab"],
-        "NetworkID": "netid",
-        "EndpointID": "epid",
-        "Gateway": "172.18.0.1",
-        "IPAddress": "172.18.0.5",
-        "MacAddress": "02:42:ac:12:00:05",
-        "DriverOpts": null } } } }
+      "NetworkSettings": { "Networks": { "stack_default": { "NetworkID": "netid", "IPAddress": "172.18.0.5" } } } }
     """;
 
     private const string ImageInspect = """
@@ -55,6 +47,19 @@ public class DockerJsonTests {
     }
 
     [Fact]
+    public void ParseContainer_ContainerLabelWinsOverImageLabel() {
+        var container = ContainerInspect.Replace(
+            "\"com.docker.compose.service\": \"eggledger\"",
+            "\"com.docker.compose.service\": \"eggledger\", \"org.opencontainers.image.revision\": \"container-rev\"",
+            StringComparison.Ordinal);
+
+        var info = DockerJson.ParseContainer(Root(container), Root(ImageInspect));
+
+        Assert.Equal("container-rev", info.Revision);
+        Assert.Equal("v2.0.0", info.Version);
+    }
+
+    [Fact]
     public void ParseContainer_WithoutImage_HasNoDigests() {
         var info = DockerJson.ParseContainer(Root(ContainerInspect), null);
 
@@ -72,166 +77,6 @@ public class DockerJsonTests {
         Assert.Equal(["PATH=/usr/bin"], image.Env);
         Assert.Single(image.RepoDigests);
     }
-
-    [Fact]
-    public void BuildCreateBody_CarriesConfigOverAndReplacesImage() {
-        var info = DockerJson.ParseContainer(Root(ContainerInspect), Root(ImageInspect));
-
-        var body = DockerJson.BuildCreateBody(new ContainerSpec("eggledger", "ghcr.io/x/eggledger:2.0.0", info.Config, info.HostConfig, info.Networks));
-        using var doc = JsonDocument.Parse(body);
-        var root = doc.RootElement;
-
-        Assert.Equal("ghcr.io/x/eggledger:2.0.0", root.GetProperty("Image").GetString());
-        Assert.Equal(["A=1", "B=2"], root.GetProperty("Env").EnumerateArray().Select(e => e.GetString()));
-        Assert.Equal("eggledger", root.GetProperty("Labels").GetProperty("com.docker.compose.service").GetString());
-        Assert.Equal("always", root.GetProperty("HostConfig").GetProperty("RestartPolicy").GetProperty("Name").GetString());
-        Assert.Equal("/data:/data", root.GetProperty("HostConfig").GetProperty("Binds")[0].GetString());
-        Assert.False(root.TryGetProperty("Hostname", out _));
-        Assert.False(root.TryGetProperty("MacAddress", out _));
-    }
-
-    [Fact]
-    public void BuildCreateBody_ShapesEndpointsToCreateInputs() {
-        var info = DockerJson.ParseContainer(Root(ContainerInspect), Root(ImageInspect));
-
-        var body = DockerJson.BuildCreateBody(new ContainerSpec("eggledger", "img:2", info.Config, info.HostConfig, info.Networks));
-        using var doc = JsonDocument.Parse(body);
-        var endpoint = doc.RootElement.GetProperty("NetworkingConfig").GetProperty("EndpointsConfig").GetProperty("stack_default");
-
-        Assert.Equal(["eggledger"], endpoint.GetProperty("Aliases").EnumerateArray().Select(e => e.GetString()));
-        Assert.Equal("netid", endpoint.GetProperty("NetworkID").GetString());
-        Assert.False(endpoint.TryGetProperty("IPAddress", out _));
-        Assert.False(endpoint.TryGetProperty("MacAddress", out _));
-        Assert.False(endpoint.TryGetProperty("EndpointID", out _));
-        Assert.False(endpoint.TryGetProperty("IPAMConfig", out _));
-    }
-
-    [Fact]
-    public void BuildCreateBody_KeepsExplicitHostname() {
-        var config = Root("""{ "Hostname": "web-1", "Image": "old" }""");
-        var body = DockerJson.BuildCreateBody(new ContainerSpec("web", "new", config, Root("{}"), Root("{}")));
-        using var doc = JsonDocument.Parse(body);
-
-        Assert.Equal("web-1", doc.RootElement.GetProperty("Hostname").GetString());
-        Assert.Equal("new", doc.RootElement.GetProperty("Image").GetString());
-    }
-
-    [Fact]
-    public void BuildCreateBody_AppliesSpecOverrides() {
-        var info = DockerJson.ParseContainer(Root(ContainerInspect), Root(ImageInspect));
-        var spec = new ContainerSpec("eggledger-swap", "img:2", info.Config, info.HostConfig, Root("{}")) {
-            Cmd = ["swap", "old", "new", "eggledger"],
-            Binds = ["/var/run/docker.sock:/var/run/docker.sock"],
-            AutoRemove = true,
-            NetworkMode = "none",
-        };
-
-        using var doc = JsonDocument.Parse(DockerJson.BuildCreateBody(spec));
-        var root = doc.RootElement;
-        var host = root.GetProperty("HostConfig");
-
-        Assert.Equal(["swap", "old", "new", "eggledger"], root.GetProperty("Cmd").EnumerateArray().Select(e => e.GetString()));
-        Assert.Equal(["/var/run/docker.sock:/var/run/docker.sock"], host.GetProperty("Binds").EnumerateArray().Select(e => e.GetString()));
-        Assert.True(host.GetProperty("AutoRemove").GetBoolean());
-        Assert.Equal("none", host.GetProperty("NetworkMode").GetString());
-        Assert.Equal("always", host.GetProperty("RestartPolicy").GetProperty("Name").GetString());
-        Assert.Empty(root.GetProperty("NetworkingConfig").GetProperty("EndpointsConfig").EnumerateObject());
-    }
-
-    [Fact]
-    public void BuildCreateBody_WithoutOverrides_LeavesCmdAndHostConfigUntouched() {
-        var info = DockerJson.ParseContainer(Root(ContainerInspect), Root(ImageInspect));
-
-        using var doc = JsonDocument.Parse(DockerJson.BuildCreateBody(new ContainerSpec("eggledger", "img:2", info.Config, info.HostConfig, info.Networks)));
-        var host = doc.RootElement.GetProperty("HostConfig");
-
-        Assert.False(doc.RootElement.TryGetProperty("Cmd", out _));
-        Assert.False(host.TryGetProperty("AutoRemove", out _));
-        Assert.False(host.TryGetProperty("NetworkMode", out _));
-        Assert.Equal(["/data:/data"], host.GetProperty("Binds").EnumerateArray().Select(e => e.GetString()));
-    }
-
-    private const string RunnerContainerInspect = """
-    { "Id": "0123456789abcdef0123456789abcdef",
-      "Name": "/runner",
-      "Image": "sha256:runnerimg",
-      "State": { "Running": true },
-      "Config": { "Hostname": "0123456789ab",
-        "Image": "ghcr.io/x/runner:latest",
-        "Entrypoint": ["dotnet", "Runner.dll"],
-        "Cmd": null,
-        "WorkingDir": "/app",
-        "User": "",
-        "Env": ["PATH=/usr/bin", "A=1", "ASPNET_VERSION=10.0.0", "ADB_SERVER_SOCKET=tcp:127.0.0.1:5037"],
-        "Labels": { "com.docker.compose.service": "runner", "org.opencontainers.image.revision": "old-rev" },
-        "ExposedPorts": { "8080/tcp": {}, "9000/tcp": {} } },
-      "HostConfig": { "NetworkMode": "host" },
-      "NetworkSettings": { "Networks": {} } }
-    """;
-
-    private const string RunnerImageInspect = """
-    { "Id": "sha256:runnerimg",
-      "RepoDigests": ["ghcr.io/x/runner@sha256:cafe"],
-      "Config": { "Entrypoint": ["dotnet", "Runner.dll"],
-        "Cmd": null,
-        "WorkingDir": "/app",
-        "User": "",
-        "Env": ["PATH=/usr/bin", "ASPNET_VERSION=10.0.0", "ADB_SERVER_SOCKET=tcp:127.0.0.1:5037"],
-        "Labels": { "org.opencontainers.image.revision": "old-rev" },
-        "ExposedPorts": { "8080/tcp": {} } } }
-    """;
-
-    [Fact]
-    public void BuildCreateBody_DropsImageDerivedConfigSoTheNewImageSuppliesIt() {
-        var info = DockerJson.ParseContainer(Root(RunnerContainerInspect), Root(RunnerImageInspect));
-
-        var body = DockerJson.BuildCreateBody(new ContainerSpec("runner", "ghcr.io/x/runner:2", info.Config, info.HostConfig, info.Networks) { ImageConfig = info.ImageConfig });
-        using var doc = JsonDocument.Parse(body);
-        var root = doc.RootElement;
-
-        Assert.False(root.TryGetProperty("Entrypoint", out _));
-        Assert.False(root.TryGetProperty("Cmd", out _));
-        Assert.False(root.TryGetProperty("WorkingDir", out _));
-        Assert.False(root.TryGetProperty("User", out _));
-        Assert.Equal(["A=1"], root.GetProperty("Env").EnumerateArray().Select(e => e.GetString()));
-        Assert.Equal(["com.docker.compose.service"], root.GetProperty("Labels").EnumerateObject().Select(p => p.Name));
-        Assert.Equal(["9000/tcp"], root.GetProperty("ExposedPorts").EnumerateObject().Select(p => p.Name));
-    }
-
-    [Fact]
-    public void BuildCreateBody_KeepsContainerOverridesThatDifferFromTheImage() {
-        var container = RunnerContainerInspect
-            .Replace("\"WorkingDir\": \"/app\"", "\"WorkingDir\": \"/custom\"", StringComparison.Ordinal)
-            .Replace("\"Entrypoint\": [\"dotnet\", \"Runner.dll\"]", "\"Entrypoint\": [\"sh\", \"-c\", \"run\"]", StringComparison.Ordinal);
-        var info = DockerJson.ParseContainer(Root(container), Root(RunnerImageInspect));
-
-        var body = DockerJson.BuildCreateBody(new ContainerSpec("runner", "ghcr.io/x/runner:2", info.Config, info.HostConfig, info.Networks) { ImageConfig = info.ImageConfig });
-        using var doc = JsonDocument.Parse(body);
-        var root = doc.RootElement;
-
-        Assert.Equal("/custom", root.GetProperty("WorkingDir").GetString());
-        Assert.Equal(["sh", "-c", "run"], root.GetProperty("Entrypoint").EnumerateArray().Select(e => e.GetString()));
-    }
-
-    [Fact]
-    public void BuildCreateBody_WithoutImageConfig_CarriesEverything() {
-        var info = DockerJson.ParseContainer(Root(RunnerContainerInspect), null);
-
-        var body = DockerJson.BuildCreateBody(new ContainerSpec("runner", "ghcr.io/x/runner:2", info.Config, info.HostConfig, info.Networks));
-        using var doc = JsonDocument.Parse(body);
-
-        Assert.Equal("/app", doc.RootElement.GetProperty("WorkingDir").GetString());
-        Assert.Equal(4, doc.RootElement.GetProperty("Env").GetArrayLength());
-    }
-
-    [Theory]
-    [InlineData("0123456789ab", true)]
-    [InlineData("web-1", false)]
-    [InlineData("0123456789abc", false)]
-    [InlineData("0123456789AB", false)]
-    [InlineData(null, false)]
-    public void IsAutoContainerId_MatchesTwelveHexChars(string? text, bool expected) =>
-        Assert.Equal(expected, DockerJson.IsAutoContainerId(text));
 
     [Fact]
     public void DemuxLogStream_StripsFrameHeadersAndConcatenatesStreams() {
