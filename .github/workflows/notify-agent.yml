@@ -25,7 +25,6 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Notify deploy agent
         env:
@@ -38,10 +37,25 @@ jobs:
         run: |
           set -euo pipefail
           BODY=$(printf '{"app":"%s","digest":"%s","revision":"%s","version":"%s"}' "$APP" "$DIGEST" "$REVISION" "$VERSION")
-          STATUS=$(curl -sS -o /tmp/notify-agent.out -w '%{http_code}' -X POST "$AGENT_URL/hooks/image-pushed" \
+          STATUS=$(curl -sS --max-time 30 -o /tmp/notify-agent.out -w '%{http_code}' -X POST "$AGENT_URL/hooks/image-pushed" \
             -H "Authorization: Bearer $HOOK_SECRET" \
             -H "Content-Type: application/json" \
-            --data "$BODY")
+            --data "$BODY") || STATUS="000"
           echo "agent responded $STATUS"
           cat /tmp/notify-agent.out || true
-          case "$STATUS" in 2*) exit 0 ;; *) exit 1 ;; esac
+          case "$STATUS" in
+            2*)
+              echo "notified $APP at $VERSION" >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            *)
+              echo "::warning title=Deploy agent not notified::$APP $VERSION - agent responded $STATUS. The image is published; the agent did not pick it up. Deploy it from the admin panel or re-run this job."
+              {
+                echo "### Deploy agent not notified"
+                echo ""
+                echo "\`$APP\` \`$VERSION\` - agent responded \`$STATUS\`."
+                echo ""
+                echo "The image published successfully. Only the notification failed, so the agent will"
+                echo "deploy on its next poll, or you can trigger it from the admin panel."
+              } >> "$GITHUB_STEP_SUMMARY"
+              ;;
+          esac

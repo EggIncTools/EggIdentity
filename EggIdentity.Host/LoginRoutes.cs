@@ -18,7 +18,7 @@ internal static class LoginRoutes {
 
         Func<HttpContext, Task<IResult>> sources = ctx => Sources(ctx, config, apps);
         routes.MapGet("/sources", sources);
-        routes.MapGet("/icons/{provider}", (HttpContext ctx, string provider, IconCache icons) => Icon(ctx, provider, icons, config));
+        routes.MapGet("/icons/{provider}", (HttpContext ctx, string provider) => Icon(ctx, provider, ctx.RequestServices.GetService<IconCache>(), config));
         routes.MapGet("/go/{provider}", (HttpContext ctx, string provider, OAuthStateStore states) => Go(ctx, provider, states, config, apps));
         routes.MapGet("/callback", (HttpContext ctx, OAuthStateStore states, IdentityResolver resolver, LoginCodeStore codes, UserQueries users) =>
             Callback(ctx, states, resolver, codes, users, config, apps, sponsorSync));
@@ -46,8 +46,8 @@ internal static class LoginRoutes {
         return Results.Ok(new LoginSourcesResponse { Sources = sources });
     }
 
-    private static async Task<IResult> Icon(HttpContext ctx, string provider, IconCache icons, HostConfig config) {
-        if (!config.LoginWidgetEnabled) return Results.NotFound();
+    private static async Task<IResult> Icon(HttpContext ctx, string provider, IconCache? icons, HostConfig config) {
+        if (!config.LoginWidgetEnabled || icons is null) return Results.NotFound();
         if (!IdentityWire.KnownProviders.Contains(provider)) return Results.NotFound();
 
         var icon = await icons.GetAsync(provider, ctx.RequestAborted);
