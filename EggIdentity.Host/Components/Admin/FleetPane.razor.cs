@@ -17,13 +17,14 @@ public sealed partial class FleetPane : ComponentBase {
 
     private IReadOnlyList<DeployApp> _apps = [];
     private IReadOnlyList<DeployStatus>? _statuses;
+    private IReadOnlyList<StackInfo> _stacks = [];
     private string? _agentError;
+    private string? _stacksError;
     private bool _loaded;
     private bool _busy;
-    private DateTimeOffset? _reconcileArmedAt;
+    private string? _armedStack;
+    private DateTimeOffset _armedAt;
 
-    private bool ReconcileArmed => _reconcileArmedAt is { } at && DateTimeOffset.UtcNow - at <= ConfirmWindow;
-    private string ReconcileLabel => ReconcileArmed ? "Confirm reconcile" : "Reconcile stack";
     private string AgentCss => _agentError is null ? "fleet-agent" : "fleet-agent fleet-agent-down";
 
     private string AgentSummary {
@@ -34,6 +35,9 @@ public sealed partial class FleetPane : ComponentBase {
             return $"Agent tracks {_statuses.Count} app(s), {updates} update(s) available";
         }
     }
+
+    private bool IsArmed(string stack) => _armedStack == stack && DateTimeOffset.UtcNow - _armedAt <= ConfirmWindow;
+    private string RedeployLabel(string stack) => IsArmed(stack) ? "Confirm redeploy" : "Redeploy";
 
     protected override async Task OnInitializedAsync() {
         var snapshot = await Cache.GetAsync();
@@ -48,6 +52,14 @@ public sealed partial class FleetPane : ComponentBase {
             _agentError = null;
         } catch (Exception e) when (IsAgentFailure(e)) {
             _agentError = e.Message;
+            return;
+        }
+
+        try {
+            _stacks = await Client.GetStacksAsync(CancellationToken.None);
+            _stacksError = null;
+        } catch (Exception e) when (IsAgentFailure(e)) {
+            _stacksError = e.Message;
         }
     }
 
@@ -77,19 +89,21 @@ public sealed partial class FleetPane : ComponentBase {
         }
     }
 
-    private async Task ReconcileAsync() {
+    private async Task RedeployAsync(string stack) {
         if (_busy) return;
-        if (!ReconcileArmed) {
-            _reconcileArmedAt = DateTimeOffset.UtcNow;
+        if (!IsArmed(stack)) {
+            _armedStack = stack;
+            _armedAt = DateTimeOffset.UtcNow;
             return;
         }
 
-        _reconcileArmedAt = null;
+        _armedStack = null;
         _busy = true;
         try {
-            var failure = await Client.ReconcileStackAsync(CancellationToken.None);
-            if (failure is null) Toasts.Push(StatusNoteKind.Ok, "Stack reconcile requested.");
+            var failure = await Client.RedeployStackAsync(stack, CancellationToken.None);
+            if (failure is null) Toasts.Push(StatusNoteKind.Ok, $"Redeploy of {stack} requested.");
             else Toasts.Push(StatusNoteKind.Error, failure);
+            await LoadAgentAsync();
         } catch (Exception e) when (IsAgentFailure(e)) {
             Toasts.Push(StatusNoteKind.Error, e.Message);
         } finally {

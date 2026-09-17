@@ -24,8 +24,8 @@ internal static class EnvRoutes {
             var imageEnv = await ImageEnvAsync(runtime.Engine, container, ct);
             ComposeServiceInfo? compose = null;
             IReadOnlyList<StackEnvEntry> stackVariables = [];
-            if (runtime.Portainer is not null)
-                (compose, stackVariables) = await PortainerViewAsync(runtime.Portainer.CreateClient(factory.CreateClient()), cfg.ContainerName, ct);
+            if (runtime.Portainer is not null && runtime.Service.StackFor(appName) is { HasPortainerIds: true } stack)
+                (compose, stackVariables) = await PortainerViewAsync(runtime.Portainer.CreateClient(factory.CreateClient(), stack), cfg.ContainerName, ct);
 
             return Results.Json(EnvProvenance.Build(compose, container.Env, imageEnv, stackVariables));
         });
@@ -47,9 +47,8 @@ internal static class EnvRoutes {
         PortainerClient client, string serviceName, CancellationToken ct) {
         try {
             var file = await client.GetStackFileAsync(ct);
-            var env = await client.GetEnvAsync(ct);
-            var compose = file.Ok ? ComposeEnv.Parse(file.Compose, serviceName) : null;
-            return (compose, env.Ok ? env.Entries : []);
+            var stack = await client.GetStackAsync(ct);
+            return (ComposeEnv.Parse(file, serviceName), stack.Env);
         } catch (Exception e) when (e is not OperationCanceledException) {
             Console.Error.WriteLine($"eggidentity-agent: portainer lookup for {serviceName} failed: {e.Message}");
             return (null, []);

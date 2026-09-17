@@ -5,4 +5,5 @@ internal sealed record AgentRuntime(
     DeployEventRing Events,
     IDockerEngine Engine,
     PortainerConfig? Portainer,
+    IStackRedeployer Stacks,
     string? HookSecret);

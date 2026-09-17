@@ -54,14 +54,19 @@ public sealed class AgentClient(HttpClient http, DeployOptions options, SessionC
         return [.. entries.Where(e => !string.IsNullOrEmpty(e.Name)).Select(e => e.ToInfo())];
     }
 
-    public async Task<string?> PatchStackEnvAsync(IReadOnlyDictionary<string, string?> changes, CancellationToken ct) {
+    public async Task<string?> PatchStackEnvAsync(string app, IReadOnlyDictionary<string, string?> changes, CancellationToken ct) {
         ArgumentNullException.ThrowIfNull(changes);
-        using var response = await SendAsync(HttpMethod.Patch, "stack/env", JsonContent.Create(changes, options: Json), ct);
+        using var response = await SendAsync(HttpMethod.Patch, $"env/{Uri.EscapeDataString(app)}", JsonContent.Create(changes, options: Json), ct);
         return await FailureAsync(response, ct);
     }
 
-    public async Task<string?> ReconcileStackAsync(CancellationToken ct) {
-        using var response = await SendAsync(HttpMethod.Post, "stack/reconcile", null, ct);
+    public async Task<IReadOnlyList<StackInfo>> GetStacksAsync(CancellationToken ct) {
+        using var response = await SendAsync(HttpMethod.Get, "stacks", null, ct);
+        return await ReadAsync<List<StackInfo>>(response, ct);
+    }
+
+    public async Task<string?> RedeployStackAsync(string stack, CancellationToken ct) {
+        using var response = await SendAsync(HttpMethod.Post, $"stacks/{Uri.EscapeDataString(stack)}/redeploy", null, ct);
         return await FailureAsync(response, ct);
     }
 

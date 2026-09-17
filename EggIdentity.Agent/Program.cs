@@ -30,7 +30,7 @@ internal static class Program {
             return 1;
         }
 
-        var registry = SettingsRegistry.Compose([AgentSettings.Provider, SessionSettings.Provider], [DeployApps.Provider]);
+        var registry = SettingsRegistry.Compose([AgentSettings.Provider, SessionSettings.Provider], [DeployApps.Provider, DeployStacks.Provider]);
         await using var dataSource = NpgsqlDataSource.Create(connString);
         var store = new SettingsStore(dataSource, SecretProtector.FromEnvironment());
         using var cache = new SettingsCache(registry, store);
@@ -49,14 +49,14 @@ internal static class Program {
         var engine = new DockerEngineClient(
             DockerEngineClient.CreateHttpClient(), EngineCallTimeout, () => Live(cache, AgentSettings.PullTimeout, DefaultPullTimeout));
         var images = new RegistryClient(new HttpClient { Timeout = EngineCallTimeout });
-        var webhook = new StackWebhookClient(new HttpClient { Timeout = EngineCallTimeout });
+        var portainer = PortainerConfig.FromSnapshot(snapshot);
+        var stacks = new StackRedeployer(new HttpClient { Timeout = PortainerConfig.CallTimeout }, portainer);
         var events = new DeployEventRing();
         var environment = snapshot.GetString(AgentSettings.Environment) ?? DeployApp.ProdEnvironment;
         var service = new DeployService(
-            AppCatalog.FromSnapshot(snapshot, environment), engine, images, webhook, events,
+            AppCatalog.FromSnapshot(snapshot, environment), engine, images, stacks, events,
             redeployTimeout: () => Live(cache, AgentSettings.RedeployTimeout, DefaultRedeployTimeout));
-        var runtime = new AgentRuntime(
-            service, events, engine, PortainerConfig.FromSnapshot(snapshot), snapshot.GetString(AgentSettings.HookSecret));
+        var runtime = new AgentRuntime(service, events, engine, portainer, stacks, snapshot.GetString(AgentSettings.HookSecret));
         var app = Build(args, port, sessionOptions, runtime);
 
         var stopping = app.Lifetime.ApplicationStopping;
@@ -149,7 +149,7 @@ internal static class Program {
             await ServerSentEvents.StreamAsync(ctx.Response, runtime.Events, after, ServerSentEvents.KeepaliveInterval, ctx.RequestAborted);
         });
 
-        app.MapStackRoutes(runtime.Portainer);
+        app.MapStackRoutes(runtime);
         app.MapEnvRoutes(runtime);
     }
 

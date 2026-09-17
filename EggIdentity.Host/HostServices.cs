@@ -80,7 +80,7 @@ internal static class HostServices {
     private static HostRuntime RegisterSettings(
         WebApplicationBuilder builder, HostConfig config, NpgsqlDataSource dataSource) {
         var registry = SettingsRegistry.Compose(
-            [HostSettings.Provider, SessionSettings.Provider], [DeployApps.Provider, AuthentikApps.Provider]);
+            [HostSettings.Provider, SessionSettings.Provider], [DeployApps.Provider, DeployStacks.Provider, AuthentikApps.Provider]);
         var store = new SettingsStore(dataSource, SecretProtector.FromEnvironment());
         var cache = new SettingsCache(registry, store, config.SharedFileLookup);
 

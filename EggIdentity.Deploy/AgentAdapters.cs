@@ -10,6 +10,6 @@ public sealed class AgentRestartTrigger(AgentClient client, DeployOptions option
     public Task<string?> RestartAsync(CancellationToken ct) => client.RestartAsync(options.AppName, ct);
 }
 
-public sealed class AgentStackEnvEditor(AgentClient client) : IStackEnvEditor {
-    public Task<string?> ApplyAsync(IReadOnlyDictionary<string, string?> changes, CancellationToken ct) => client.PatchStackEnvAsync(changes, ct);
+public sealed class AgentStackEnvEditor(AgentClient client, DeployOptions options) : IStackEnvEditor {
+    public Task<string?> ApplyAsync(IReadOnlyDictionary<string, string?> changes, CancellationToken ct) => client.PatchStackEnvAsync(options.AppName, changes, ct);
 }

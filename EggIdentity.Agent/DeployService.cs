@@ -5,7 +5,7 @@ using EggIdentity.Resilience;
 namespace EggIdentity.Agent;
 
 public sealed class DeployService(
-    AppCatalog catalog, IDockerEngine engine, IImageRegistry images, IStackWebhook webhook, DeployEventRing events,
+    AppCatalog catalog, IDockerEngine engine, IImageRegistry images, IStackRedeployer stacks, DeployEventRing events,
     TimeProvider? time = null, Func<TimeSpan>? redeployTimeout = null) {
     private static readonly RetryOptions RegistryRetry = new() {
         MaxAttempts = 3,
@@ -215,8 +215,10 @@ public sealed class DeployService(
             events.Publish(cfg.Name, DeployPhase.Failed, $"deploy ({reason}) aborted: container {container} not found");
             return;
         }
-        if (string.IsNullOrWhiteSpace(cfg.WebhookUrl) || !Uri.TryCreate(cfg.WebhookUrl, UriKind.Absolute, out var url)) {
-            events.Publish(cfg.Name, DeployPhase.Failed, $"deploy ({reason}) aborted: deploy.apps row {cfg.Name} has no usable webhook_url");
+        if (ResolveStack(cfg) is not { } stack) return;
+        var readiness = await stacks.ResolveAsync(stack, ct);
+        if (!readiness.Ready) {
+            events.Publish(cfg.Name, DeployPhase.Failed, $"deploy ({reason}) aborted: {readiness.Info.Refusal}");
             return;
         }
         var old = observation.Running;
@@ -241,7 +243,7 @@ public sealed class DeployService(
 
         events.Publish(cfg.Name, DeployPhase.Recreating, $"asking Portainer to redeploy {container}",
             fromRevision: old.Revision, toRevision: pulled.Revision, version: pulled.Version, digest: pulledDigest);
-        await Retry.RunAsync(token => webhook.InvokeAsync(url, token), WebhookRetry, _clock, ct);
+        await Retry.RunAsync(token => stacks.RedeployAsync(stack, readiness, token), WebhookRetry, _clock, ct);
         await WaitForRedeployAsync(cfg, pulled, ct);
 
         lock (state.Sync) {
@@ -341,6 +343,33 @@ public sealed class DeployService(
         lock (_gate) {
             return _apps.TryGetValue(app, out state!);
         }
+    }
+
+    private bool TryGetStack(string name, out DeployStack stack) {
+        lock (_gate) {
+            return _catalog.TryGetStack(name, out stack!);
+        }
+    }
+
+    public IReadOnlyList<DeployStack> Stacks {
+        get {
+            lock (_gate) {
+                return [.. _catalog.Stacks.Values.OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)];
+            }
+        }
+    }
+
+    public DeployStack? StackFor(string app) => TryGetState(app, out var state) ? ResolveStack(state.Config, publish: false) : null;
+
+    private DeployStack? ResolveStack(DeployApp cfg, bool publish = true) {
+        string? refusal = null;
+        DeployStack? stack = null;
+        if (string.IsNullOrWhiteSpace(cfg.Stack))
+            refusal = $"deploy.apps row {cfg.Name} has no stack; point it at a deploy.stacks row";
+        else if (!TryGetStack(cfg.Stack.Trim(), out stack))
+            refusal = $"deploy.apps row {cfg.Name} references stack \"{cfg.Stack}\", which has no enabled row in deploy.stacks";
+        if (refusal is not null && publish) events.Publish(cfg.Name, DeployPhase.Failed, $"deploy aborted: {refusal}");
+        return refusal is null ? stack : null;
     }
 
     private AppState Require(string app) =>

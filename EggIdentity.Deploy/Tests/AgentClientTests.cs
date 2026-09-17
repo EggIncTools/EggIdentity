@@ -113,12 +113,12 @@ public class AgentClientTests {
     public async Task PatchStackEnvAsync_SendsJsonBody() {
         var handler = new FakeAgentHandler((req, _) => {
             Assert.Equal(HttpMethod.Patch, req.Method);
-            Assert.Equal("/stack/env", req.RequestUri!.AbsolutePath);
+            Assert.Equal("/env/eggledger", req.RequestUri!.AbsolutePath);
             return FakeAgentHandler.Json("{\"updated\":2}");
         });
 
         var failure = await TestFixtures.Client(handler).PatchStackEnvAsync(
-            new Dictionary<string, string?> { ["FOO"] = "bar", ["GONE"] = null }, CancellationToken.None);
+            "eggledger", new Dictionary<string, string?> { ["FOO"] = "bar", ["GONE"] = null }, CancellationToken.None);
 
         Assert.Null(failure);
         var sent = Assert.Single(handler.Bodies);
@@ -128,16 +128,45 @@ public class AgentClientTests {
     }
 
     [Fact]
-    public async Task ReconcileStackAsync_PostsAndReportsFailure() {
+    public async Task RedeployStackAsync_PostsAndReportsFailure() {
         var handler = new FakeAgentHandler((req, _) => {
             Assert.Equal(HttpMethod.Post, req.Method);
-            Assert.Equal("/stack/reconcile", req.RequestUri!.AbsolutePath);
-            return FakeAgentHandler.Text("portainer is not configured", HttpStatusCode.ServiceUnavailable);
+            Assert.Equal("/stacks/ei-servers/redeploy", req.RequestUri!.AbsolutePath);
+            return FakeAgentHandler.Text("stack ei-servers has no webhook armed", HttpStatusCode.Conflict);
         });
 
-        var failure = await TestFixtures.Client(handler).ReconcileStackAsync(CancellationToken.None);
+        var failure = await TestFixtures.Client(handler).RedeployStackAsync("ei-servers", CancellationToken.None);
 
-        Assert.Equal("agent returned 503: portainer is not configured", failure);
+        Assert.Equal("agent returned 409: stack ei-servers has no webhook armed", failure);
+    }
+
+    [Fact]
+    public async Task GetStacksAsync_ParsesList() {
+        const string body = """
+            [{"name":"ei-servers","stackId":7,"endpointId":2,"portainerName":"ei-servers","gitBacked":true,
+              "repositoryUrl":"https://git.test/egg/ei-servers","referenceName":"refs/heads/main",
+              "webhookArmed":true,"forceUpdate":true,"refusal":null}]
+            """;
+        var handler = new FakeAgentHandler((req, _) => {
+            Assert.Equal(HttpMethod.Get, req.Method);
+            Assert.Equal("/stacks", req.RequestUri!.AbsolutePath);
+            return FakeAgentHandler.Json(body);
+        });
+
+        var stacks = await TestFixtures.Client(handler).GetStacksAsync(CancellationToken.None);
+
+        var stack = Assert.Single(stacks);
+        Assert.Equal("ei-servers", stack.Name);
+        Assert.Equal(7, stack.StackId);
+        Assert.Equal(2, stack.EndpointId);
+        Assert.Equal("ei-servers", stack.PortainerName);
+        Assert.True(stack.GitBacked);
+        Assert.Equal("https://git.test/egg/ei-servers", stack.RepositoryUrl);
+        Assert.Equal("refs/heads/main", stack.ReferenceName);
+        Assert.True(stack.WebhookArmed);
+        Assert.True(stack.ForceUpdate);
+        Assert.Null(stack.Refusal);
+        Assert.True(stack.Ready);
     }
 
     [Fact]

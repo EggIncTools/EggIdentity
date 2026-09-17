@@ -3,9 +3,35 @@
         <span class="@AgentCss">@AgentSummary</span>
         <span class="fleet-tools">
             <button type="button" class="btn-mini" disabled="@(_busy || _apps.Count == 0)" @onclick="CheckAllAsync">Check all</button>
-            <button type="button" class="btn-mini btn-danger" disabled="@_busy" @onclick="ReconcileAsync">@ReconcileLabel</button>
         </span>
     </div>
+
+    @if (_loaded && _agentError is null) {
+        @if (_stacksError is not null) {
+            <p class="wb-note">Stacks unavailable: @_stacksError</p>
+        } else if (_stacks.Count == 0) {
+            <p class="wb-note">No stacks registered. Add rows to Deploy stacks under Settings.</p>
+        } else {
+            <div class="fleet-stacks">
+                @foreach (var stack in _stacks) {
+                    <div class="fleet-stack" @key="stack.Name">
+                        <span class="fleet-stack-name">@stack.Name</span>
+                        @if (stack.GitBacked) {
+                            <span class="badge badge-ok">git</span>
+                            <span class="fleet-stack-meta">@stack.ReferenceName @stack.RepositoryUrl</span>
+                        } else {
+                            <span class="badge badge-muted">web editor</span>
+                        }
+                        @if (!stack.Ready) {
+                            <span class="badge badge-err">not ready</span>
+                            <span class="fleet-stack-refusal">@stack.Refusal</span>
+                        }
+                        <button type="button" class="btn-mini btn-danger" disabled="@(_busy || !stack.Ready)" @onclick="() => RedeployAsync(stack.Name)">@RedeployLabel(stack.Name)</button>
+                    </div>
+                }
+            </div>
+        }
+    }
 
     @if (!_loaded) {
         <p class="wb-note">Loading...</p>

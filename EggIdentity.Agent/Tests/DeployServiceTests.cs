@@ -1,3 +1,4 @@
+using System.Globalization;
 using EggIdentity.Contract;
 using EggIdentity.Deploy;
 using EggIdentity.Settings;
@@ -11,29 +12,37 @@ public class DeployServiceTests {
     private const string NewDigest = "sha256:new";
     private const string OldImageId = "sha256:img";
     private const string NewImageId = "sha256:img-new";
-    private const string WebhookUrl = "https://portainer.test/api/stacks/webhooks/abc";
+    private const int StackId = 56;
+    private const int EndpointId = 9;
+    private const string Stack = "ei-servers";
 
-    private static AppCatalog Catalog(bool autoDeploy = true, string? webhookUrl = WebhookUrl) {
-        var registry = new SettingsRegistry([], [DeployApps.Provider]);
+    private static AppCatalog Catalog(bool autoDeploy = true, string? stack = Stack, int stackId = StackId, int endpointId = EndpointId) {
+        var registry = new SettingsRegistry([], [DeployApps.Provider, DeployStacks.Provider]);
         var row = new CollectionRow(DeployApps.Key, App, new Dictionary<string, string?>(StringComparer.Ordinal) {
             ["name"] = App,
             ["image"] = Image,
             ["auto_deploy"] = autoDeploy ? "true" : "false",
-            ["webhook_url"] = webhookUrl,
+            ["stack"] = stack,
+        }, DateTimeOffset.UnixEpoch, null);
+        var stackRow = new CollectionRow(DeployStacks.Key, Stack, new Dictionary<string, string?>(StringComparer.Ordinal) {
+            ["name"] = Stack,
+            ["stack_id"] = stackId.ToString(CultureInfo.InvariantCulture),
+            ["endpoint_id"] = endpointId.ToString(CultureInfo.InvariantCulture),
+            ["enabled"] = "true",
         }, DateTimeOffset.UnixEpoch, null);
         var snapshot = new SettingsSnapshot(registry, new Dictionary<string, string?>(), null, _ => null,
-            new Dictionary<string, IReadOnlyList<CollectionRow>> { [DeployApps.Key] = [row] });
+            new Dictionary<string, IReadOnlyList<CollectionRow>> { [DeployApps.Key] = [row], [DeployStacks.Key] = [stackRow] });
         return AppCatalog.FromSnapshot(snapshot);
     }
 
-    private static (DeployService Service, FakeEngine Engine, FakeRegistry Images, FakeWebhook Webhook, DeployEventRing Ring) Build(
-        string? latestDigest = NewDigest, bool autoDeploy = true, string? webhookUrl = WebhookUrl, Func<TimeSpan>? redeployTimeout = null) {
+    private static (DeployService Service, FakeEngine Engine, FakeRegistry Images, FakeStacks Stacks, DeployEventRing Ring) Build(
+        string? latestDigest = NewDigest, bool autoDeploy = true, string? stack = Stack, Func<TimeSpan>? redeployTimeout = null) {
         var engine = new FakeEngine();
-        var webhook = new FakeWebhook(engine);
+        var stacks = new FakeStacks(engine);
         var images = new FakeRegistry(latestDigest);
         var ring = new DeployEventRing();
-        var service = new DeployService(Catalog(autoDeploy, webhookUrl), engine, images, webhook, ring, new ZeroDelayTimeProvider(), redeployTimeout);
-        return (service, engine, images, webhook, ring);
+        var service = new DeployService(Catalog(autoDeploy, stack), engine, images, stacks, ring, new ZeroDelayTimeProvider(), redeployTimeout);
+        return (service, engine, images, stacks, ring);
     }
 
     private sealed class ZeroDelayTimeProvider : TimeProvider {
@@ -139,14 +148,15 @@ public class DeployServiceTests {
     }
 
     [Fact]
-    public async Task Deploy_NewImage_RunsFullPhaseSequenceThroughWebhook() {
-        var (service, engine, _, webhook, ring) = Build();
+    public async Task Deploy_NewImage_RunsFullPhaseSequenceThroughRedeploy() {
+        var (service, engine, _, stacks, ring) = Build();
 
         var status = await service.DeployAsync(App, "hook", CancellationToken.None);
 
         Assert.Equal([DeployPhase.Pulling, DeployPhase.Pulled, DeployPhase.Recreating, DeployPhase.Deployed], Phases(ring));
-        Assert.Equal(["inspect", "pull", "inspect-image", "webhook", "inspect"], engine.Calls);
-        Assert.Equal([new Uri(WebhookUrl)], webhook.Urls);
+        Assert.Equal(["inspect", "pull", "inspect-image", "redeploy", "inspect"], engine.Calls);
+        Assert.Equal(1, stacks.Resolves);
+        Assert.Equal([Stack], stacks.Redeployed);
         Assert.Equal(NewDigest, status.RunningDigest);
         Assert.Equal("rev-new", status.RunningRevision);
         Assert.Equal("v2", status.RunningVersion);
@@ -161,45 +171,72 @@ public class DeployServiceTests {
     }
 
     [Fact]
-    public async Task Deploy_NoWebhookUrl_FailsBeforePulling() {
-        var (service, engine, _, webhook, ring) = Build(webhookUrl: null);
+    public async Task Deploy_RowHasNoStack_FailsBeforePulling() {
+        var (service, engine, _, stacks, ring) = Build(stack: null);
 
         await service.DeployAsync(App, "manual", CancellationToken.None);
 
         Assert.Equal([DeployPhase.Failed], Phases(ring));
-        Assert.Contains("webhook_url", ring.Latest(App)!.Message, StringComparison.Ordinal);
+        Assert.Contains($"deploy.apps row {App} has no stack", ring.Latest(App)!.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("pull", engine.Calls);
-        Assert.Equal(0, webhook.Calls);
+        Assert.Equal(0, stacks.Redeploys);
     }
 
     [Fact]
-    public async Task Deploy_WebhookBusy_RetriesThenSucceeds() {
-        var (service, _, _, webhook, ring) = Build();
-        webhook.BusyRemaining = 2;
+    public async Task Deploy_StackNotInCollection_FailsBeforePulling() {
+        var (service, engine, _, stacks, ring) = Build(stack: "egginc-apps");
 
         await service.DeployAsync(App, "manual", CancellationToken.None);
 
-        Assert.Equal(3, webhook.Calls);
+        Assert.Equal([DeployPhase.Failed], Phases(ring));
+        Assert.Contains("references stack \"egginc-apps\"", ring.Latest(App)!.Message, StringComparison.Ordinal);
+        Assert.Contains("deploy.stacks", ring.Latest(App)!.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("pull", engine.Calls);
+        Assert.Equal(0, stacks.Redeploys);
+    }
+
+    [Fact]
+    public async Task Deploy_StackNotReady_FailsBeforePulling() {
+        const string refusal = "stack \"ei-servers\" (Portainer #56 ei-servers) is git backed but has no GitOps webhook";
+        var (service, engine, _, stacks, ring) = Build();
+        stacks.Refusal = refusal;
+
+        await service.DeployAsync(App, "manual", CancellationToken.None);
+
+        Assert.Equal([DeployPhase.Failed], Phases(ring));
+        Assert.Contains(refusal, ring.Latest(App)!.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("pull", engine.Calls);
+        Assert.Equal(0, stacks.Redeploys);
+    }
+
+    [Fact]
+    public async Task Deploy_RedeployBusy_RetriesThenSucceeds() {
+        var (service, _, _, stacks, ring) = Build();
+        stacks.BusyRemaining = 2;
+
+        await service.DeployAsync(App, "manual", CancellationToken.None);
+
+        Assert.Equal(3, stacks.Redeploys);
         Assert.Equal(DeployPhase.Deployed, ring.Latest(App)!.Phase);
     }
 
     [Fact]
-    public async Task Deploy_WebhookFails_PublishesFailed() {
-        var (service, engine, _, webhook, ring) = Build();
-        webhook.Failure = new InvalidOperationException("portainer webhook returned 500");
+    public async Task Deploy_RedeployFails_PublishesFailed() {
+        var (service, engine, _, stacks, ring) = Build();
+        stacks.Failure = new InvalidOperationException("portainer webhook returned 500");
 
         await service.DeployAsync(App, "manual", CancellationToken.None);
 
         Assert.Equal([DeployPhase.Pulling, DeployPhase.Pulled, DeployPhase.Recreating, DeployPhase.Failed], Phases(ring));
         Assert.Contains("portainer webhook returned 500", ring.Latest(App)!.Message, StringComparison.Ordinal);
-        Assert.Equal(1, webhook.Calls);
-        Assert.Equal(["inspect", "pull", "inspect-image", "webhook"], engine.Calls);
+        Assert.Equal(1, stacks.Redeploys);
+        Assert.Equal(["inspect", "pull", "inspect-image", "redeploy"], engine.Calls);
     }
 
     [Fact]
     public async Task Deploy_ContainerNeverComesUp_FailsWithTimeout() {
-        var (service, _, _, webhook, ring) = Build(redeployTimeout: () => TimeSpan.FromMilliseconds(1));
-        webhook.UpdatesContainer = false;
+        var (service, _, _, stacks, ring) = Build(redeployTimeout: () => TimeSpan.FromMilliseconds(1));
+        stacks.UpdatesContainer = false;
 
         await service.DeployAsync(App, "manual", CancellationToken.None);
 
@@ -215,7 +252,10 @@ public class DeployServiceTests {
 
         var first = service.DeployAsync(App, "manual", CancellationToken.None);
         await engine.PullStarted.Task;
-        var diff = service.Apply(new AppCatalog([new DeployApp { Name = App, Image = "ghcr.io/x/eggledger:v2", AutoDeploy = false, WebhookUrl = WebhookUrl }]));
+        var diff = service.Apply(new AppCatalog(
+            [new DeployApp { Name = App, Image = "ghcr.io/x/eggledger:v2", AutoDeploy = false, Stack = Stack }],
+            DeployApp.ProdEnvironment,
+            [new DeployStack { Name = Stack, StackId = StackId, EndpointId = EndpointId }]));
         var second = await service.DeployAsync(App, "manual", CancellationToken.None);
 
         Assert.Equal([App], diff.Changed.Select(a => a.Name));
@@ -351,6 +391,18 @@ public class DeployServiceTests {
         Assert.Null(DeployService.PickDigest([], image));
     }
 
+    [Fact]
+    public void Stacks_And_StackFor_ResolveFromCatalog() {
+        var (service, _, _, _, _) = Build();
+
+        var stack = Assert.Single(service.Stacks);
+        Assert.Equal(Stack, stack.Name);
+        Assert.Equal(StackId, stack.StackId);
+        Assert.Equal(EndpointId, stack.EndpointId);
+        Assert.Same(stack, service.StackFor(App));
+        Assert.Null(service.StackFor("nope"));
+    }
+
     private sealed class FakeRegistry(string? digest) : IImageRegistry {
         public Exception? Fail { get; set; }
 
@@ -360,17 +412,26 @@ public class DeployServiceTests {
         }
     }
 
-    private sealed class FakeWebhook(FakeEngine engine) : IStackWebhook {
-        public int Calls { get; private set; }
-        public List<Uri> Urls { get; } = [];
+    private sealed class FakeStacks(FakeEngine engine) : IStackRedeployer {
+        public int Resolves { get; private set; }
+        public int Redeploys { get; private set; }
+        public List<string> Redeployed { get; } = [];
         public int BusyRemaining { get; set; }
         public Exception? Failure { get; set; }
         public bool UpdatesContainer { get; set; } = true;
+        public string? Refusal { get; set; }
 
-        public Task InvokeAsync(Uri url, CancellationToken ct) {
-            Calls++;
-            Urls.Add(url);
-            engine.Calls.Add("webhook");
+        public Task<StackReadiness> ResolveAsync(DeployStack stack, CancellationToken ct) {
+            Resolves++;
+            var info = new StackInfo(stack.Name, stack.StackId, stack.EndpointId, stack.Name, true, null, null, true, true, Refusal);
+            var url = Refusal is null ? new Uri("https://portainer.test/api/stacks/webhooks/abc") : null;
+            return Task.FromResult(new StackReadiness(info, url));
+        }
+
+        public Task RedeployAsync(DeployStack stack, StackReadiness readiness, CancellationToken ct) {
+            Redeploys++;
+            Redeployed.Add(stack.Name);
+            engine.Calls.Add("redeploy");
             if (Failure is not null) throw Failure;
             if (BusyRemaining > 0) {
                 BusyRemaining--;

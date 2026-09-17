@@ -49,3 +49,46 @@
     gap: 0.75rem;
     align-items: start;
 }
+
+.fleet-stacks {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.fleet-stack {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+}
+
+.fleet-stack + .fleet-stack {
+    border-top: 1px solid var(--color-border);
+}
+
+.fleet-stack-name {
+    font-weight: 600;
+}
+
+.fleet-stack-meta {
+    flex: 1;
+    min-width: 8rem;
+    opacity: 0.7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fleet-stack-refusal {
+    flex: 1;
+    min-width: 8rem;
+    color: var(--color-err);
+}
+
+.fleet-stack .btn-mini {
+    margin-left: auto;
+}

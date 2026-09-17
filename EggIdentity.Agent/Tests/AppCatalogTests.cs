@@ -1,17 +1,20 @@
+using System.Globalization;
 using EggIdentity.Deploy;
 using EggIdentity.Settings;
 
 namespace EggIdentity.Agent.Tests;
 
 public class AppCatalogTests {
-    private static SettingsSnapshot Snapshot(params CollectionRow[] rows) {
-        var registry = new SettingsRegistry([], [DeployApps.Provider]);
+    private static SettingsSnapshot Snapshot(params CollectionRow[] rows) => Snapshot(rows, []);
+
+    private static SettingsSnapshot Snapshot(IReadOnlyList<CollectionRow> rows, IReadOnlyList<CollectionRow> stacks) {
+        var registry = new SettingsRegistry([], [DeployApps.Provider, DeployStacks.Provider]);
         return new SettingsSnapshot(registry, new Dictionary<string, string?>(), null, _ => null,
-            new Dictionary<string, IReadOnlyList<CollectionRow>> { [DeployApps.Key] = rows });
+            new Dictionary<string, IReadOnlyList<CollectionRow>> { [DeployApps.Key] = rows, [DeployStacks.Key] = stacks });
     }
 
     private static CollectionRow Row(string name, string image, bool enabled = true, string? container = null, string? secret = null,
-        string environment = DeployApp.ProdEnvironment) =>
+        string environment = DeployApp.ProdEnvironment, string? stack = null) =>
         new(DeployApps.Key, name, new Dictionary<string, string?>(StringComparer.Ordinal) {
             ["name"] = name,
             ["image"] = image,
@@ -19,6 +22,15 @@ public class AppCatalogTests {
             ["deploy_secret"] = secret,
             ["enabled"] = enabled ? "true" : "false",
             ["environment"] = environment,
+            ["stack"] = stack,
+        }, DateTimeOffset.UnixEpoch, null);
+
+    private static CollectionRow StackRow(string name, int stackId = 56, int endpointId = 9, bool enabled = true) =>
+        new(DeployStacks.Key, name, new Dictionary<string, string?>(StringComparer.Ordinal) {
+            ["name"] = name,
+            ["stack_id"] = stackId.ToString(CultureInfo.InvariantCulture),
+            ["endpoint_id"] = endpointId.ToString(CultureInfo.InvariantCulture),
+            ["enabled"] = enabled ? "true" : "false",
         }, DateTimeOffset.UnixEpoch, null);
 
     [Fact]
@@ -91,15 +103,34 @@ public class AppCatalogTests {
     }
 
     [Fact]
-    public void DiffTo_ChangedWebhookUrl_IsChanged() {
-        var before = new AppCatalog([new DeployApp { Name = "a", Image = "img:a", WebhookUrl = "https://portainer.test/api/stacks/webhooks/one" }]);
-        var after = new AppCatalog([new DeployApp { Name = "a", Image = "img:a", WebhookUrl = "https://portainer.test/api/stacks/webhooks/two" }]);
+    public void DiffTo_ChangedStack_IsChanged() {
+        var before = new AppCatalog([new DeployApp { Name = "a", Image = "img:a", Stack = "ei-servers" }]);
+        var after = new AppCatalog([new DeployApp { Name = "a", Image = "img:a", Stack = "egginc-apps" }]);
 
         var diff = before.DiffTo(after);
 
         Assert.Empty(diff.Added);
         Assert.Empty(diff.Removed);
         Assert.Equal(["a"], diff.Changed.Select(x => x.Name));
+    }
+
+    [Fact]
+    public void FromSnapshot_BindsStacksAndDropsDisabledRows() {
+        var catalog = AppCatalog.FromSnapshot(Snapshot(
+            [Row("eggledger", "ghcr.io/x/ledger:latest", stack: "ei-servers")],
+            [StackRow("ei-servers"),
+             StackRow("unbound", stackId: 0, endpointId: 0),
+             StackRow("egginc-apps", enabled: false)]));
+
+        Assert.Equal("ei-servers", catalog.Apps["eggledger"].Stack);
+        Assert.Equal(2, catalog.Stacks.Count);
+        Assert.True(catalog.TryGetStack("EI-Servers", out var stack));
+        Assert.Equal(56, stack.StackId);
+        Assert.Equal(9, stack.EndpointId);
+        Assert.True(stack.HasPortainerIds);
+        Assert.True(catalog.TryGetStack("unbound", out var unbound));
+        Assert.False(unbound.HasPortainerIds);
+        Assert.False(catalog.TryGetStack("egginc-apps", out _));
     }
 
     [Fact]

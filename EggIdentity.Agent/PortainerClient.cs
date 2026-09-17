@@ -1,114 +1,201 @@
+using System.Net;
 using System.Text;
 using System.Text.Json;
+using EggIdentity.Deploy;
 using EggIdentity.Settings;
 
 namespace EggIdentity.Agent;
 
 public sealed record StackEnvEntry(string Name, string Value);
 
-public sealed record StackEnvResult(bool Ok, string? Error, IReadOnlyList<StackEnvEntry> Entries);
+public sealed record PortainerAutoUpdate(string Webhook, bool ForceUpdate, bool ForcePullImage);
 
-public sealed record StackFileResult(bool Ok, string? Error, string Compose);
+public sealed record PortainerGitConfig(string Url, string ReferenceName, string ConfigFilePath, bool TlsSkipVerify, string? Username);
 
-public sealed record PortainerConfig(string BaseUrl, string ApiKey, string StackId, string EndpointId) {
+public sealed record PortainerStack(
+    int Id,
+    string Name,
+    int Type,
+    int EndpointId,
+    IReadOnlyList<StackEnvEntry> Env,
+    PortainerAutoUpdate? AutoUpdate,
+    PortainerGitConfig? GitConfig,
+    bool Prune) {
+    public const int ComposeType = 2;
+
+    public bool GitBacked => GitConfig is not null;
+}
+
+public sealed class StackBusyException(string message) : Exception(message);
+
+public sealed record PortainerConfig(string BaseUrl, string ApiKey) {
+    public static readonly TimeSpan CallTimeout = TimeSpan.FromMinutes(10);
+
     public static PortainerConfig? FromSnapshot(SettingsSnapshot snapshot) {
         ArgumentNullException.ThrowIfNull(snapshot);
         var baseUrl = (snapshot.GetString(AgentSettings.PortainerApiUrl) ?? "").TrimEnd('/');
         var key = snapshot.GetString(AgentSettings.PortainerApiKey) ?? "";
-        var stackId = snapshot.GetString(AgentSettings.PortainerStackId) ?? "";
-        var endpointId = snapshot.GetString(AgentSettings.PortainerEndpointId) ?? "";
-        if (baseUrl.Length == 0 || key.Length == 0 || stackId.Length == 0 || endpointId.Length == 0) return null;
-        return new PortainerConfig(baseUrl, key, stackId, endpointId);
+        if (baseUrl.Length == 0 || key.Length == 0) return null;
+        return new PortainerConfig(baseUrl, key);
     }
 
-    public PortainerClient CreateClient(HttpClient http) {
+    public HttpClient Configure(HttpClient http) {
         ArgumentNullException.ThrowIfNull(http);
         http.BaseAddress = new Uri(BaseUrl + "/");
+        http.Timeout = CallTimeout;
         http.DefaultRequestHeaders.Remove("X-API-Key");
         http.DefaultRequestHeaders.Add("X-API-Key", ApiKey);
-        return new PortainerClient(http) { StackId = StackId, EndpointId = EndpointId };
+        return http;
     }
+
+    public PortainerClient CreateClient(HttpClient http, DeployStack stack) {
+        ArgumentNullException.ThrowIfNull(stack);
+        return new PortainerClient(Configure(http), stack.StackId, stack.EndpointId);
+    }
+
+    public Uri WebhookUrl(string webhookId) => new(new Uri(BaseUrl + "/"), new Uri($"api/stacks/webhooks/{webhookId}", UriKind.Relative));
 }
 
-public sealed class PortainerClient(HttpClient http) {
-    public string StackId { get; init; } = "";
-    public string EndpointId { get; init; } = "";
+public sealed class PortainerClient(HttpClient http, int stackId, int endpointId) {
+    private const int BodyLimit = 300;
 
-    public async Task<StackEnvResult> GetEnvAsync(CancellationToken ct) {
-        var response = await http.GetAsync(new Uri($"api/stacks/{StackId}", UriKind.Relative), ct);
+    public int StackId => stackId;
+
+    public int EndpointId => endpointId;
+
+    public async Task<PortainerStack> GetStackAsync(CancellationToken ct) {
+        using var response = await http.GetAsync(new Uri($"api/stacks/{stackId}", UriKind.Relative), ct);
         var body = await response.Content.ReadAsStringAsync(ct);
-        if (!response.IsSuccessStatusCode)
-            return new StackEnvResult(false, $"GET stack {(int)response.StatusCode}", []);
-
+        if (!response.IsSuccessStatusCode) throw Failure($"GET stack {stackId}", response, body);
         using var doc = JsonDocument.Parse(body);
-        return new StackEnvResult(true, null, ReadEnv(doc.RootElement));
+        return ReadStack(doc.RootElement);
     }
 
-    public async Task<StackFileResult> GetStackFileAsync(CancellationToken ct) {
-        var response = await http.GetAsync(new Uri($"api/stacks/{StackId}/file", UriKind.Relative), ct);
+    public async Task<string> GetStackFileAsync(CancellationToken ct) {
+        using var response = await http.GetAsync(new Uri($"api/stacks/{stackId}/file", UriKind.Relative), ct);
         var body = await response.Content.ReadAsStringAsync(ct);
-        if (!response.IsSuccessStatusCode)
-            return new StackFileResult(false, $"GET stack file {(int)response.StatusCode}", "");
-
+        if (!response.IsSuccessStatusCode) throw Failure($"GET stack {stackId} file", response, body);
         using var doc = JsonDocument.Parse(body);
-        var compose = doc.RootElement.TryGetProperty("StackFileContent", out var content) ? content.GetString() ?? "" : "";
-        return new StackFileResult(true, null, compose);
+        return doc.RootElement.TryGetProperty("StackFileContent", out var content) ? content.GetString() ?? "" : "";
     }
 
-    public async Task<StackEnvResult> PatchEnvAsync(IReadOnlyDictionary<string, string?> changes, CancellationToken ct) {
+    public async Task<PortainerStack> UpdateEnvAsync(IReadOnlyDictionary<string, string?> changes, CancellationToken ct) {
         ArgumentNullException.ThrowIfNull(changes);
+        var stack = await GetStackAsync(ct);
+        await RedeployAsync(stack, MergeEnv(stack.Env, changes), forceRecreate: true, ct);
+        return stack;
+    }
 
-        var env = await GetEnvAsync(ct);
-        if (!env.Ok) return env;
-        var current = env.Entries.ToDictionary(e => e.Name, e => e.Value, StringComparer.Ordinal);
-        foreach (var (name, value) in changes) {
-            if (value is null) current.Remove(name);
-            else current[name] = value;
+    public async Task<PortainerStack> RedeployAsync(bool forceRecreate, CancellationToken ct) {
+        var stack = await GetStackAsync(ct);
+        await RedeployAsync(stack, stack.Env, forceRecreate, ct);
+        return stack;
+    }
+
+    internal static List<StackEnvEntry> MergeEnv(IReadOnlyList<StackEnvEntry> current, IReadOnlyDictionary<string, string?> changes) {
+        var merged = new List<StackEnvEntry>(current.Count + changes.Count);
+        foreach (var entry in current) {
+            if (!changes.TryGetValue(entry.Name, out var value)) merged.Add(entry);
+            else if (value is not null) merged.Add(entry with { Value = value });
         }
-
-        var file = await GetStackFileAsync(ct);
-        if (!file.Ok) return new StackEnvResult(false, file.Error, []);
-
-        var entries = current.Select(kv => new StackEnvEntry(kv.Key, kv.Value)).ToList();
-        return await PutStackAsync(file.Compose, entries, ct);
+        foreach (var (name, value) in changes) {
+            if (value is null || current.Any(e => string.Equals(e.Name, name, StringComparison.Ordinal))) continue;
+            merged.Add(new StackEnvEntry(name, value));
+        }
+        return merged;
     }
 
-    public async Task<StackEnvResult> ReconcileAsync(CancellationToken ct) {
-        var env = await GetEnvAsync(ct);
-        if (!env.Ok) return env;
-        var file = await GetStackFileAsync(ct);
-        if (!file.Ok) return new StackEnvResult(false, file.Error, []);
-        return await PutStackAsync(file.Compose, env.Entries, ct);
+    private Task RedeployAsync(PortainerStack stack, IReadOnlyList<StackEnvEntry> env, bool forceRecreate, CancellationToken ct) {
+        if (stack.Type != PortainerStack.ComposeType)
+            throw new InvalidOperationException($"stack {stackId} ({stack.Name}) has type {stack.Type}; only compose stacks are supported");
+        return stack.GitConfig is { } git
+            ? RedeployGitAsync(git, env, stack.Prune, ct)
+            : RedeployFileAsync(env, stack.Prune, forceRecreate, ct);
     }
 
-    private async Task<StackEnvResult> PutStackAsync(string compose, IReadOnlyList<StackEnvEntry> env, CancellationToken ct) {
-        var payload = new Dictionary<string, object?> {
-            ["stackFileContent"] = compose,
-            ["pullImage"] = false,
-            ["prune"] = false,
-            ["env"] = env.Select(e => new Dictionary<string, string> {
-                ["name"] = e.Name,
-                ["value"] = e.Value,
-            }).ToList(),
+    private Task RedeployGitAsync(PortainerGitConfig git, IReadOnlyList<StackEnvEntry> env, bool prune, CancellationToken ct) {
+        var payload = new Dictionary<string, object?>(StringComparer.Ordinal) {
+            ["RepositoryReferenceName"] = git.ReferenceName,
+            ["RepositoryAuthentication"] = git.Username is not null,
+            ["RepositoryUsername"] = git.Username ?? "",
+            ["RepositoryPassword"] = "",
+            ["Env"] = WireEnv(env),
+            ["Prune"] = prune,
+            ["RepullImageAndRedeploy"] = false,
         };
+        return SendAsync($"api/stacks/{stackId}/git/redeploy?endpointId={endpointId}", payload, "PUT stack git/redeploy", ct);
+    }
 
+    private async Task RedeployFileAsync(IReadOnlyList<StackEnvEntry> env, bool prune, bool forceRecreate, CancellationToken ct) {
+        var compose = await GetStackFileAsync(ct);
+        var payload = new Dictionary<string, object?>(StringComparer.Ordinal) {
+            ["StackFileContent"] = compose,
+            ["Env"] = WireEnv(env),
+            ["Prune"] = prune,
+            ["RepullImageAndRedeploy"] = forceRecreate,
+        };
+        await SendAsync($"api/stacks/{stackId}?endpointId={endpointId}", payload, "PUT stack", ct);
+    }
+
+    private async Task SendAsync(string path, Dictionary<string, object?> payload, string what, CancellationToken ct) {
         using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-        var put = await http.PutAsync(
-            new Uri($"api/stacks/{StackId}?endpointId={EndpointId}", UriKind.Relative), content, ct);
-        if (!put.IsSuccessStatusCode)
-            return new StackEnvResult(false, $"PUT stack {(int)put.StatusCode}", []);
+        using var response = await http.PutAsync(new Uri(path, UriKind.Relative), content, ct);
+        if (response.IsSuccessStatusCode) return;
+        if (response.StatusCode == HttpStatusCode.Conflict) throw new StackBusyException("portainer is already redeploying this stack");
+        throw Failure(what, response, await response.Content.ReadAsStringAsync(ct));
+    }
 
-        return new StackEnvResult(true, null, env);
+    private static List<Dictionary<string, string>> WireEnv(IReadOnlyList<StackEnvEntry> env) =>
+        [.. env.Select(e => new Dictionary<string, string>(StringComparer.Ordinal) { ["name"] = e.Name, ["value"] = e.Value })];
+
+    private static InvalidOperationException Failure(string what, HttpResponseMessage response, string body) {
+        var detail = body.Trim();
+        if (detail.Length > BodyLimit) detail = detail[..BodyLimit];
+        return new InvalidOperationException(detail.Length == 0
+            ? $"portainer {what} returned {(int)response.StatusCode}"
+            : $"portainer {what} returned {(int)response.StatusCode}: {detail}");
+    }
+
+    internal static PortainerStack ReadStack(JsonElement root) =>
+        new(
+            Int(root, "Id"),
+            Str(root, "Name") ?? "",
+            Int(root, "Type"),
+            Int(root, "EndpointId"),
+            ReadEnv(root),
+            ReadAutoUpdate(Prop(root, "AutoUpdate")),
+            ReadGit(Prop(root, "GitConfig")),
+            Prop(root, "Option") is { } option && Bool(option, "Prune"));
+
+    private static PortainerAutoUpdate? ReadAutoUpdate(JsonElement? element) =>
+        element is { } e ? new PortainerAutoUpdate(Str(e, "Webhook") ?? "", Bool(e, "ForceUpdate"), Bool(e, "ForcePullImage")) : null;
+
+    private static PortainerGitConfig? ReadGit(JsonElement? element) {
+        if (element is not { } e) return null;
+        var username = Prop(e, "Authentication") is { } auth ? Str(auth, "Username") : null;
+        return new PortainerGitConfig(
+            Str(e, "URL") ?? "", Str(e, "ReferenceName") ?? "", Str(e, "ConfigFilePath") ?? "", Bool(e, "TLSSkipVerify"),
+            string.IsNullOrEmpty(username) ? null : username);
     }
 
     private static List<StackEnvEntry> ReadEnv(JsonElement stack) {
         var entries = new List<StackEnvEntry>();
-        if (!stack.TryGetProperty("Env", out var env) || env.ValueKind != JsonValueKind.Array) return entries;
+        if (Prop(stack, "Env") is not { ValueKind: JsonValueKind.Array } env) return entries;
         foreach (var item in env.EnumerateArray()) {
-            if (!item.TryGetProperty("name", out var name)) continue;
-            var value = item.TryGetProperty("value", out var v) ? v.GetString() ?? "" : "";
-            entries.Add(new StackEnvEntry(name.GetString() ?? "", value));
+            var name = Str(item, "name");
+            if (string.IsNullOrEmpty(name)) continue;
+            entries.Add(new StackEnvEntry(name, Str(item, "value") ?? ""));
         }
         return entries;
     }
+
+    private static JsonElement? Prop(JsonElement e, string name) =>
+        e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined)
+            ? v : null;
+
+    private static string? Str(JsonElement e, string name) => Prop(e, name) is { ValueKind: JsonValueKind.String } v ? v.GetString() : null;
+
+    private static int Int(JsonElement e, string name) => Prop(e, name) is { ValueKind: JsonValueKind.Number } v && v.TryGetInt32(out var i) ? i : 0;
+
+    private static bool Bool(JsonElement e, string name) => Prop(e, name) is { ValueKind: JsonValueKind.True };
 }

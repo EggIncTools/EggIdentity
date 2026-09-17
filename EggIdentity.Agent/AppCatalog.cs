@@ -12,8 +12,10 @@ public sealed record AppCatalogDiff(
 
 public sealed class AppCatalog {
     private readonly Dictionary<string, DeployApp> _apps;
+    private readonly Dictionary<string, DeployStack> _stacks;
 
-    public AppCatalog(IEnumerable<DeployApp> apps, string environment = DeployApp.ProdEnvironment) {
+    public AppCatalog(
+        IEnumerable<DeployApp> apps, string environment = DeployApp.ProdEnvironment, IEnumerable<DeployStack>? stacks = null) {
         ArgumentNullException.ThrowIfNull(apps);
         Environment = string.IsNullOrWhiteSpace(environment) ? DeployApp.ProdEnvironment : environment.Trim();
         _apps = new Dictionary<string, DeployApp>(StringComparer.OrdinalIgnoreCase);
@@ -22,16 +24,24 @@ public sealed class AppCatalog {
             if (!string.Equals(app.Environment, Environment, StringComparison.OrdinalIgnoreCase)) continue;
             _apps[app.Name] = app;
         }
+        _stacks = new Dictionary<string, DeployStack>(StringComparer.OrdinalIgnoreCase);
+        foreach (var stack in stacks ?? []) {
+            if (!stack.Enabled || string.IsNullOrWhiteSpace(stack.Name)) continue;
+            _stacks[stack.Name] = stack;
+        }
     }
 
     public string Environment { get; }
 
     public static AppCatalog FromSnapshot(SettingsSnapshot snapshot, string environment = DeployApp.ProdEnvironment) {
         ArgumentNullException.ThrowIfNull(snapshot);
-        return new AppCatalog(snapshot.Collection<DeployApp>(DeployApps.Key), environment);
+        return new AppCatalog(
+            snapshot.Collection<DeployApp>(DeployApps.Key), environment, snapshot.Collection<DeployStack>(DeployStacks.Key));
     }
 
     public IReadOnlyDictionary<string, DeployApp> Apps => _apps;
+
+    public IReadOnlyDictionary<string, DeployStack> Stacks => _stacks;
 
     public bool TryGet(string name, out DeployApp app) {
         if (_apps.TryGetValue(name, out var found)) {
@@ -39,6 +49,15 @@ public sealed class AppCatalog {
             return true;
         }
         app = null!;
+        return false;
+    }
+
+    public bool TryGetStack(string name, out DeployStack stack) {
+        if (!string.IsNullOrEmpty(name) && _stacks.TryGetValue(name, out var found)) {
+            stack = found;
+            return true;
+        }
+        stack = null!;
         return false;
     }
 
@@ -61,5 +80,5 @@ public sealed class AppCatalog {
         && a.AutoDeploy == b.AutoDeploy
         && string.Equals(a.DeploySecret, b.DeploySecret, StringComparison.Ordinal)
         && string.Equals(a.RepoUrl, b.RepoUrl, StringComparison.Ordinal)
-        && string.Equals(a.WebhookUrl, b.WebhookUrl, StringComparison.Ordinal);
+        && string.Equals(a.Stack, b.Stack, StringComparison.Ordinal);
 }

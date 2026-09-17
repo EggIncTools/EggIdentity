@@ -15,8 +15,6 @@ public static class AgentSettings {
     public const string Environment = "agent.environment";
     public const string PortainerApiUrl = "portainer.api_url";
     public const string PortainerApiKey = "portainer.api_key";
-    public const string PortainerStackId = "portainer.stack_id";
-    public const string PortainerEndpointId = "portainer.endpoint_id";
 
     private const string Core = "Core";
     private const string Deploy = "Deploy";
@@ -75,11 +73,5 @@ public static class AgentSettings {
         new SettingDescriptor(
             PortainerApiKey, "PORTAINER_API_KEY", "Portainer API key", Portainer,
             SettingKind.Secret, ApplyTier.RestartRequired, Sensitivity.Secret),
-        new SettingDescriptor(
-            PortainerStackId, "PORTAINER_STACK_ID", "Portainer stack id", Portainer,
-            SettingKind.Number, ApplyTier.RestartRequired, Sensitivity.Plain),
-        new SettingDescriptor(
-            PortainerEndpointId, "PORTAINER_ENDPOINT_ID", "Portainer endpoint id", Portainer,
-            SettingKind.Number, ApplyTier.RestartRequired, Sensitivity.Plain),
     ]);
 }
