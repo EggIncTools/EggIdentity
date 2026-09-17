@@ -33,7 +33,7 @@ public static class HostSettings {
         new SettingDescriptor(
             "identity.admin_discord_ids", "IDENTITY_ADMIN_DISCORD_IDS", "Admin Discord ids", Core,
             SettingKind.StringList, ApplyTier.Bootstrap, Sensitivity.Plain) {
-            Description = "Gates this page. Editing it from here is how you lock yourself out, so it stays on the stack.",
+            Description = "Gates this page. Editing it here locks you out, so it stays on the stack.",
         },
         new SettingDescriptor(
             LoginSweepIntervalMinutes, "IDENTITY_LOGIN_SWEEP_INTERVAL_MINUTES", "Expired-row sweep interval (minutes)", Core,
@@ -49,17 +49,17 @@ public static class HostSettings {
         new SettingDescriptor(
             TokenDecryptionKey, "AUTHENTIK_TOKEN_DECRYPTION_KEY", "Authentik token decryption key", Identity,
             SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
-            Description = "RSA private key, required only when the Authentik provider has an encryption key set. Accepts PEM text or a path to a PEM file, and is read at startup from the environment only. Without it an encrypted id_token yields no session id and revocation stops working.",
+            Description = "RSA private key, needed only when the Authentik provider has an encryption key set. PEM text or a path to a PEM file, read from the environment at startup only. Without it an encrypted id_token yields no session id and revocation stops working.",
         },
         new SettingDescriptor(
             "authentik.apps_dir", "AUTHENTIK_APPS_DIR", "Authentik app config directory", Login,
             SettingKind.Path, ApplyTier.Bootstrap, Sensitivity.Plain) {
-            Description = "Deprecated. Only read while the authentik.apps collection is empty; import it with eggidentity-tools import-authentik-apps and unset.",
+            Description = "Deprecated. Read only while authentik.apps is empty. Import with eggidentity-tools import-authentik-apps, then unset.",
         },
         new SettingDescriptor(
             "discord.token", "DISCORD_TOKEN", "Bot token", Discord,
             SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
-            Description = "Presence of this value is what enables the bot at startup.",
+            Description = "Set to enable the bot at startup.",
         },
         new SettingDescriptor(
             "discord.guild_id", "DISCORD_GUILD_ID", "Guild id", Discord,

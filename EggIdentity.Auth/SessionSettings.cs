@@ -14,7 +14,7 @@ public static class SessionSettings {
         new SettingDescriptor(
             Secret, "EGGIDENTITY_SESSION_SECRET", "Session signing secret", Category,
             SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
-            Description = "HS256 key for the shared parent-domain session cookie. Rotating it signs out every app.",
+            Description = "HS256 key for the parent-domain session cookie. Rotating it signs out every app.",
             Required = true,
         },
         new SettingDescriptor(
@@ -30,7 +30,7 @@ public static class SessionSettings {
         new SettingDescriptor(
             CookieDomain, "EGGIDENTITY_SESSION_COOKIE_DOMAIN", "Session cookie domain", Category,
             SettingKind.Text, ApplyTier.Bootstrap, Sensitivity.Plain) {
-            Description = "Parent domain the session cookie is scoped to, shared by every consuming app.",
+            Description = "Parent domain, shared by every consuming app.",
         },
     ]);
 }

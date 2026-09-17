@@ -115,30 +115,30 @@ public static class DeployApps {
             },
             new FieldDescriptor("image", "Image (legacy)", SettingKind.Text) {
                 Legacy = true,
-                Description = "Pre-split full reference. Read when repository is empty; superseded by repository and tag.",
+                Description = "Full reference, superseded by repository and tag. Read only when repository is empty.",
             },
             new FieldDescriptor("repository", "Repository", SettingKind.Text) {
                 Description = "Image repository without a tag, for example ghcr.io/egginctools/eggledger.",
             },
             new FieldDescriptor("tag", "Tag", SettingKind.Text) {
-                Description = "Tag this environment runs, defaulting to latest. Production pins a released tag; sub-prod tracks latest.",
+                Description = "Tag this environment runs. Defaults to latest.",
             },
             new FieldDescriptor("previous_tag", "Previous tag", SettingKind.Text) {
-                Description = "Set automatically on promotion so a rollback needs no registry lookup.",
+                Description = "Set on promotion so a rollback needs no registry lookup.",
             },
             new FieldDescriptor("environment", "Environment", SettingKind.Enum) {
                 Default = DeployApp.ProdEnvironment,
                 EnumValues = [DeployApp.ProdEnvironment, DeployApp.SubProdEnvironment],
-                Description = "Sub-prod auto-deploys latest. Production changes only when a tag is promoted into it.",
+                Description = "Sub-prod tracks latest. Production changes only on promotion.",
             },
             new FieldDescriptor("container", "Container", SettingKind.Text) {
                 Description = "Container to recreate. Defaults to the app name.",
             },
             new FieldDescriptor("stack", "Stack", SettingKind.Text) {
-                Description = "Which deploy.stacks row redeploys this app. Apps in the same Portainer stack share one row.",
+                Description = "deploy.stacks row that redeploys this app. Apps in one stack share a row.",
             },
             new FieldDescriptor("repo_url", "Repository URL", SettingKind.Url) {
-                Description = "Used to build commit links from image revision labels.",
+                Description = "Builds commit links from image revision labels.",
             },
             new FieldDescriptor("deploy_secret", "Deploy secret", SettingKind.Secret, Sensitivity.Secret) {
                 Description = "Bearer accepted on POST /deploy/{app} for this app.",
@@ -146,18 +146,18 @@ public static class DeployApps {
             new FieldDescriptor("auto_deploy", "Auto deploy", SettingKind.Bool) { Default = "true" },
             new FieldDescriptor("enabled", "Enabled", SettingKind.Bool) { Default = "true" },
             new FieldDescriptor("public_url", "Public URL", SettingKind.Url) {
-                Description = "Where the tool is served. Empty means it has no public address of its own.",
+                Description = "Empty means no public address of its own.",
             },
             new FieldDescriptor("brand_slug", "Brand slug", SettingKind.Text) {
-                Description = "Joins this row to the brand marks in EggIdentity.Contract. The app name is a container key and does not always match.",
+                Description = "Joins to the brand marks in EggIdentity.Contract. The app name is a container key and need not match.",
             },
             new FieldDescriptor("listed", "Listed publicly", SettingKind.Bool) {
                 Default = "false",
-                Description = "Whether suite landing pages show this app. Off by default so adding a deploy row never publishes anything on its own.",
+                Description = "Shows this app on suite landing pages. Off so adding a deploy row publishes nothing on its own.",
             },
         ],
         "name", "name") {
-        Description = "Apps in the suite: what eggidentity-agent watches and recreates, plus where each one is served.",
+        Description = "One row per app the agent deploys.",
     };
 
     public static ICollectionProvider Provider { get; } = new StaticCollectionProvider([Descriptor]);

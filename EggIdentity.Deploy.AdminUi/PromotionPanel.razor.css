@@ -26,7 +26,7 @@
 }
 
 .dp-error {
-    color: var(--color-err, #f23f43);
+    color: var(--color-err, #e5484d);
     margin: 0;
 }
 

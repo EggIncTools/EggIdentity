@@ -81,6 +81,7 @@ public sealed partial class SettingsPanel : IDisposable {
     private DriftReason? _confirmBulk;
     private DateTimeOffset _confirmBulkAt;
     private string _query = "";
+    private string _rowQuery = "";
     private string? _highlightKey;
 
     private bool _busy;
@@ -139,18 +140,27 @@ public sealed partial class SettingsPanel : IDisposable {
 
     private bool HasQuery => _query.Trim().Length > 0;
 
+    private bool HasRowQuery => _rowQuery.Trim().Length > 0;
+
+    private string RowEmptyText => HasRowQuery ? $"No rows match \"{_rowQuery.Trim()}\"." : "No rows yet.";
+
     private bool IsSelected(PaneKind kind, string? key = null) =>
         !HasQuery && _pane.Kind == kind && string.Equals(_pane.Key, key, StringComparison.Ordinal);
 
     private void Select(PaneKind kind, string? key = null) {
         _pane = new Pane(kind, key);
         _query = "";
+        _rowQuery = "";
         _highlightKey = null;
     }
 
     private void OnQueryChanged(string value) {
         _query = value;
         _highlightKey = null;
+    }
+
+    private void OnRowQueryChanged(string value) {
+        _rowQuery = value;
     }
 
     private IReadOnlyCollection<SettingRow>? RowsIn(string category) =>
@@ -239,6 +249,15 @@ public sealed partial class SettingsPanel : IDisposable {
         _collectionRows.GetValueOrDefault(key);
 
     private int CollectionCount(string key) => CollectionRows(key)?.Count ?? 0;
+
+    private IReadOnlyCollection<CollectionRow>? FilteredRows(CollectionDescriptor descriptor) {
+        var rows = CollectionRows(descriptor.Key);
+        if (rows is null) return null;
+        var q = _rowQuery.Trim();
+        if (q.Length == 0) return rows;
+        var fields = VisibleFields(descriptor);
+        return [.. rows.Where(r => fields.Any(f => r.Get(f.Name)?.Contains(q, StringComparison.OrdinalIgnoreCase) == true))];
+    }
 
     private CollectionDescriptor? SelectedCollection =>
         _pane.Kind == PaneKind.Collection

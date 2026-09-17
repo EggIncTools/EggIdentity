@@ -24,7 +24,7 @@ public static class AgentSettings {
         new SettingDescriptor(
             DbConnection, "IDENTITY_DB_CONNECTION", "Postgres connection string", Core,
             SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
-            Description = "The deploy.apps collection and every other stored setting live here.",
+            Description = "Holds deploy.apps and every other stored setting.",
             Required = true,
         },
         new SettingDescriptor(
@@ -32,7 +32,7 @@ public static class AgentSettings {
             SettingKind.Enum, ApplyTier.Bootstrap, Sensitivity.Plain) {
             Default = DeployApp.ProdEnvironment,
             EnumValues = [DeployApp.ProdEnvironment, DeployApp.SubProdEnvironment],
-            Description = "Which deploy.apps rows this agent manages. An agent never touches rows from another environment.",
+            Description = "Limits this agent to deploy.apps rows in this environment.",
         },
         new SettingDescriptor(
             Port, "AGENT_PORT", "Listen port", Core,
@@ -45,7 +45,7 @@ public static class AgentSettings {
         new SettingDescriptor(
             SelfContainer, "AGENT_SELF_CONTAINER", "Own container name", Core,
             SettingKind.Text, ApplyTier.Bootstrap, Sensitivity.Plain) {
-            Description = "Container name of this agent instance when the hostname is not the container id.",
+            Description = "Set when the hostname is not the container id.",
         },
         new SettingDescriptor(
             WatchInterval, "AGENT_WATCH_INTERVAL", "Registry poll interval", Deploy,
@@ -60,7 +60,7 @@ public static class AgentSettings {
             RedeployTimeout, "AGENT_REDEPLOY_TIMEOUT", "Redeploy timeout", Deploy,
             SettingKind.Duration, ApplyTier.Live, Sensitivity.Plain) {
             Default = "5m",
-            Description = "How long to wait for Portainer to bring the container up on the pulled image after the webhook is accepted.",
+            Description = "Time for Portainer to bring the container up after the webhook is accepted.",
         },
         new SettingDescriptor(
             HookSecret, "DEPLOY_HOOK_SECRET", "CI hook secret", Deploy,

@@ -27,20 +27,20 @@ public static class AdminTargets {
         [
             new FieldDescriptor("name", "App name", SettingKind.Text) {
                 Required = true,
-                Description = "Joins to the app's deploy.apps row. Also names the environment variable holding its secret.",
+                Description = "Joins to the app's deploy.apps row and names its secret environment variable.",
             },
             new FieldDescriptor("admin_base_url", "Admin base URL", SettingKind.Url) {
                 Required = true,
-                Description = "Internal base address this app answers /admin/api on, for example http://eggledger:5015. Not its public URL.",
+                Description = "Internal address serving /admin/api, for example http://eggledger:5015. Not the public URL.",
             },
             new FieldDescriptor("enabled", "Enabled", SettingKind.Bool) {
                 Default = "true",
-                Description = "Off hides the app from the admin pane without deleting how to reach it.",
+                Description = "Off hides the app from the admin pane without losing its address.",
             },
         ],
         "name", "name") {
-        Description = "Apps administrable from the hub. Secrets are not stored here: each app's secret is read from "
-            + SecretEnvPrefix + "<NAME> in the hub's own environment.",
+        Description = "One row per app administrable from the hub. Each secret is read from "
+            + SecretEnvPrefix + "<NAME> in the hub's environment, never stored here.",
     };
 
     public static ICollectionProvider Provider { get; } = new StaticCollectionProvider([Descriptor]);

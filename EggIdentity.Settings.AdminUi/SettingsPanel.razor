@@ -331,6 +331,8 @@
         <div class="sks-pane-head">
             <h3 class="sks-title">@descriptor.Label</h3>
             <span class="sks-spacer"></span>
+            <FilterInput ShowIcon="true" WrapClass="sks-search-wrap sks-row-search-wrap" Class="form-input sks-search" Placeholder="Filter rows"
+                         AriaLabel="Filter rows" Value="@_rowQuery" ValueChanged="OnRowQueryChanged"/>
             <button type="button" class="btn-mini" disabled="@_busy" @onclick="() => OpenAdd(descriptor)">Add</button>
         </div>
         @if (descriptor.Description is { Length: > 0 } description) {
@@ -340,7 +342,7 @@
             <p class="sks-error">@collectionError</p>
             <button type="button" class="btn-mini" disabled="@_busy" @onclick="() => LoadCollectionAsync(descriptor.Key)">Retry</button>
         }
-        <WorkbenchLoad T="CollectionRow" Items="@CollectionRows(descriptor.Key)" LoadingText="Loading rows..." EmptyText="No rows yet.">
+        <WorkbenchLoad T="CollectionRow" Items="@FilteredRows(descriptor)" LoadingText="Loading rows..." EmptyText="@RowEmptyText">
             <div class="sks-table-wrap">
                 <table class="data-table">
                     <thead>
@@ -353,7 +355,7 @@
                                 }
                             </th>
                         }
-                        <th></th>
+                        <th class="data-table-actions"></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -361,9 +363,9 @@
                         var id = row.Id;
                         <tr>
                             @foreach (var field in VisibleFields(descriptor)) {
-                                <td class="@(IsSecret(field) ? "sks-mono" : null)">@row.Get(field.Name)</td>
+                                <td class="@(IsSecret(field) ? "cell-clip sks-mono" : "cell-clip")">@row.Get(field.Name)</td>
                             }
-                            <td class="sks-actions">
+                            <td class="sks-actions data-table-actions">
                                 <button type="button" class="btn-mini" disabled="@_busy" @onclick="() => OpenEdit(descriptor, row)">Edit</button>
                                 <button type="button" class="btn-mini btn-danger" disabled="@_busy" @onclick="() => DeleteAsync(descriptor, id)">
                                     @(IsConfirmingDelete(id) ? "Confirm delete" : "Delete")

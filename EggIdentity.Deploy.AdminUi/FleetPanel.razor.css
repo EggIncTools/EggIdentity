@@ -19,7 +19,7 @@
 }
 
 .fleet-agent-down {
-    color: var(--color-err, #f23f43);
+    color: var(--color-err, #e5484d);
     opacity: 1;
 }
 
@@ -34,7 +34,7 @@
     align-items: flex-start;
     gap: 0.5rem;
     padding: 1rem;
-    border: 1px dashed var(--color-border, #26282c);
+    border: 1px dashed var(--color-border, #322b21);
     border-radius: 8px;
     font-size: 0.9rem;
 }
@@ -53,7 +53,7 @@
 .fleet-stacks {
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--color-border, #26282c);
+    border: 1px solid var(--color-border, #322b21);
     border-radius: 8px;
     font-size: 0.85rem;
 }
@@ -67,7 +67,7 @@
 }
 
 .fleet-stack + .fleet-stack {
-    border-top: 1px solid var(--color-border, #26282c);
+    border-top: 1px solid var(--color-border, #322b21);
 }
 
 .fleet-stack-name {
@@ -86,7 +86,7 @@
 .fleet-stack-refusal {
     flex: 1;
     min-width: 8rem;
-    color: var(--color-err, #f23f43);
+    color: var(--color-err, #e5484d);
 }
 
 .fleet-stack .btn-mini {
