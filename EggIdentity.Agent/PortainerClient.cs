@@ -41,6 +41,7 @@ public sealed record PortainerConfig(string BaseUrl, string ApiKey) {
 
     public HttpClient Configure(HttpClient http) {
         ArgumentNullException.ThrowIfNull(http);
+        if (http.BaseAddress is not null) return http;
         http.BaseAddress = new Uri(BaseUrl + "/");
         http.Timeout = CallTimeout;
         http.DefaultRequestHeaders.Remove("X-API-Key");

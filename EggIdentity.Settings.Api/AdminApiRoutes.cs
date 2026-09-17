@@ -14,7 +14,7 @@ public sealed record AdminApiOptions(string AppName, string Secret) {
 }
 
 public static class AdminApiRoutes {
-    public static IEndpointRouteBuilder MapAdminApi(this IEndpointRouteBuilder routes, AdminApiOptions options) {
+    public static RouteGroupBuilder MapAdminApi(this IEndpointRouteBuilder routes, AdminApiOptions options) {
         ArgumentNullException.ThrowIfNull(routes);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(options.Secret);
@@ -91,7 +91,7 @@ public static class AdminApiRoutes {
             return Results.Ok(new AdminSaveResponse { Ok = failure is null, Error = failure });
         });
 
-        return routes;
+        return group;
     }
 
     private static SettingsAdminService? Admin(IServiceProvider services) =>

@@ -46,8 +46,8 @@ public sealed class BotConfigService(
     string guildId, string appName,
     ChannelConfigStore configStore, ChannelStateStore stateStore,
     Func<ThreadKind, ulong, CancellationToken, Task<string?>> ensureWebhook,
-    Func<ThreadKind, CancellationToken, Task> teardownWebhook) {
-    public async Task<BotConfigView> GetAsync(CancellationToken ct) {
+    Func<ThreadKind, CancellationToken, Task> teardownWebhook) : IBotConfigAdmin {
+    public async Task<BotConfigView> GetAsync(CancellationToken ct = default) {
         var cc = await configStore.GetAsync(guildId, appName, ct);
 
         var githubFeedThreadId = cc?.GithubFeedThreadId ?? await ResolveThreadIdAsync(ThreadKind.GithubFeed, ct);
@@ -76,7 +76,7 @@ public sealed class BotConfigService(
             DefaultUptodateMessage);
     }
 
-    public async Task<SaveResult> SaveAsync(BotConfigInput input, CancellationToken ct) {
+    public async Task<SaveResult> SaveAsync(BotConfigInput input, CancellationToken ct = default) {
         if (ValidateEmbedJson(input.SuccessEmbedJson) is string se)
             return new SaveResult(false, $"Success embed invalid: {se}", null);
         if (ValidateEmbedJson(input.FailureEmbedJson) is string fe)

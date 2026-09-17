@@ -5,8 +5,8 @@ namespace EggIdentity.Host;
 
 internal static class IdentityApiRoutes {
     private static readonly string[] PublicSegments = [
-        "/auth", "/eggidentity-login.js", "/profile", "/avatars", "/webhooks", "/admin",
-        "/privacy", "/terms", "/_framework", "/_blazor", "/_content",
+        "/auth", "/eggidentity-login.js", "/profile", "/avatars", "/webhooks", "/admin/api",
+        "/privacy", "/terms",
     ];
 
     public static void UseBearerGate(WebApplication app, HostConfig config) {

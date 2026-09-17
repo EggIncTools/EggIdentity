@@ -28,7 +28,6 @@ internal sealed class HostConfig {
     public required string BotConfigFilePath { get; init; }
     public required IReadOnlyDictionary<string, string> SharedFileValues { get; init; }
     public bool BotEnabled { get; init; }
-    public bool AdminEnabled { get; init; }
     public string? DeployAgentUrl { get; init; }
 
     public string? SharedFileLookup(string key) => SharedFileValues.GetValueOrDefault(key);
@@ -81,7 +80,6 @@ internal sealed class HostConfig {
             BotConfigFilePath = botConfigFilePath,
             SharedFileValues = BotConfigLoader.ParseFile(botConfigFilePath),
             BotEnabled = botEnabled,
-            AdminEnabled = botEnabled && loginWidgetEnabled && sessionOptions is not null,
             DeployAgentUrl = Environment.GetEnvironmentVariable(DeployOptions.AgentUrlEnv),
         };
     }

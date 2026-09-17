@@ -1,13 +1,8 @@
-using System.Net.Http.Headers;
 using EggIdentity.Auth;
-using EggIdentity.Client;
 using EggIdentity.Deploy;
-using EggIdentity.Deploy.AdminUi;
 using EggIdentity.Fallback;
 using EggIdentity.Settings;
-using EggIdentity.Settings.AdminUi;
 using EggIdentity.Settings.Store;
-using EggIdentity.UI;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Npgsql;
@@ -39,7 +34,7 @@ internal static class HostServices {
         RegisterLoginWidget(builder, config);
         RegisterBot(builder, config);
         var runtime = RegisterSettings(builder, config, dataSource);
-        RegisterAdmin(builder, config);
+        RegisterDeploy(builder, config);
 
         return runtime;
     }
@@ -74,7 +69,6 @@ internal static class HostServices {
 
         builder.Services.AddSingleton(new BotHostedService(config.BotConfigFilePath, config.ConnString));
         builder.Services.AddHostedService(sp => sp.GetRequiredService<BotHostedService>());
-        builder.Services.AddScoped(sp => sp.GetRequiredService<BotHostedService>().Bot?.ConfigService!);
     }
 
     private static HostRuntime RegisterSettings(
@@ -92,24 +86,10 @@ internal static class HostServices {
         return new HostRuntime(dataSource, store, cache);
     }
 
-    private static void RegisterAdmin(WebApplicationBuilder builder, HostConfig config) {
-        if (!config.AdminEnabled) return;
-
-        builder.Services.AddHttpClient<IdentityApiClient>(c => {
-            c.BaseAddress = new Uri($"http://localhost:{config.Port}");
-            c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiSecret);
-        });
-        builder.Services.AddAuthentication(EggIdentitySessionDefaults.Scheme)
-            .AddEggIdentitySession(config.SessionOptions!);
-        builder.Services.AddAuthorization();
-        builder.Services.AddCascadingAuthenticationState();
-        builder.Services.AddRazorComponents().AddInteractiveServerComponents();
-        builder.Services.AddEggIdentityToasts();
-        builder.Services.AddEggIdentityDeployToasts();
-
-        if (string.IsNullOrWhiteSpace(config.DeployAgentUrl)) return;
+    private static void RegisterDeploy(WebApplicationBuilder builder, HostConfig config) {
+        if (string.IsNullOrWhiteSpace(config.DeployAgentUrl) || config.SessionOptions is null) return;
         builder.Services.AddEggIdentityDeploy(
             new DeployOptions(config.DeployAgentUrl, "eggidentity") { CallerName = "eggidentity-host" },
-            config.SessionOptions!);
+            config.SessionOptions);
     }
 }

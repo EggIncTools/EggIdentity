@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <Description>Shared Blazor admin deploy panel for eggidentity-agent (running/latest version, check/update/restart/logs, live event timeline) plus a deploy-event toast bridge.</Description>
+    <Description>Shared Blazor admin deploy panel for eggidentity-agent (running/latest version, check/update/restart/logs, live event timeline), a fleet panel listing agent stacks with armed redeploy and a per-app deploy grid, plus a deploy-event toast bridge.</Description>
   </PropertyGroup>
 
   <ItemGroup>

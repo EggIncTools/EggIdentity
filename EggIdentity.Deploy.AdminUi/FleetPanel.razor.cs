@@ -1,17 +1,17 @@
 using EggIdentity.Contract;
-using EggIdentity.Deploy;
 using EggIdentity.Settings.Store;
 using EggIdentity.UI;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace EggIdentity.Host.Components.Admin;
+namespace EggIdentity.Deploy.AdminUi;
 
-public sealed partial class FleetPane : ComponentBase {
+public sealed partial class FleetPanel : ComponentBase {
     private static readonly TimeSpan ConfirmWindow = TimeSpan.FromSeconds(5);
 
-    [Inject] private SettingsCache Cache { get; set; } = default!;
-    [Inject] private AgentClient Client { get; set; } = default!;
-    [Inject] private ToastService Toasts { get; set; } = default!;
+    private SettingsCache? _cache;
+    private AgentClient? _client;
+    private ToastService? _toasts;
 
     [Parameter] public EventCallback OnOpenDeployApps { get; set; }
 
@@ -40,7 +40,12 @@ public sealed partial class FleetPane : ComponentBase {
     private string RedeployLabel(string stack) => IsArmed(stack) ? "Confirm redeploy" : "Redeploy";
 
     protected override async Task OnInitializedAsync() {
-        var snapshot = await Cache.GetAsync();
+        _cache = Services.GetService<SettingsCache>();
+        _client = Services.GetService<AgentClient>();
+        _toasts = Services.GetService<ToastService>();
+        if (_cache is null || _client is null) return;
+
+        var snapshot = await _cache.GetAsync();
         _apps = [.. snapshot.Collection<DeployApp>(DeployApps.Key).Where(a => a.Enabled)];
         _loaded = true;
         await LoadAgentAsync();
@@ -48,7 +53,7 @@ public sealed partial class FleetPane : ComponentBase {
 
     private async Task LoadAgentAsync() {
         try {
-            _statuses = await Client.GetAllStatusAsync(CancellationToken.None);
+            _statuses = await _client!.GetAllStatusAsync(CancellationToken.None);
             _agentError = null;
         } catch (Exception e) when (IsAgentFailure(e)) {
             _agentError = e.Message;
@@ -56,7 +61,7 @@ public sealed partial class FleetPane : ComponentBase {
         }
 
         try {
-            _stacks = await Client.GetStacksAsync(CancellationToken.None);
+            _stacks = await _client.GetStacksAsync(CancellationToken.None);
             _stacksError = null;
         } catch (Exception e) when (IsAgentFailure(e)) {
             _stacksError = e.Message;
@@ -64,7 +69,7 @@ public sealed partial class FleetPane : ComponentBase {
     }
 
     private async Task CheckAllAsync() {
-        if (_busy) return;
+        if (_busy || _client is null) return;
         _busy = true;
         var failures = new List<string>();
         try {
@@ -76,13 +81,13 @@ public sealed partial class FleetPane : ComponentBase {
             _busy = false;
         }
 
-        if (failures.Count == 0) Toasts.Push(StatusNoteKind.Ok, $"Checked {_apps.Count} app(s).");
-        else Toasts.Push(StatusNoteKind.Error, string.Join("; ", failures));
+        if (failures.Count == 0) _toasts?.Push(StatusNoteKind.Ok, $"Checked {_apps.Count} app(s).");
+        else _toasts?.Push(StatusNoteKind.Error, string.Join("; ", failures));
     }
 
     private async Task<string?> TryCheckAsync(string app) {
         try {
-            await Client.CheckAsync(app, CancellationToken.None);
+            await _client!.CheckAsync(app, CancellationToken.None);
             return null;
         } catch (Exception e) when (IsAgentFailure(e)) {
             return $"{app}: {e.Message}";
@@ -90,7 +95,7 @@ public sealed partial class FleetPane : ComponentBase {
     }
 
     private async Task RedeployAsync(string stack) {
-        if (_busy) return;
+        if (_busy || _client is null) return;
         if (!IsArmed(stack)) {
             _armedStack = stack;
             _armedAt = DateTimeOffset.UtcNow;
@@ -100,12 +105,12 @@ public sealed partial class FleetPane : ComponentBase {
         _armedStack = null;
         _busy = true;
         try {
-            var failure = await Client.RedeployStackAsync(stack, CancellationToken.None);
-            if (failure is null) Toasts.Push(StatusNoteKind.Ok, $"Redeploy of {stack} requested.");
-            else Toasts.Push(StatusNoteKind.Error, failure);
+            var failure = await _client.RedeployStackAsync(stack, CancellationToken.None);
+            if (failure is null) _toasts?.Push(StatusNoteKind.Ok, $"Redeploy of {stack} requested.");
+            else _toasts?.Push(StatusNoteKind.Error, failure);
             await LoadAgentAsync();
         } catch (Exception e) when (IsAgentFailure(e)) {
-            Toasts.Push(StatusNoteKind.Error, e.Message);
+            _toasts?.Push(StatusNoteKind.Error, e.Message);
         } finally {
             _busy = false;
         }

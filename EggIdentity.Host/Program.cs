@@ -3,13 +3,14 @@ using System.Text;
 using EggIdentity.Auth;
 using EggIdentity.Db;
 using EggIdentity.Fallback;
-using EggIdentity.Host.Components;
 using EggIdentity.Settings.Api;
 using EggIdentity.Settings.Store;
 
 namespace EggIdentity.Host;
 
 public static class Program {
+    private const string HubOrigin = "https://egginc.tools";
+
     public static async Task Main(string[] args) {
         var config = HostConfig.FromEnvironment();
 
@@ -26,13 +27,6 @@ public static class Program {
 
     private static void ConfigurePipeline(WebApplication app, HostConfig config) {
         app.UseStaticFiles();
-
-        if (config.AdminEnabled) {
-            app.UseAuthentication();
-            app.UseAuthorization();
-            app.UseAntiforgery();
-        }
-
         app.UseEggIdentityFallback();
         IdentityApiRoutes.UseBearerGate(app, config);
     }
@@ -51,9 +45,9 @@ public static class Program {
     private static void MapRoutes(WebApplication app, HostConfig config) {
         var sponsorSync = config.SponsorEnabled ? app.Services.GetRequiredService<SponsorSyncService>() : null;
 
-        app.MapGet("/", () => Results.Content(LandingPage.Html, "text/html"));
-        app.MapGet("/privacy", () => Results.Content(LegalPages.Privacy, "text/html"));
-        app.MapGet("/terms", () => Results.Content(LegalPages.Terms, "text/html"));
+        app.MapGet("/", () => Results.Redirect(HubOrigin, permanent: true));
+        app.MapGet("/privacy", () => Results.Redirect($"{HubOrigin}/privacy", permanent: true));
+        app.MapGet("/terms", () => Results.Redirect($"{HubOrigin}/terms", permanent: true));
 
         LoginRoutes.Map(app, config, sponsorSync);
         BrandRoutes.Map(app);
@@ -62,9 +56,8 @@ public static class Program {
         if (config.SponsorEnabled) SponsorRoutes.Map(app, config, sponsorSync!);
 
         IdentityApiRoutes.Map(app, config);
-        app.MapAdminApi(new AdminApiOptions("eggidentity", config.ApiSecret));
-
-        if (config.AdminEnabled) app.MapRazorComponents<AppHost>().AddInteractiveServerRenderMode();
+        var adminApi = app.MapAdminApi(new AdminApiOptions("eggidentity", config.ApiSecret));
+        if (config.BotEnabled) BotAdminRoutes.Map(adminApi);
     }
 
     public const string IdHintCookie = "eggidentity_idhint";

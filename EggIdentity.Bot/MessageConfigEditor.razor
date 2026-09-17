@@ -80,7 +80,9 @@
     static readonly (string Key, string Label)[] Tabs =
         [("success", "Success"), ("failure", "Failure"), ("uptodate", "Up to date"), ("dashboard", "Dashboard")];
 
-    BotConfigService? Service => Services.GetService<BotConfigService>();
+    [Parameter] public IBotConfigAdmin? Admin { get; set; }
+
+    IBotConfigAdmin? Service => Admin ?? Services.GetService<BotConfigService>();
 
     bool _loaded;
     bool _saving;
@@ -102,6 +104,11 @@
     IReadOnlyList<VariableDoc> _deployVars = [];
     IReadOnlyList<VariableDoc> _dashVars = [];
 
+    MessageSpec? _defaultSuccess;
+    MessageSpec? _defaultFailure;
+    MessageSpec? _defaultUptodate;
+    EmbedSpec? _defaultDashboard;
+
     EventForm Current => _tab switch { "failure" => _failure, "uptodate" => _uptodate, _ => _success };
     IReadOnlyList<VariableDoc> ActiveVariables => _tab == "dashboard" ? _dashVars : _deployVars;
 
@@ -114,6 +121,10 @@
         _webhookUrl = v.GithubWebhookUrl ?? "";
         _deployVars = v.Variables;
         _dashVars = v.DashboardVariables;
+        _defaultSuccess = v.DefaultSuccessMessage;
+        _defaultFailure = v.DefaultFailureMessage;
+        _defaultUptodate = v.DefaultUptodateMessage;
+        _defaultDashboard = v.DefaultDashboard;
         _success = SeedEvent(v.SuccessMessageJson, v.SuccessEmbedJson, v.DefaultSuccessMessage);
         _failure = SeedEvent(v.FailureMessageJson, v.FailureEmbedJson, v.DefaultFailureMessage);
         _uptodate = SeedEvent(v.UptodateMessageJson, v.UptodateEmbedJson, v.DefaultUptodateMessage);
@@ -159,12 +170,14 @@
     }
 
     void ResetTab() {
-        if (Service is null) return;
+        if (!_loaded) return;
         switch (_tab) {
-            case "failure": _failure = EventForm.From(Service.DefaultFailureMessage); break;
-            case "uptodate": _uptodate = EventForm.From(Service.DefaultUptodateMessage); break;
-            case "dashboard": _dashboard = EmbedForm.From(Service.DefaultDashboard); break;
-            default: _success = EventForm.From(Service.DefaultSuccessMessage); break;
+            case "failure" when _defaultFailure is { } f: _failure = EventForm.From(f); break;
+            case "uptodate" when _defaultUptodate is { } u: _uptodate = EventForm.From(u); break;
+            case "dashboard" when _defaultDashboard is { } d: _dashboard = EmbedForm.From(d); break;
+            default:
+                if (_defaultSuccess is { } s) _success = EventForm.From(s);
+                break;
         }
     }
 
