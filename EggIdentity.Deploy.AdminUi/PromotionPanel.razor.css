@@ -26,12 +26,12 @@
 }
 
 .dp-error {
-    color: var(--color-err, #e5484d);
+    color: var(--color-err, #f85149);
     margin: 0;
 }
 
 .dp-notice {
-    color: var(--color-accent2, #f0b232);
+    color: var(--color-accent2, #5865f2);
     margin: 0;
 }
 

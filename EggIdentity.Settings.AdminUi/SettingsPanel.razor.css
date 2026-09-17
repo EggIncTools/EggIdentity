@@ -108,7 +108,7 @@
 }
 
 .sks-row-dirty {
-    border-left-color: var(--color-accent, #f5b93b);
+    border-left-color: var(--color-accent, #7aa2ff);
 }
 
 .sks-row-restart {
@@ -116,7 +116,7 @@
 }
 
 .sks-row-hl {
-    background: color-mix(in srgb, var(--color-accent, #f5b93b) 12%, transparent);
+    background: color-mix(in srgb, var(--color-accent, #7aa2ff) 12%, transparent);
 }
 
 .sks-row-head {
@@ -228,13 +228,13 @@
 .sks-error {
     margin: 0;
     font-size: 0.78rem;
-    color: var(--color-err, #e5484d);
+    color: var(--color-err, #f85149);
 }
 
 .sks-ok {
     margin: 0;
     font-size: 0.78rem;
-    color: var(--color-ok, #4ea55a);
+    color: var(--color-ok, #3fb950);
 }
 
 .sks-warn {
@@ -317,7 +317,7 @@
 }
 
 .sks-tile-bad {
-    border-color: color-mix(in srgb, var(--color-err, #e5484d) 45%, transparent);
+    border-color: color-mix(in srgb, var(--color-err, #f85149) 45%, transparent);
 }
 
 .sks-tile-head {
