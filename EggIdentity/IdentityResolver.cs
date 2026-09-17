@@ -37,6 +37,7 @@ public sealed class IdentityResolver(NpgsqlDataSource dataSource, AdminAllowlist
 
         var effectiveDiscordId = provider == "discord" ? subject : discordId;
         var role = await UpsertUserAsync(conn, userId, effectiveDiscordId, username, avatar, isNew, ct);
+        if (!isNew) await DeleteStaleIdentityAsync(conn, userId, provider, subject, ct);
         var winnerId = await InsertIdentityAsync(conn, userId, provider, subject, username, avatar, ct);
 
         await tx.CommitAsync(ct);
@@ -219,6 +220,16 @@ public sealed class IdentityResolver(NpgsqlDataSource dataSource, AdminAllowlist
         !string.IsNullOrEmpty(discordId) && allowlist.Ids.Contains(discordId)
             ? UserRoles.ToName(UserRole.Admin)
             : UserRoles.ToName(UserRole.Viewer);
+
+    private static async Task DeleteStaleIdentityAsync(
+        NpgsqlConnection conn, Guid userId, string provider, string subject, CancellationToken ct) {
+        await using var cmd = new NpgsqlCommand(
+            "DELETE FROM identities WHERE user_id = $1 AND provider = $2 AND subject <> $3", conn);
+        cmd.Parameters.AddWithValue(userId);
+        cmd.Parameters.AddWithValue(provider);
+        cmd.Parameters.AddWithValue(subject);
+        await cmd.ExecuteNonQueryAsync(ct);
+    }
 
     private static async Task<Guid> InsertIdentityAsync(
         NpgsqlConnection conn, Guid userId, string provider, string subject, string? username, string? avatar, CancellationToken ct) {

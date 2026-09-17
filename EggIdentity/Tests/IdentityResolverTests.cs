@@ -80,6 +80,25 @@ public class IdentityResolverTests {
     }
 
     [Fact]
+    public async Task ResolveAsync_KnownUserWithNewSubject_ReplacesStaleProviderRow() {
+        if (string.IsNullOrEmpty(ConnString)) return;
+        await using var db = await MakeDbAsync();
+        var resolver = MakeResolver(db);
+        var discordId = Guid.NewGuid().ToString();
+
+        var first = await resolver.ResolveAsync("authentik", Guid.NewGuid().ToString(), discordId, "erin", null, CancellationToken.None);
+        var newSub = Guid.NewGuid().ToString();
+        var second = await resolver.ResolveAsync("authentik", newSub, discordId, "erin", null, CancellationToken.None);
+
+        Assert.Equal(first.UserId, second.UserId);
+        Assert.False(second.IsNew);
+        await using var conn = await db.OpenConnectionAsync();
+        await using var cmd = new NpgsqlCommand("SELECT subject FROM identities WHERE user_id = $1 AND provider = 'authentik'", conn);
+        cmd.Parameters.AddWithValue(first.UserId);
+        Assert.Equal(newSub, await cmd.ExecuteScalarAsync());
+    }
+
+    [Fact]
     public async Task MergeAsync_ReassignsIdentitiesAndDeletesLoser() {
         if (string.IsNullOrEmpty(ConnString)) return;
         await using var db = await MakeDbAsync();
