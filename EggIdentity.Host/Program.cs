@@ -62,7 +62,6 @@ public static class Program {
 
     public const string IdHintCookie = "eggidentity_idhint";
 
-
     public static bool IsValidLocalKey(string? configured, string? presented) {
         if (string.IsNullOrEmpty(configured) || string.IsNullOrEmpty(presented)) return false;
         var configuredHash = SHA256.HashData(Encoding.UTF8.GetBytes(configured));

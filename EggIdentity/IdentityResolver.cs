@@ -27,7 +27,7 @@ public sealed class IdentityResolver(NpgsqlDataSource dataSource, AdminAllowlist
             userId = linkedUserId;
             isNew = false;
         } else if (provider == "discord" &&
-              await LookupByDiscordIdAsync(conn, subject, ct) is { } discordUserId) {
+            await LookupByDiscordIdAsync(conn, subject, ct) is { } discordUserId) {
             userId = discordUserId;
             isNew = false;
         } else {
