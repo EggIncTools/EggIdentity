@@ -14,7 +14,10 @@ public sealed class PathRouteSync(IJSRuntime js, NavigationManager nav, string p
     public async Task StartAsync() {
         SetPath(nav.ToBaseRelativePath(nav.Uri));
         _dotNetRef = DotNetObjectReference.Create(this);
-        await js.InvokeVoidAsync("pathRouteSyncListen", prefix, _dotNetRef);
+        try {
+            await js.InvokeVoidAsync("pathRouteSyncListen", prefix, _dotNetRef);
+        } catch (JSDisconnectedException) {
+        }
     }
 
     public async Task Push(string path) => await Navigate(path, replace: false);
@@ -23,7 +26,11 @@ public sealed class PathRouteSync(IJSRuntime js, NavigationManager nav, string p
 
     private async Task Navigate(string path, bool replace) {
         if (Normalize(path) == _currentPath) return;
-        await js.InvokeVoidAsync("pathRouteSyncPush", path, replace);
+        try {
+            await js.InvokeVoidAsync("pathRouteSyncPush", path, replace);
+        } catch (JSDisconnectedException) {
+        }
+
         SetPath(path);
     }
 

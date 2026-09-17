@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Description>Shared request-rate and traffic-audit metrics for eggidentity: in-memory ring buffers, path/IP rollups, request-bucket classifier, recording middleware, optional persistence sink.</Description>

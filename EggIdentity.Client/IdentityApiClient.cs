@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using EggIdentity.Contract;
 
 namespace EggIdentity.Client;

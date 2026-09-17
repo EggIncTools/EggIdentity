@@ -109,8 +109,11 @@
         }
 
         if (_open && !_wasOpen) {
-            await JS.InvokeVoidAsync("comboBoxPickerPosition", _listbox, _input);
-            await JS.InvokeVoidAsync("comboBoxPickerShow", _listbox);
+            try {
+                await JS.InvokeVoidAsync("comboBoxPickerPosition", _listbox, _input);
+                await JS.InvokeVoidAsync("comboBoxPickerShow", _listbox);
+            } catch (JSDisconnectedException) {
+            }
         } else if (!_open && _wasOpen) {
             await HidePopoverAsync();
         }

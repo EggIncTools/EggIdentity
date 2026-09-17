@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
 using EggIdentity.Contract;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;

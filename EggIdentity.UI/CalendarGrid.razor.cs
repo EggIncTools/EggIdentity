@@ -21,7 +21,11 @@ public sealed partial class CalendarGrid<TItem> : IAsyncDisposable {
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (firstRender) {
             _selfRef = DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("calendarGridInit", _viewport, _selfRef);
+            try {
+                await JS.InvokeVoidAsync("calendarGridInit", _viewport, _selfRef);
+            } catch (JSDisconnectedException) {
+            }
+
             _initialized = true;
         }
     }
