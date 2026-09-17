@@ -140,7 +140,7 @@ internal static class Program {
             return Results.Json(await service.RestartAsync(appName, lifetime.ApplicationStopping));
         });
 
-        app.MapGet("/events", async (HttpContext ctx) => {
+        app.MapGet("/events", async ctx => {
             if (!ctx.User.IsAtLeast(UserRole.Admin)) {
                 ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
                 return;

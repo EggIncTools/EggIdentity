@@ -1,4 +1,3 @@
-using EggIdentity;
 using EggIdentity.Db;
 using Npgsql;
 

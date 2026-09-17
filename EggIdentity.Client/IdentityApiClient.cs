@@ -54,7 +54,7 @@ public sealed class IdentityApiClient(HttpClient http) {
     public async Task<bool> IsRevokedAsync(string sid, CancellationToken ct) {
         var resp = await http.GetAsync($"/identity/sessions/{sid}/revoked", ct);
         resp.EnsureSuccessStatusCode();
-        return (await resp.Content.ReadFromJsonAsync<bool>(cancellationToken: ct));
+        return await resp.Content.ReadFromJsonAsync<bool>(cancellationToken: ct);
     }
 
     public async Task<Guid> MergeAsync(Guid keepUserId, Guid mergeUserId, CancellationToken ct) {

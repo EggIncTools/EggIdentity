@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using EggIdentity;
 
 namespace EggIdentity.Host;
 

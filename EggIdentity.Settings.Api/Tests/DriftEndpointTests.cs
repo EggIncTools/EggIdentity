@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using EggIdentity.Contract;
-using EggIdentity.Settings;
 using EggIdentity.Settings.Store;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;

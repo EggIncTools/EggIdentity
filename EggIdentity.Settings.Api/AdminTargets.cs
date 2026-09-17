@@ -1,4 +1,3 @@
-using EggIdentity.Settings;
 
 namespace EggIdentity.Settings.Api;
 

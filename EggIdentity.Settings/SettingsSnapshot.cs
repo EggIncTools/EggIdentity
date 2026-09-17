@@ -21,8 +21,8 @@ public sealed class SettingsSnapshot : ISettingsSource {
 
         _registry = registry;
         var env = environment ?? Environment.GetEnvironmentVariable;
-        _values = new Dictionary<string, SettingValue>(StringComparer.Ordinal);
-        _collections = new Dictionary<string, IReadOnlyList<CollectionRow>>(StringComparer.Ordinal);
+        _values = [with(StringComparer.Ordinal)];
+        _collections = [with(StringComparer.Ordinal)];
 
         foreach (var d in registry.All) {
             _values[d.Key] = Resolve(d, database, file, env);

@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using EggIdentity.Auth;
 using EggIdentity.Contract;
-using Microsoft.AspNetCore.Http;
 
 namespace EggIdentity.Host;
 

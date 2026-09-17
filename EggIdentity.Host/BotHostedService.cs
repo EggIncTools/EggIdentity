@@ -3,7 +3,6 @@ using Discord.WebSocket;
 using EggIdentity.Bot;
 using EggIdentity.Contract;
 using EggIdentity.Db;
-using Microsoft.Extensions.Hosting;
 using Npgsql;
 
 namespace EggIdentity.Host;

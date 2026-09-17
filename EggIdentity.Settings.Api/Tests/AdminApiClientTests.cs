@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text;
-using EggIdentity.Contract;
 
 namespace EggIdentity.Settings.Api.Tests;
 

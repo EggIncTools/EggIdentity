@@ -25,7 +25,7 @@ internal static class PortainerFakes {
 }
 
 internal sealed class FakePortainerHandler : HttpMessageHandler {
-    private readonly Dictionary<string, (HttpStatusCode Status, string Body)> _responses = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (HttpStatusCode Status, string Body)> _responses = [with(StringComparer.Ordinal)];
 
     public List<string> Calls { get; } = [];
     public HttpRequestMessage? Write { get; private set; }

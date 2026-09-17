@@ -1,6 +1,5 @@
 using System.IO.Pipelines;
 using System.Net;
-using System.Security.Claims;
 using EggIdentity.Auth;
 using EggIdentity.Contract;
 using EggIdentity.Settings;

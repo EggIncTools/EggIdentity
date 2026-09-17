@@ -1,6 +1,3 @@
-using EggIdentity.Bot;
-using Xunit;
-
 namespace EggIdentity.Bot.Tests;
 
 public class CommandSignatureTests {

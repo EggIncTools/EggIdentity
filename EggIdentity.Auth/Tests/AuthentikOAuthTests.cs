@@ -1,6 +1,3 @@
-using EggIdentity.Auth;
-using Xunit;
-
 namespace EggIdentity.Auth.Tests;
 
 public class AuthentikOAuthTests {
@@ -99,8 +96,10 @@ public class AuthentikOAuthTests {
     }
 
     private static string JwsWith(string payloadJson) {
-        static string Enc(string raw) =>
-            Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(raw)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        static string Enc(string raw) {
+            return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(raw)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        }
+
         return $"{Enc("{\"alg\":\"RS256\"}")}.{Enc(payloadJson)}.sig";
     }
 

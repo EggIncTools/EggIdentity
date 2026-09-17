@@ -1,7 +1,3 @@
-using EggIdentity;
-using EggIdentity.Host;
-using Xunit;
-
 namespace EggIdentity.Host.Tests;
 
 public class LoginRoutesTests {

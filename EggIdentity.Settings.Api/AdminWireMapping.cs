@@ -1,5 +1,4 @@
 using EggIdentity.Contract;
-using EggIdentity.Settings;
 using EggIdentity.Settings.Store;
 
 namespace EggIdentity.Settings.Api;

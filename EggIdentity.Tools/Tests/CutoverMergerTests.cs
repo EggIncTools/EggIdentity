@@ -1,6 +1,3 @@
-using EggIdentity.Tools;
-using Xunit;
-
 namespace EggIdentity.Tools.Tests;
 
 public class CutoverMergerTests {

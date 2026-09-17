@@ -18,13 +18,13 @@ public sealed class AppCatalog {
         IEnumerable<DeployApp> apps, string environment = DeployApp.ProdEnvironment, IEnumerable<DeployStack>? stacks = null) {
         ArgumentNullException.ThrowIfNull(apps);
         Environment = string.IsNullOrWhiteSpace(environment) ? DeployApp.ProdEnvironment : environment.Trim();
-        _apps = new Dictionary<string, DeployApp>(StringComparer.OrdinalIgnoreCase);
+        _apps = [with(StringComparer.OrdinalIgnoreCase)];
         foreach (var app in apps) {
             if (!app.Enabled || string.IsNullOrWhiteSpace(app.Name)) continue;
             if (!string.Equals(app.Environment, Environment, StringComparison.OrdinalIgnoreCase)) continue;
             _apps[app.Name] = app;
         }
-        _stacks = new Dictionary<string, DeployStack>(StringComparer.OrdinalIgnoreCase);
+        _stacks = [with(StringComparer.OrdinalIgnoreCase)];
         foreach (var stack in stacks ?? []) {
             if (!stack.Enabled || string.IsNullOrWhiteSpace(stack.Name)) continue;
             _stacks[stack.Name] = stack;

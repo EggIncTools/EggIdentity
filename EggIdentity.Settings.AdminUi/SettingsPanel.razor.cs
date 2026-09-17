@@ -37,8 +37,8 @@ public sealed partial class SettingsPanel : IDisposable {
     internal sealed class RowEdit {
         public required CollectionDescriptor Descriptor { get; init; }
         public bool IsNew { get; init; }
-        public Dictionary<string, string?> Values { get; } = new(StringComparer.Ordinal);
-        public HashSet<string> MaskedFields { get; } = new(StringComparer.Ordinal);
+        public Dictionary<string, string?> Values { get; } = [with(StringComparer.Ordinal)];
+        public HashSet<string> MaskedFields { get; } = [with(StringComparer.Ordinal)];
         public string? Error { get; set; }
     }
 
@@ -64,19 +64,19 @@ public sealed partial class SettingsPanel : IDisposable {
     private IReadOnlyList<SettingRow>? _rows;
     private string? _rowsError;
     private IReadOnlyList<CollectionDescriptor> _collections = [];
-    private readonly Dictionary<string, IReadOnlyList<CollectionRow>?> _collectionRows = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> _collectionErrors = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyList<CollectionRow>?> _collectionRows = [with(StringComparer.Ordinal)];
+    private readonly Dictionary<string, string> _collectionErrors = [with(StringComparer.Ordinal)];
 
     private IReadOnlyList<EnvKeyInfo>? _env;
     private DriftReport? _drift;
     private string? _envError;
 
-    private readonly Dictionary<string, string?> _drafts = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> _rowErrors = new(StringComparer.Ordinal);
-    private readonly HashSet<string> _revealed = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string?> _drafts = [with(StringComparer.Ordinal)];
+    private readonly Dictionary<string, string> _rowErrors = [with(StringComparer.Ordinal)];
+    private readonly HashSet<string> _revealed = [with(StringComparer.Ordinal)];
 
     private Pane _pane = new(PaneKind.Category, null);
-    private readonly HashSet<string> _openGroups = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _openGroups = [with(StringComparer.Ordinal)];
     private readonly HashSet<DriftReason> _openDrift = [];
     private DriftReason? _confirmBulk;
     private DateTimeOffset _confirmBulkAt;

@@ -1,7 +1,4 @@
-using Discord;
-using EggIdentity.Bot;
 using EggIdentity.Contract;
-using Xunit;
 
 namespace EggIdentity.Bot.Tests;
 

@@ -1,8 +1,5 @@
-using EggIdentity;
 using EggIdentity.Db;
-using EggIdentity.Host;
 using Npgsql;
-using Xunit;
 
 namespace EggIdentity.Host.Tests;
 

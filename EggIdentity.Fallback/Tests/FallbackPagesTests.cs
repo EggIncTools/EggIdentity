@@ -1,4 +1,3 @@
-using EggIdentity.Styles;
 
 namespace EggIdentity.Fallback.Tests;
 

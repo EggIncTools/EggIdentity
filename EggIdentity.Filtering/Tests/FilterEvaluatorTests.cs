@@ -1,4 +1,3 @@
-using EggIdentity.Filtering;
 
 namespace EggIdentity.Filtering.Tests;
 

@@ -1,4 +1,3 @@
-using EggIdentity.Contract;
 
 namespace EggIdentity.Contract.Tests;
 

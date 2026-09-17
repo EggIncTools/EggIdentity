@@ -1,7 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using EggIdentity.Host;
-using Xunit;
 
 namespace EggIdentity.Host.Tests;
 

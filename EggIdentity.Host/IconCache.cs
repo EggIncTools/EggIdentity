@@ -4,7 +4,7 @@ namespace EggIdentity.Host;
 
 public sealed class IconCache(IHttpClientFactory httpClientFactory, string authority) {
     private readonly string authority = authority.TrimEnd('/');
-    private readonly Dictionary<string, CachedIcon> cache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, CachedIcon> cache = [with(StringComparer.OrdinalIgnoreCase)];
 
     public sealed record CachedIcon(byte[] Bytes, string ContentType);
 

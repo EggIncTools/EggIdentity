@@ -16,7 +16,7 @@ public static class EnvProvenance {
         var image = SplitPairs(imageEnv);
         var composeKeys = compose is { Found: true }
             ? new HashSet<string>(compose.EnvironmentKeys, StringComparer.Ordinal)
-            : new HashSet<string>(StringComparer.Ordinal);
+            : [with(StringComparer.Ordinal)];
 
         var entries = new Dictionary<string, EnvKeyInfo>(StringComparer.Ordinal);
         foreach (var (name, value) in container)

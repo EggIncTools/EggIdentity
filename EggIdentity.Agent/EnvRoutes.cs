@@ -2,7 +2,6 @@ using EggIdentity.Auth;
 using EggIdentity.Contract;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace EggIdentity.Agent;
 

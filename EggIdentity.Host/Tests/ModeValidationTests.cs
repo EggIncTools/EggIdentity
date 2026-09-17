@@ -1,5 +1,3 @@
-using Xunit;
-
 namespace EggIdentity.Host.Tests;
 
 public class ModeValidationTests {

@@ -1,6 +1,4 @@
 using Discord;
-using EggIdentity.Bot;
-using Xunit;
 
 namespace EggIdentity.Bot.Tests;
 

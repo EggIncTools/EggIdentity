@@ -19,7 +19,9 @@ public static class BotConfigLoader {
     public static BotConfigValues Load(string path, Func<string, string?> envFallback) {
         var raw = File.Exists(path) ? ParseDotenv(File.ReadAllText(path)) : [];
 
-        string? Get(string key) => raw.TryGetValue(key, out var v) ? v : envFallback(key);
+        string? Get(string key) {
+            return raw.TryGetValue(key, out var v) ? v : envFallback(key);
+        }
 
         return new BotConfigValues(
             Get("DISCORD_TOKEN"),

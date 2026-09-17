@@ -1,4 +1,3 @@
-using EggIdentity;
 using EggIdentity.Auth;
 using EggIdentity.Contract;
 

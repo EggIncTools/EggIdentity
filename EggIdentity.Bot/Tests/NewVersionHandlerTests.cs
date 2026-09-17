@@ -1,8 +1,6 @@
 using System.Text;
-using EggIdentity.Bot;
 using EggIdentity.Contract;
 using Microsoft.AspNetCore.Http;
-using Xunit;
 
 namespace EggIdentity.Bot.Tests;
 

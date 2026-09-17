@@ -1,7 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using EggIdentity.Auth;
-using Xunit;
 
 namespace EggIdentity.Auth.Tests;
 

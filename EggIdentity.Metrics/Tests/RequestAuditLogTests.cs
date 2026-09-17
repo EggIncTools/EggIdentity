@@ -1,4 +1,3 @@
-using EggIdentity.Metrics;
 
 namespace EggIdentity.Metrics.Tests;
 

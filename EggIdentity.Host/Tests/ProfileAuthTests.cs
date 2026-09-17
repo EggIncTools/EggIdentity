@@ -1,8 +1,6 @@
 using EggIdentity.Auth;
 using EggIdentity.Contract;
-using EggIdentity.Host;
 using Microsoft.AspNetCore.Http;
-using Xunit;
 
 namespace EggIdentity.Host.Tests;
 

@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using EggIdentity.Auth;
 using EggIdentity.Client;
 using EggIdentity.Contract;
 using Microsoft.AspNetCore.Authentication;
@@ -7,7 +6,6 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace EggIdentity.Auth.Tests;
 
@@ -59,7 +57,7 @@ public class AuthentikAspNetAuthTests {
 
         await AuthentikAspNetAuth.OnValidatePrincipalCheckRevoked(ctx, identity, "user_id", "role");
 
-        Assert.False(ctx.ShouldRenew == false && ctx.Principal is null); // principal untouched, no reject
+        Assert.False(!ctx.ShouldRenew && ctx.Principal is null); // principal untouched, no reject
         Assert.NotNull(ctx.Principal);
     }
 

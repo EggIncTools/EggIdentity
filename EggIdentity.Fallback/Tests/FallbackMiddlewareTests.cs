@@ -1,12 +1,8 @@
 using System.Net;
 using System.Security.Claims;
 using EggIdentity.Auth;
-using EggIdentity.Contract;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace EggIdentity.Fallback.Tests;

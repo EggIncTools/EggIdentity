@@ -1,7 +1,3 @@
-using System.Reflection;
-using EggIdentity.Host;
-using Xunit;
-
 namespace EggIdentity.Host.Tests;
 
 public class BuildInfoTests {

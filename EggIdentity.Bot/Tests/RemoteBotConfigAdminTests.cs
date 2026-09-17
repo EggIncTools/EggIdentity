@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text;
-using Xunit;
 
 namespace EggIdentity.Bot.Tests;
 

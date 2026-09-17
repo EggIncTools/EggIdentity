@@ -7,7 +7,12 @@
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <PackageId>EggIdentity.CodeStyle</PackageId>
     <Description>Shared Sonar analyzer defaults for EggIdentity and consumers.</Description>
+    <SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Update="SonarAnalyzer.CSharp" PrivateAssets="none" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="build/EggIdentity.CodeStyle.props" Pack="true" PackagePath="build/" />

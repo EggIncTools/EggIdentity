@@ -1,6 +1,3 @@
-using EggIdentity.Db;
-using Xunit;
-
 namespace EggIdentity.Db.Tests;
 
 public class MigratorTests {

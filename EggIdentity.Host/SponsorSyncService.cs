@@ -1,4 +1,3 @@
-using EggIdentity;
 using EggIdentity.Models;
 
 namespace EggIdentity.Host;

@@ -1,6 +1,5 @@
 using System.Net;
 using System.Security.Claims;
-using EggIdentity.Metrics;
 using Microsoft.AspNetCore.Http;
 
 namespace EggIdentity.Metrics.Tests;

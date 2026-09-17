@@ -64,8 +64,9 @@ public class AdminTargetsTests {
         Assert.Equal("admin base URL is not an absolute URL", Unavailable(Row(url: "eggledger:5015")));
         Assert.Equal("this row has no app name", Unavailable(Row(name: "")));
 
-        static string? Unavailable(AdminTargetRow row) =>
-            AdminTargets.Describe(row, Env(("ADMIN_SECRET_EGGLEDGER", "s3cret"))).Unavailable;
+        static string? Unavailable(AdminTargetRow row) {
+            return AdminTargets.Describe(row, Env(("ADMIN_SECRET_EGGLEDGER", "s3cret"))).Unavailable;
+        }
     }
 
     [Theory]

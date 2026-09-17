@@ -1,6 +1,3 @@
-using EggIdentity.Auth;
-using Xunit;
-
 namespace EggIdentity.Auth.Tests;
 
 public class TokenHashTests {

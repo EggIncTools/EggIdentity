@@ -1,6 +1,4 @@
 using EggIdentity.Host;
-using EggIdentity.Tools;
-using Xunit;
 
 namespace EggIdentity.Tools.Tests;
 

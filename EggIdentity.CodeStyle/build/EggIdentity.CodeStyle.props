@@ -1,8 +1,5 @@
 <Project>
   <ItemGroup>
-    <PackageReference Include="SonarAnalyzer.CSharp" PrivateAssets="all" />
-  </ItemGroup>
-  <ItemGroup>
     <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)EggIdentity.CodeStyle.globalconfig" />
   </ItemGroup>
 </Project>
