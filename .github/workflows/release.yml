@@ -13,7 +13,7 @@ jobs:
   pack:
     uses: ./.github/workflows/nuget-publish.yml
     with:
-      dotnet-version: "10.0.x"
+      dotnet-version: "11.0.x"
       solution: EggIdentity.slnx
 
   docker-identity-host:

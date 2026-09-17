@@ -10,5 +10,5 @@ jobs:
     uses: ./.github/workflows/dotnet-ci.yml
     with:
       solution: EggIdentity.slnx
-      dotnet-version: "10.0.x"
+      dotnet-version: "11.0.x"
       format-gate: true
