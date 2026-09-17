@@ -31,13 +31,18 @@ public sealed class AppAuthConfigs(SettingsCache cache, string authority, string
     public static Dictionary<string, AppAuthConfig> FromRows(
         IEnumerable<AuthentikApp> rows, string authority, string? tokenDecryptionKeyPem = null) {
         ArgumentNullException.ThrowIfNull(rows);
-        var result = new Dictionary<string, AppAuthConfig>(StringComparer.Ordinal);
-        foreach (var row in rows) {
-            if (string.IsNullOrWhiteSpace(row.Origin)) continue;
-            var oauth = new AuthentikOAuth(authority, row.ClientId, row.ClientSecret, row.CallbackUrl, tokenDecryptionKeyPem);
-            result[row.Origin] = new AppAuthConfig(row.Origin, oauth, string.IsNullOrEmpty(row.EndSessionUrl) ? null : row.EndSessionUrl);
-        }
-        return result;
+        return rows
+            .Where(row => !string.IsNullOrWhiteSpace(row.Origin))
+            .GroupBy(row => row.Origin, StringComparer.Ordinal)
+            .ToDictionary(
+                g => g.Key,
+                g => Build(g.Last(), authority, tokenDecryptionKeyPem),
+                StringComparer.Ordinal);
+    }
+
+    private static AppAuthConfig Build(AuthentikApp row, string authority, string? tokenDecryptionKeyPem) {
+        var oauth = new AuthentikOAuth(authority, row.ClientId, row.ClientSecret, row.CallbackUrl, tokenDecryptionKeyPem);
+        return new AppAuthConfig(row.Origin, oauth, string.IsNullOrEmpty(row.EndSessionUrl) ? null : row.EndSessionUrl);
     }
 
     private static Dictionary<string, AppAuthConfig> LoadFallback(string? dir, string authority, string? tokenDecryptionKeyPem) {

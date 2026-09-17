@@ -1,15 +1,13 @@
 @typeparam TCondition
 
 <div class="filter-panel">
-    @for (var b = 0; b < Buckets.Count; b++) {
-        var bucketIndex = b;
+    @foreach (var bucketIndex in Enumerable.Range(0, Buckets.Count)) {
         if (bucketIndex > 0) {
             <div class="filter-glue filter-glue-outer">@OuterGlue</div>
         }
         <div class="filter-bucket">
             @{ var bucket = Buckets[bucketIndex]; }
-            @for (var r = 0; r < bucket.Count; r++) {
-                var rowIndex = r;
+            @foreach (var rowIndex in Enumerable.Range(0, bucket.Count)) {
                 if (rowIndex > 0) {
                     <div class="filter-glue filter-glue-inner">@InnerGlue</div>
                 }

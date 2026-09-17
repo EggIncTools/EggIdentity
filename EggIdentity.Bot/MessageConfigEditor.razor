@@ -194,72 +194,72 @@
     static string HexOf(ChangeEventArgs e) => (e.Value?.ToString() ?? "").TrimStart('#').ToUpperInvariant();
 
     RenderFragment EmbedEditor(EmbedForm e) => @<div class="skc-card">
-                                                   <div class="skc-row">
-                                                       <div class="skc-color">
-                                                           <span>Color</span>
-                                                           <input type="color" value="@ColorValue(e.ColorHex)" @onchange="ev => e.ColorHex = HexOf(ev)"/>
-                                                           <input class="skc-hex" @bind="e.ColorHex" placeholder="RRGGBB"/>
-                                                       </div>
-                                                       <label class="skc-grow">Title <input @bind="e.Title"/></label>
-                                                       <label>Title URL <input @bind="e.TitleUrl"/></label>
-                                                   </div>
-                                                   <div class="skc-row">
-                                                       <label class="skc-grow">Author name <input @bind="e.AuthorName"/></label>
-                                                       <label class="skc-grow">Author icon URL <input @bind="e.AuthorIconUrl"/></label>
-                                                   </div>
-                                                   <label>Description <textarea rows="2" @bind="e.Description"></textarea></label>
-                                                   <div class="skc-subhead">
-                                                       <span>Fields (@e.Fields.Count / 25)</span>
-                                                       <button type="button" class="skc-mini" @onclick="() => AddField(e)">Add field</button>
-                                                   </div>
-                                                   @foreach (var f in e.Fields) {
-                                                       <div class="skc-fieldrow">
-                                                           <label class="skc-grow">Name <input @bind="f.Name"/></label>
-                                                           <label class="skc-grow">Value <input @bind="f.Value"/></label>
-                                                           <label class="skc-chk"><input type="checkbox" @bind="f.Inline"/> Inline</label>
-                                                           <button type="button" class="skc-mini skc-danger" @onclick="() => e.Fields.Remove(f)">×</button>
-                                                       </div>
-                                                   }
-                                                   <div class="skc-row">
-                                                       <label class="skc-grow">Footer <input @bind="e.FooterText"/></label>
-                                                       <label class="skc-chk"><input type="checkbox" @bind="e.Timestamp"/> Timestamp</label>
-                                                   </div>
-                                               </div>;
+        <div class="skc-row">
+            <div class="skc-color">
+                <span>Color</span>
+                <input type="color" value="@ColorValue(e.ColorHex)" @onchange="ev => e.ColorHex = HexOf(ev)"/>
+                <input class="skc-hex" @bind="e.ColorHex" placeholder="RRGGBB"/>
+            </div>
+            <label class="skc-grow">Title <input @bind="e.Title"/></label>
+            <label>Title URL <input @bind="e.TitleUrl"/></label>
+        </div>
+        <div class="skc-row">
+            <label class="skc-grow">Author name <input @bind="e.AuthorName"/></label>
+            <label class="skc-grow">Author icon URL <input @bind="e.AuthorIconUrl"/></label>
+        </div>
+        <label>Description <textarea rows="2" @bind="e.Description"></textarea></label>
+        <div class="skc-subhead">
+            <span>Fields (@e.Fields.Count / 25)</span>
+            <button type="button" class="skc-mini" @onclick="() => AddField(e)">Add field</button>
+        </div>
+        @foreach (var f in e.Fields) {
+            <div class="skc-fieldrow">
+                <label class="skc-grow">Name <input @bind="f.Name"/></label>
+                <label class="skc-grow">Value <input @bind="f.Value"/></label>
+                <label class="skc-chk"><input type="checkbox" @bind="f.Inline"/> Inline</label>
+                <button type="button" class="skc-mini skc-danger" @onclick="() => e.Fields.Remove(f)">×</button>
+            </div>
+        }
+        <div class="skc-row">
+            <label class="skc-grow">Footer <input @bind="e.FooterText"/></label>
+            <label class="skc-chk"><input type="checkbox" @bind="e.Timestamp"/> Timestamp</label>
+        </div>
+    </div>;
 
     RenderFragment ComponentEditor(ComponentForm c) => @<div class="skc-card">
-                                                           <div class="skc-color">
-                                                               <span>Accent</span>
-                                                               <input type="color" value="@ColorValue(c.AccentHex)" @onchange="ev => c.AccentHex = HexOf(ev)"/>
-                                                               <input class="skc-hex" @bind="c.AccentHex" placeholder="RRGGBB"/>
-                                                           </div>
-                                                           <div class="skc-subhead">
-                                                               <span>Blocks (@c.Blocks.Count / 10)</span>
-                                                               <button type="button" class="skc-mini" @onclick="() => AddText(c)" disabled="@(c.Blocks.Count >= 10)">Add text</button>
-                                                               <button type="button" class="skc-mini" @onclick="() => AddSeparator(c)" disabled="@(c.Blocks.Count >= 10)">Add separator</button>
-                                                           </div>
-                                                           @foreach (var b in c.Blocks) {
-                                                               <div class="skc-fieldrow">
-                                                                   @if (b.Kind == "separator") {
-                                                                       <span class="skc-grow skc-muted">separator</span>
-                                                                   } else {
-                                                                       <label class="skc-grow">Text (markdown, use {{ pings }} to ping) <input @bind="b.Text"/></label>
-                                                                   }
-                                                                   <button type="button" class="skc-mini skc-danger" @onclick="() => c.Blocks.Remove(b)">×</button>
-                                                               </div>
-                                                           }
-                                                       </div>;
+        <div class="skc-color">
+            <span>Accent</span>
+            <input type="color" value="@ColorValue(c.AccentHex)" @onchange="ev => c.AccentHex = HexOf(ev)"/>
+            <input class="skc-hex" @bind="c.AccentHex" placeholder="RRGGBB"/>
+        </div>
+        <div class="skc-subhead">
+            <span>Blocks (@c.Blocks.Count / 10)</span>
+            <button type="button" class="skc-mini" @onclick="() => AddText(c)" disabled="@(c.Blocks.Count >= 10)">Add text</button>
+            <button type="button" class="skc-mini" @onclick="() => AddSeparator(c)" disabled="@(c.Blocks.Count >= 10)">Add separator</button>
+        </div>
+        @foreach (var b in c.Blocks) {
+            <div class="skc-fieldrow">
+                @if (b.Kind == "separator") {
+                    <span class="skc-grow skc-muted">separator</span>
+                } else {
+                    <label class="skc-grow">Text (markdown, use {{ pings }} to ping) <input @bind="b.Text"/></label>
+                }
+                <button type="button" class="skc-mini skc-danger" @onclick="() => c.Blocks.Remove(b)">×</button>
+            </div>
+        }
+    </div>;
 
     RenderFragment MentionEditor(MentionForm m) => @<div class="skc-card">
-                                                       <div class="skc-subhead">
-                                                           <span>Mentions (allowed to ping)</span>
-                                                       </div>
-                                                       <div class="skc-row">
-                                                           <label class="skc-grow">User IDs (comma-separated) <input @bind="m.Users"/></label>
-                                                           <label class="skc-grow">Role IDs (comma-separated) <input @bind="m.Roles"/></label>
-                                                           <label class="skc-chk"><input type="checkbox" @bind="m.Everyone"/> @@everyone</label>
-                                                       </div>
-                                                       <p class="skc-muted">Pings only fire on the Components path. Place <code>{{ pings }}</code> in a text block.</p>
-                                                   </div>;
+        <div class="skc-subhead">
+            <span>Mentions (allowed to ping)</span>
+        </div>
+        <div class="skc-row">
+            <label class="skc-grow">User IDs (comma-separated) <input @bind="m.Users"/></label>
+            <label class="skc-grow">Role IDs (comma-separated) <input @bind="m.Roles"/></label>
+            <label class="skc-chk"><input type="checkbox" @bind="m.Everyone"/> @@everyone</label>
+        </div>
+        <p class="skc-muted">Pings only fire on the Components path. Place <code>{{ pings }}</code> in a text block.</p>
+    </div>;
 
     sealed class FieldForm {
         public string Name { get; set; } = "";

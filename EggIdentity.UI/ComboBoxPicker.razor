@@ -9,8 +9,7 @@
         @if (_filtered.Count == 0) {
             <div class="popover-combo-opt">No matches</div>
         } else {
-            @for (var i = 0; i < _filtered.Count; i++) {
-                var index = i;
+            @foreach (var index in Enumerable.Range(0, _filtered.Count)) {
                 var option = _filtered[index];
                 <button type="button" class="@OptionCss(index)" @onmousedown:preventDefault="true" @onclick="() => SelectAsync(option)">@option.Label</button>
             }
