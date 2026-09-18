@@ -40,7 +40,8 @@ public class ComponentClassesTests {
             + Components.Filters.Applies.Count
             + Components.Calendar.Applies.Count
             + Components.Icons.Applies.Count
-            + Components.Brand.Applies.Count;
+            + Components.Brand.Applies.Count
+            + Components.Consent.Applies.Count;
 
         Assert.Equal(expected, ComponentClasses.All.Count);
     }

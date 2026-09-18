@@ -59,11 +59,10 @@ public sealed class SettingsSnapshot : ISettingsSource {
         [.. Rows(collectionKey).Select(r => CollectionBinder.Bind<T>(r.Values))];
 
     private static CollectionRow ApplyDefaults(CollectionDescriptor c, CollectionRow row) {
-        var values = new Dictionary<string, string?>(StringComparer.Ordinal);
-        foreach (var f in c.Fields) {
-            var stored = row.Values.GetValueOrDefault(f.Name);
-            values[f.Name] = string.IsNullOrEmpty(stored) ? f.Default : stored;
-        }
+        var values = c.Fields.ToDictionary(
+            f => f.Name,
+            f => row.Values.GetValueOrDefault(f.Name) is { Length: > 0 } stored ? stored : f.Default,
+            StringComparer.Ordinal);
         return row with { Values = values };
     }
 

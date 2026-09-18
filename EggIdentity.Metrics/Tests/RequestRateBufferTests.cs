@@ -1,4 +1,3 @@
-
 namespace EggIdentity.Metrics.Tests;
 
 public class RequestRateBufferTests {

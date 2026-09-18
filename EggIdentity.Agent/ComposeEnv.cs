@@ -30,13 +30,10 @@ public static partial class ComposeEnv {
 
     public static IReadOnlySet<string> FindReferencedVariables(string composeText) {
         ArgumentNullException.ThrowIfNull(composeText);
-        var names = new HashSet<string>(StringComparer.Ordinal);
         var unescaped = composeText.Replace("$$", "\0", StringComparison.Ordinal);
-        foreach (Match m in VariableReference().Matches(unescaped)) {
-            var name = m.Groups["braced"].Success ? m.Groups["braced"].Value : m.Groups["bare"].Value;
-            names.Add(name);
-        }
-        return names;
+        return VariableReference().Matches(unescaped)
+            .Select(m => m.Groups["braced"].Success ? m.Groups["braced"].Value : m.Groups["bare"].Value)
+            .ToHashSet(StringComparer.Ordinal);
     }
 
     private static YamlMappingNode? FindService(string composeText, string serviceName) {

@@ -16,6 +16,7 @@ public static class ComponentClasses {
         .AddRange(FormControls.Applies)
         .AddRange(DataTables.Applies)
         .AddRange(Toasts.Applies)
+        .AddRange(Consent.Applies)
         .AddRange(Tooltips.Applies)
         .AddRange(Prose.Applies)
         .AddRange(Workbench.Applies)

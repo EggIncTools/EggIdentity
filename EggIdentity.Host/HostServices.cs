@@ -25,6 +25,7 @@ internal static class HostServices {
         builder.Services.AddSingleton<RevocationStore>();
         builder.Services.AddSingleton<UserQueries>();
         builder.Services.AddSingleton<ProfileService>();
+        builder.Services.AddSingleton<ConsentService>();
         builder.Services.AddSingleton<LoginCodeStore>();
         builder.Services.AddSingleton<OAuthStateStore>();
         builder.Services.AddHttpClient();

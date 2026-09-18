@@ -19,8 +19,7 @@ public static class CutoverMerger {
         var remaps = new List<RemapEntry>();
         var idRemap = new Dictionary<Guid, Guid>(); // ledger user_id -> surviving user_id
 
-        var users = new List<User>();
-        foreach (var u in egi.Users) users.Add(ToUser(u));
+        var users = egi.Users.Select(ToUser).ToList();
 
         foreach (var u in ledger.Users) {
             if (u.DiscordId is not null && egiByDiscordId.TryGetValue(u.DiscordId, out var kept)) {

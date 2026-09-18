@@ -1,4 +1,3 @@
-
 namespace EggIdentity.Settings.Api;
 
 public sealed record AdminTargetRow {

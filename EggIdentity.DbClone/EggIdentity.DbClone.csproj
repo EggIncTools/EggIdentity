@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Description>Prod-to-subprod Postgres clone for eggidentity apps: per-table clone policy, coverage-checked plan, read-only source COPY in foreign-key order, scrub and verify, sub-prod boot guard and env fence, console verbs and a bearer-gated admin route.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EggIdentity.Contract\EggIdentity.Contract.csproj" />
+    <ProjectReference Include="..\EggIdentity.Db\EggIdentity.Db.csproj" />
+    <ProjectReference Include="..\EggIdentity.Settings\EggIdentity.Settings.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EggIdentity.DbClone.Tests" />
+  </ItemGroup>
+
+</Project>

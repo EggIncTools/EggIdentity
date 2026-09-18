@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EggIdentity.Db\EggIdentity.Db.csproj" />
+    <ProjectReference Include="..\EggIdentity.DbClone\EggIdentity.DbClone.csproj" />
     <ProjectReference Include="..\EggIdentity\EggIdentity.csproj" />
     <ProjectReference Include="..\EggIdentity.Host\EggIdentity.Host.csproj" />
     <ProjectReference Include="..\EggIdentity.Settings\EggIdentity.Settings.csproj" />

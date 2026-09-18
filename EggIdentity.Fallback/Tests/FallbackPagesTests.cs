@@ -1,4 +1,3 @@
-
 namespace EggIdentity.Fallback.Tests;
 
 public class FallbackPagesTests {

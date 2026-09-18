@@ -1,3 +1,5 @@
+using EggIdentity.Contract;
+
 namespace EggIdentity.Host;
 
 public static class AvatarStore {
@@ -28,7 +30,7 @@ public static class AvatarStore {
             return null;
         }
 
-        return $"/avatars/{userId}";
+        return IdentityWire.AvatarPath(userId);
     }
 
     public static bool TryGetPath(string dir, Guid userId, out string path, out string contentType) {

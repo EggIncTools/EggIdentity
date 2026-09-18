@@ -123,8 +123,7 @@
     async Task HidePopoverAsync() {
         try {
             await JS.InvokeVoidAsync("comboBoxPickerHide", _listbox);
-        }
-        catch (JSDisconnectedException) {
+        } catch (JSDisconnectedException) {
         }
     }
 

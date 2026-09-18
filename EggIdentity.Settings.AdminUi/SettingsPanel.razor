@@ -11,35 +11,34 @@
                         <p class="wb-note">Loading...</p>
                     }
                     @foreach (var group in Nav) {
-                        var current = group;
-                        @if (current.IsLeaf) {
-                            var only = current.Categories[0].Category;
+                        @if (group.IsLeaf) {
+                            var only = group.Categories[0].Category;
                             <WorkbenchEntry Selected="@IsSelected(PaneKind.Category, only)" OnClick="@(() => Select(PaneKind.Category, only))">
-                                <Name>@current.Label</Name>
+                                <Name>@group.Label</Name>
                                 <Trail>@CategoryTrail(only)</Trail>
                             </WorkbenchEntry>
                         } else {
-                            var open = IsGroupOpen(current);
-                            <WorkbenchEntry Selected="false" OnClick="@(() => ToggleGroup(current))">
+                            var open = IsGroupOpen(group);
+                            <WorkbenchEntry Selected="false" OnClick="@(() => ToggleGroup(group))">
                                 <Name>
                                     <span class="sks-group-name">
                                         <Icon Name="@(open ? "chevron-down" : "chevron-right")" Class="icon-sm"/>
-                                        <span>@current.Label</span>
+                                        <span>@group.Label</span>
                                     </span>
                                 </Name>
                                 <Trail>
-                                    @if (GroupDirtyCount(current) is > 0 and var dirty) {
+                                    @if (GroupDirtyCount(group) is > 0 and var dirty) {
                                         <span class="badge badge-accent sks-badge" title="Unsaved edits">@dirty</span>
                                     }
-                                    @if (GroupHasPendingRestart(current)) {
+                                    @if (GroupHasPendingRestart(group)) {
                                         <span class="sks-dot" title="Restart pending"></span>
                                     }
-                                    <span class="sks-count">@GroupRowCount(current)</span>
+                                    <span class="sks-count">@GroupRowCount(group)</span>
                                 </Trail>
                             </WorkbenchEntry>
                             @if (open) {
                                 <div class="sks-subnav">
-                                    @foreach (var entry in current.Categories) {
+                                    @foreach (var entry in group.Categories) {
                                         var category = entry.Category;
                                         <WorkbenchEntry Selected="@IsSelected(PaneKind.Category, category)" OnClick="@(() => Select(PaneKind.Category, category))">
                                             <Name>@entry.Label</Name>

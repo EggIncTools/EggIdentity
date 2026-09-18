@@ -1,4 +1,3 @@
-
 namespace EggIdentity.Filtering.Tests;
 
 public class FilterEvaluatorTests {

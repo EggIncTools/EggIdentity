@@ -14,6 +14,7 @@ internal static class ProfileLinkRoutes {
         ProfileRoutes.Map(app, sessionOptions, config.AvatarStorageDir!, revocations,
             app.Services.GetRequiredService<ProfileService>(),
             app.Services.GetRequiredService<UserQueries>());
+        ConsentRoutes.Map(app, sessionOptions, revocations, app.Services.GetRequiredService<ConsentService>());
 
         var deps = new LinkDeps(apps, sessionOptions, revocations);
         app.MapGet("/profile/link/{provider}/start", (HttpContext ctx, string provider, OAuthStateStore states) =>

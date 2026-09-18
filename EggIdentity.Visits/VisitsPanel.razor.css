@@ -1,0 +1,126 @@
+.skv {
+    display: block;
+    color: var(--skv-fg, #dbdee1);
+    font-size: 0.9rem;
+}
+
+.skv-muted {
+    color: var(--skv-muted, #949ba4);
+    margin: 0.5rem 0;
+}
+
+.skv-warn {
+    color: var(--skv-warn, #f0b232);
+    margin: 0.5rem 0;
+}
+
+.skv-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+}
+
+.skv-title {
+    font-weight: 600;
+    color: var(--skv-fg-strong, #f2f3f5);
+}
+
+.skv-spacer {
+    flex: 1;
+}
+
+.skv-range, .skv-refresh {
+    padding: 0.3rem 0.7rem;
+    background: var(--skv-surface, #2b2d31);
+    color: var(--skv-fg, #dbdee1);
+    border: 1px solid var(--skv-border, #1e1f22);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.82rem;
+}
+
+.skv-range-on {
+    background: var(--skv-accent, #5865f2);
+    color: #fff;
+    border-color: var(--skv-accent, #5865f2);
+}
+
+.skv-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.skv-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--skv-surface, #2b2d31);
+    border: 1px solid var(--skv-border, #1e1f22);
+    border-radius: 6px;
+}
+
+.skv-tile-n {
+    font-size: 1.35rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--skv-fg-strong, #f2f3f5);
+}
+
+.skv-tile-l {
+    font-size: 0.75rem;
+    color: var(--skv-muted, #949ba4);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.skv-spark {
+    display: block;
+    width: 100%;
+    height: 56px;
+    color: var(--skv-accent, #5865f2);
+}
+
+.skv-spark circle:hover {
+    r: 5;
+}
+
+.skv-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--skv-muted, #949ba4);
+    margin-bottom: 0.5rem;
+}
+
+.skv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+    margin-top: 0.5rem;
+}
+
+.skv-table th, .skv-table td {
+    text-align: left;
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--skv-border, #26282c);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 320px;
+}
+
+.skv-table th {
+    color: var(--skv-muted, #949ba4);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.skv-num {
+    text-align: right;
+}

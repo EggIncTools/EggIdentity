@@ -90,10 +90,7 @@
                 _scriptLoaded = true;
             }
             await JS.InvokeVoidAsync(locked ? "modalScrollLock" : "modalScrollUnlock");
-        }
-        catch (JSDisconnectedException) {
-        }
-        catch (JSException) {
+        } catch (Exception ex) when (ex is JSDisconnectedException or JSException) {
         }
     }
 

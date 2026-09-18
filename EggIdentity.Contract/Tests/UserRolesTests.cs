@@ -1,4 +1,3 @@
-
 namespace EggIdentity.Contract.Tests;
 
 public class UserRolesTests {

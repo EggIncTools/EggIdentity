@@ -1,0 +1,79 @@
+@inject IServiceProvider Services
+@implements IDisposable
+
+<section class="dp panel dp-clone">
+    @if (_store is null || _client is null) {
+        <p class="dp-muted">Clone needs a promotion store and an AdminApiClient (call AddEggIdentityPromotion and register AdminApiClient).</p>
+    } else {
+        <div class="panel-head dp-head">
+            <span class="dp-app">Clone</span>
+            <span class="dp-badges">
+                @if (_busy || AnyActive) {
+                    <span class="badge badge-muted">Working</span>
+                }
+            </span>
+        </div>
+
+        @if (_error is not null) {
+            <p class="dp-error">@_error</p>
+        }
+        @if (_note is not null) {
+            <p class="dp-notice">@_note</p>
+        }
+
+        <WorkbenchLoad T="CloneRow" Items="@_rows" LoadingText="Loading apps..."
+                       EmptyText="No admin.targets row has a sub-prod row in deploy.apps.">
+            <div class="dp-table-wrap">
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        <th>App</th>
+                        <th>Last clone</th>
+                        <th>State</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in context) {
+                        var app = row.App;
+                        <tr>
+                            <td>@app</td>
+                            <td class="dp-mono" title="@StampTitle(row)">@StampText(row)</td>
+                            <td>
+                                @if (row.Error is not null) {
+                                    <span class="dp-error" title="@row.Error">unavailable</span>
+                                } else {
+                                    @(row.Clone?.State ?? "-")
+                                }
+                            </td>
+                            <td class="dp-row-actions">
+                                <button type="button" class="btn-mini btn-danger"
+                                        disabled="@(_busy || row.Active || !row.Status.Administrable)"
+                                        title="@(row.Status.Unavailable ?? $"Replace {app} sub-prod data with production")"
+                                        @onclick="() => CloneAsync(row)">
+                                    @(IsConfirming(app) ? "Confirm clone" : "Clone production")
+                                </button>
+                            </td>
+                        </tr>
+                        @if (row.Clone is { Events.Count: > 0 } clone && (row.Active || clone.State == "failed")) {
+                            <tr>
+                                <td colspan="4">
+                                    <ol class="dp-timeline">
+                                        @foreach (var e in clone.Events) {
+                                            <li class="dp-event">
+                                                <span class="badge badge-muted">@e.Phase</span>
+                                                <span class="dp-msg">@(e.Table is null ? e.Message : $"{e.Table}: {e.Message}")</span>
+                                                <span class="dp-time" title="@DeployPanelFormat.Timestamp(e.At)">@DeployPanelFormat.Relative(e.At, DateTimeOffset.UtcNow)</span>
+                                            </li>
+                                        }
+                                    </ol>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </WorkbenchLoad>
+    }
+</section>

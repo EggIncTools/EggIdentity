@@ -165,7 +165,7 @@ internal static class LoginRoutes {
             Sid: token.Sid,
             Role: resolved.Role,
             Name: user?.Username ?? token.Username,
-            Avatar: user?.Avatar ?? token.Avatar,
+            Avatar: AvatarUrl.Canonical(resolved.UserId, user?.Avatar ?? token.Avatar),
             DiscordId: user?.DiscordId ?? resolved.DiscordId),
             issuedAt);
 

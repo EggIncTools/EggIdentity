@@ -12,10 +12,14 @@
   <Project Path="EggIdentity.Client/EggIdentity.Client.csproj" />
   <Project Path="EggIdentity.Client/Tests/EggIdentity.Client.Tests.csproj" />
   <Project Path="EggIdentity.CodeStyle/EggIdentity.CodeStyle.csproj" />
+  <Project Path="EggIdentity.Consent/EggIdentity.Consent.csproj" />
+  <Project Path="EggIdentity.Consent/Tests/EggIdentity.Consent.Tests.csproj" />
   <Project Path="EggIdentity.Contract/EggIdentity.Contract.csproj" />
   <Project Path="EggIdentity.Contract/Tests/EggIdentity.Contract.Tests.csproj" />
   <Project Path="EggIdentity.Db/EggIdentity.Db.csproj" />
   <Project Path="EggIdentity.Db/Tests/EggIdentity.Db.Tests.csproj" />
+  <Project Path="EggIdentity.DbClone/EggIdentity.DbClone.csproj" />
+  <Project Path="EggIdentity.DbClone/Tests/EggIdentity.DbClone.Tests.csproj" />
   <Project Path="EggIdentity.Deploy/EggIdentity.Deploy.csproj" />
   <Project Path="EggIdentity.Deploy/Tests/EggIdentity.Deploy.Tests.csproj" />
   <Project Path="EggIdentity.Deploy.AdminUi/EggIdentity.Deploy.AdminUi.csproj" />
@@ -44,4 +48,6 @@
   <Project Path="EggIdentity.Tools/Tests/EggIdentity.Tools.Tests.csproj" />
   <Project Path="EggIdentity.UI/EggIdentity.UI.csproj" />
   <Project Path="EggIdentity.UI/Tests/EggIdentity.UI.Tests.csproj" />
+  <Project Path="EggIdentity.Visits/EggIdentity.Visits.csproj" />
+  <Project Path="EggIdentity.Visits/Tests/EggIdentity.Visits.Tests.csproj" />
 </Solution>

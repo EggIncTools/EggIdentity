@@ -9,4 +9,6 @@ public static class IdentityWire {
     public const string GitHub = "github";
 
     public static readonly string[] KnownProviders = [Discord, Google, Microsoft, GitHub];
+
+    public static string AvatarPath(Guid userId) => $"/avatars/{userId}";
 }

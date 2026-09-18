@@ -94,12 +94,10 @@ public static class DockerJson {
     }
 
     private static Dictionary<string, string> ReadStringMap(JsonElement element, string name) {
-        var map = new Dictionary<string, string>(StringComparer.Ordinal);
-        if (!element.TryGetProperty(name, out var obj) || obj.ValueKind != JsonValueKind.Object) return map;
-        foreach (var property in obj.EnumerateObject()) {
-            if (property.Value.ValueKind == JsonValueKind.String) map[property.Name] = property.Value.GetString() ?? "";
-        }
-        return map;
+        if (!element.TryGetProperty(name, out var obj) || obj.ValueKind != JsonValueKind.Object) return [];
+        return obj.EnumerateObject()
+            .Where(property => property.Value.ValueKind == JsonValueKind.String)
+            .ToDictionary(property => property.Name, property => property.Value.GetString() ?? "", StringComparer.Ordinal);
     }
 
     private static JsonElement EmptyObject() {

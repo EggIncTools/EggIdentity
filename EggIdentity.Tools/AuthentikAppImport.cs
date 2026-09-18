@@ -18,9 +18,10 @@ internal static class AuthentikAppImport {
 
     public static (string Id, Dictionary<string, string?> Values) ToRow(IReadOnlyDictionary<string, string> fileValues) {
         ArgumentNullException.ThrowIfNull(fileValues);
-        var values = new Dictionary<string, string?>(StringComparer.Ordinal);
-        foreach (var (fileKey, field) in FieldMap)
-            values[field] = fileValues.TryGetValue(fileKey, out var v) && v.Length > 0 ? v : null;
+        var values = FieldMap.ToDictionary(
+            m => m.Field,
+            m => fileValues.TryGetValue(m.File, out var v) && v.Length > 0 ? v : null,
+            StringComparer.Ordinal);
 
         var unknown = fileValues.Keys.Where(k => !FieldMap.Any(m => m.File == k)).ToList();
         if (unknown.Count > 0)

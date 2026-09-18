@@ -1,12 +1,17 @@
 using EggIdentity.Db;
+using EggIdentity.DbClone;
 using Npgsql;
 
 namespace EggIdentity.Tools;
 
 internal static class Program {
     private const string ImportAuthentikApps = "import-authentik-apps";
+    private const string CloneSubProd = "clone-subprod";
 
     private static async Task<int> Main(string[] args) {
+        if (args.Length > 0 && args[0] == CloneSubProd)
+            return await CloneConsole.RunAsync(args[1..], SubProdClonePlan.Plan, Environment.GetEnvironmentVariable);
+
         if (args.Length > 0 && args[0] == ImportAuthentikApps) {
             if (args.Length < 2) {
                 Console.Error.WriteLine($"usage: eggidentity-tools {ImportAuthentikApps} <dir>");

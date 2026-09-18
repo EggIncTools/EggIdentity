@@ -180,14 +180,11 @@ public sealed class PortainerClient(HttpClient http, int stackId, int endpointId
     }
 
     private static List<StackEnvEntry> ReadEnv(JsonElement stack) {
-        var entries = new List<StackEnvEntry>();
-        if (Prop(stack, "Env") is not { ValueKind: JsonValueKind.Array } env) return entries;
-        foreach (var item in env.EnumerateArray()) {
-            var name = Str(item, "name");
-            if (string.IsNullOrEmpty(name)) continue;
-            entries.Add(new StackEnvEntry(name, Str(item, "value") ?? ""));
-        }
-        return entries;
+        if (Prop(stack, "Env") is not { ValueKind: JsonValueKind.Array } env) return [];
+        return [.. env.EnumerateArray()
+            .Select(item => (Name: Str(item, "name") ?? "", Value: Str(item, "value") ?? ""))
+            .Where(pair => pair.Name.Length > 0)
+            .Select(pair => new StackEnvEntry(pair.Name, pair.Value))];
     }
 
     private static JsonElement? Prop(JsonElement e, string name) =>

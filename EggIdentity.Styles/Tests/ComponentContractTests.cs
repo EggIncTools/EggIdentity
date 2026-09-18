@@ -1,4 +1,3 @@
-
 namespace EggIdentity.Styles.Tests;
 
 public class ComponentContractTests {
@@ -18,6 +17,7 @@ public class ComponentContractTests {
             ".stat-tile", ".stat-tile-label", ".stat-tile-value",
             ".toast-container", ".toast", ".toast.show", ".toast.leaving", ".toast-msg", ".toast-time", ".toast.toast-ok", ".toast.toast-err", ".toast.toast-info",
             ".toast-host", ".toast-host .toast", ".toast-text", ".toast.toast-busy", ".toast.toast-error", ".status-note-x", ".status-note-x:hover",
+            ".consent-banner", ".consent-text", ".consent-actions", ".consent-options", ".consent-option",
             ".tooltip-floating", ".tooltip-anchored", ".tooltip-fixed", ".tooltip-host", ".tooltip-toggle",
             ".tooltip-host:hover .tooltip-toggle", ".tooltip-toggle.show", ".tooltip-floating.tooltip-below", ".tooltip-anchored.tooltip-below",
             ".tooltip-floating::before", ".tooltip-floating::after", ".tooltip-floating.tooltip-below::before", ".tooltip-floating.tooltip-below::after",

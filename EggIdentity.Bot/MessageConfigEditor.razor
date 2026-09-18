@@ -159,12 +159,10 @@
                 _error = true;
                 _msg = result.Error;
             }
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             _error = true;
             _msg = ex.Message;
-        }
-        finally {
+        } finally {
             _saving = false;
         }
     }

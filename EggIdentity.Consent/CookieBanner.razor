@@ -1,0 +1,39 @@
+@namespace EggIdentity.Consent
+
+@if (Visible) {
+    <div class="consent-banner" role="dialog" aria-label="Cookie consent">
+        @if (Body is not null) {
+            @Body(Context)
+        } else {
+            <p class="consent-text">
+                This site uses strictly necessary cookies. Optional functional and analytics cookies are off until you choose.
+                @if (!string.IsNullOrEmpty(PrivacyUrl)) {
+                    <a href="@PrivacyUrl">Privacy policy</a>
+                }
+            </p>
+        }
+        @if (Configuring) {
+            @if (Options is not null) {
+                @Options(Context)
+            } else {
+                <div class="consent-options">
+                    <label class="consent-option"><input type="checkbox" @bind="_functional" /> Functional</label>
+                    <label class="consent-option"><input type="checkbox" @bind="_analytics" /> Analytics</label>
+                </div>
+            }
+        }
+        @if (Actions is not null) {
+            @Actions(Context)
+        } else {
+            <div class="consent-actions">
+                @if (Configuring) {
+                    <button type="button" class="btn-primary" @onclick="SaveAsync">Save</button>
+                } else {
+                    <button type="button" class="btn-primary" @onclick="AcceptAllAsync">Accept all</button>
+                    <button type="button" class="btn-secondary" @onclick="NecessaryOnlyAsync">Necessary only</button>
+                    <button type="button" class="btn-secondary" @onclick="Configure">Configure</button>
+                }
+            </div>
+        }
+    </div>
+}

@@ -1,0 +1,76 @@
+@rendermode @(RenderMode.InteractiveServer)
+
+@if (_authorized) {
+    <section class="skv">
+        @if (_store is null) {
+            <p class="skv-muted">Visits not configured (call AddEggIdentityVisits).</p>
+        } else {
+            <div class="skv-bar">
+                <span class="skv-title">Site visits</span>
+                <span class="skv-spacer"></span>
+                @foreach (var range in Ranges) {
+                    <button type="button" class="@RangeClass(range)" @onclick="() => SelectRangeAsync(range)">@range d</button>
+                }
+                <button type="button" class="skv-refresh" @onclick="LoadAsync">Refresh</button>
+            </div>
+
+            @if (_error is not null) {
+                <p class="skv-warn">@_error</p>
+            } else if (_summary is null) {
+                <p class="skv-muted">Loading...</p>
+            } else {
+                <div class="skv-kpis">
+                    <div class="skv-tile">
+                        <span class="skv-tile-n">@N(_summary.Visitors)</span>
+                        <span class="skv-tile-l">Visitors</span>
+                    </div>
+                    <div class="skv-tile">
+                        <span class="skv-tile-n">@N(_summary.Visits)</span>
+                        <span class="skv-tile-l">Visits</span>
+                    </div>
+                    <div class="skv-tile">
+                        <span class="skv-tile-n">@N(_summary.Pageviews)</span>
+                        <span class="skv-tile-l">Pageviews</span>
+                    </div>
+                    <div class="skv-tile">
+                        <span class="skv-tile-n">@AverageVisit()</span>
+                        <span class="skv-tile-l">Avg visit</span>
+                    </div>
+                </div>
+
+                <svg class="skv-spark" viewBox="0 0 @SparkWidth @SparkHeight" preserveAspectRatio="none" role="img" aria-label="Visitors per day">
+                    <polyline points="@Spark()" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke"/>
+                    @foreach (var (x, y, day) in SparkPoints()) {
+                        <circle cx="@x" cy="@y" r="3" fill="currentColor" vector-effect="non-scaling-stroke">
+                            <title>@day.Day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture): @N(day.Visitors) visitors, @N(day.Visits) visits, @N(day.Pageviews) pageviews</title>
+                        </circle>
+                    }
+                </svg>
+                <div class="skv-axis">
+                    <span>@_summary.ByDay[0].Day.ToString("MMM d", CultureInfo.InvariantCulture)</span>
+                    <span>@_summary.ByDay[^1].Day.ToString("MMM d", CultureInfo.InvariantCulture)</span>
+                </div>
+
+                @if (_summary.Capped) {
+                    <p class="skv-warn">Per-day cap reached on at least one day; visitor or path counts for that day are low.</p>
+                }
+                <p class="skv-muted">Counts are anonymous and single-process. A restart loses up to one minute of counts and lowers that day's unique count.</p>
+
+                <table class="skv-table">
+                    <thead>
+                    <tr>
+                        <th>Path</th><th class="skv-num">Pageviews</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var p in _summary.TopPaths) {
+                        <tr>
+                            <td>@p.Path</td><td class="skv-num">@N(p.Pageviews)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        }
+    </section>
+}

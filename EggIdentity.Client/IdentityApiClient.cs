@@ -125,6 +125,24 @@ public sealed class IdentityApiClient(HttpClient http) {
         return resp.IsSuccessStatusCode;
     }
 
+    public async Task<ConsentResponse?> GetConsentAsync(string sessionToken, CancellationToken ct) {
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/profile/consent");
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
+        var resp = await http.SendAsync(req, ct);
+        if (resp.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Unauthorized) return null;
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<ConsentResponse>(cancellationToken: ct);
+    }
+
+    public async Task<bool> SetConsentAsync(string sessionToken, ConsentRequest consent, CancellationToken ct) {
+        using var req = new HttpRequestMessage(HttpMethod.Put, "/profile/consent") {
+            Content = JsonContent.Create(consent),
+        };
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
+        var resp = await http.SendAsync(req, ct);
+        return resp.IsSuccessStatusCode;
+    }
+
     public async Task<bool> SelectAvatarAsync(string sessionToken, string provider, string subject, CancellationToken ct) {
         using var req = new HttpRequestMessage(HttpMethod.Post, "/profile/avatar/select") {
             Content = JsonContent.Create(new AvatarSelectRequest { Provider = provider, Subject = subject }),

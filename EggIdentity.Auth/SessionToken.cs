@@ -31,11 +31,11 @@ public static class SessionToken {
     }
 
     public static string Renew(SessionCookieOptions options, ClaimsPrincipal principal, DateTimeOffset now) {
-        var claims = new List<Claim>();
-        foreach (var type in CarriedClaims) {
-            var value = principal.FindFirstValue(type);
-            if (!string.IsNullOrEmpty(value)) claims.Add(new Claim(type, value));
-        }
+        var claims = CarriedClaims
+            .Select(type => (Type: type, Value: principal.FindFirstValue(type) ?? ""))
+            .Where(pair => pair.Value.Length > 0)
+            .Select(pair => new Claim(pair.Type, pair.Value))
+            .ToList();
         return Write(options, claims, now);
     }
 

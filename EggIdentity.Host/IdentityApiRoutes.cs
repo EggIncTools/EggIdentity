@@ -83,7 +83,7 @@ internal static class IdentityApiRoutes {
                 UserId = user.UserId,
                 DiscordId = user.DiscordId,
                 Username = user.Username,
-                Avatar = user.Avatar,
+                Avatar = AvatarUrl.Canonical(user.UserId, user.Avatar),
                 Role = user.Role,
                 IsNew = redeemed.IsNew,
             });
@@ -109,7 +109,7 @@ internal static class IdentityApiRoutes {
         UserId = u.UserId,
         DiscordId = u.DiscordId,
         Username = u.Username,
-        Avatar = u.Avatar,
+        Avatar = AvatarUrl.Canonical(u.UserId, u.Avatar),
         Role = u.Role,
         Providers = providers ?? [],
         CreatedAt = u.CreatedAt,

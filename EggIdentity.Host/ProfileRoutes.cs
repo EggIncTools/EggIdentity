@@ -22,7 +22,7 @@ public static class ProfileRoutes {
             return Results.Ok(new ProfileResponse {
                 UserId = user.UserId,
                 Username = user.Username,
-                Avatar = user.Avatar,
+                Avatar = AvatarUrl.Canonical(user.UserId, user.Avatar),
                 AvatarIsCustom = user.AvatarIsCustom,
                 Identities = [.. FilterIdentitiesForDisplay(identities)
                     .Select(i => new ProfileIdentityResponse {
@@ -83,11 +83,7 @@ public static class ProfileRoutes {
             return selected ? Results.NoContent() : Results.NotFound();
         });
 
-        app.MapGet("/avatars/{userId:guid}", (Guid userId) => {
-            if (!AvatarStore.TryGetPath(avatarStorageDir, userId, out var path, out var contentType))
-                return Results.NotFound();
-            return Results.File(path, contentType, enableRangeProcessing: false);
-        });
+        AvatarRoutes.Map(app, avatarStorageDir, users);
     }
 
     public static IReadOnlyList<Models.Identity> FilterIdentitiesForDisplay(IReadOnlyList<Models.Identity> identities) {

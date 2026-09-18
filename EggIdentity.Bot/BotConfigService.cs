@@ -175,9 +175,7 @@ public sealed class BotConfigService(
     }
 
     private static List<VariableDoc> BuildVariables(IReadOnlyList<(string Name, string Desc)> source) {
-        var list = new List<VariableDoc>(source.Count);
-        foreach (var (name, desc) in source) list.Add(new VariableDoc(name, desc));
-        return list;
+        return [.. source.Select(s => new VariableDoc(s.Name, s.Desc))];
     }
 
     private static string? Blank(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;

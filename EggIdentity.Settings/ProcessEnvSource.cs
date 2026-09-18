@@ -11,10 +11,11 @@ public sealed class ProcessEnvSource(SettingsRegistry registry) : IEnvSource {
             .Where(k => !string.IsNullOrEmpty(k))
             .ToHashSet(StringComparer.Ordinal);
 
-        var names = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (var name in Environment.GetEnvironmentVariables().Keys) {
-            if (name is string text && text.Length > 0) names.Add(text);
-        }
+        var names = Environment.GetEnvironmentVariables().Keys
+            .OfType<string>()
+            .Where(text => text.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal);
 
         return [.. names
             .Where(n => declared.Contains(n) || LooksLikeAppKey(n))

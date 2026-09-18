@@ -117,8 +117,7 @@
         if (_source is null) return;
         try {
             _snap = await _source.GetSnapshotAsync(CancellationToken.None);
-        }
-        catch {
+        } catch {
             _snap = null;
         }
     }
@@ -130,8 +129,7 @@
                 await LoadAsync();
                 await InvokeAsync(StateHasChanged);
             }
-        }
-        catch (OperationCanceledException) {
+        } catch (OperationCanceledException) {
         }
     }
 

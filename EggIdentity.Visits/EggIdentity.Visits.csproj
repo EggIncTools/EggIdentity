@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Description>Anonymous, cookieless site-visit counting for eggidentity: daily-salted visitor hashes, beacon endpoint and script, per-day Postgres aggregates with embedded migrations, admin panel.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EggIdentity.Auth\EggIdentity.Auth.csproj" />
+    <ProjectReference Include="..\EggIdentity.Contract\EggIdentity.Contract.csproj" />
+    <ProjectReference Include="..\EggIdentity.Db\EggIdentity.Db.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\*.up.sql" />
+  </ItemGroup>
+
+</Project>

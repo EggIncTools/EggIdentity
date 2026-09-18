@@ -55,6 +55,12 @@ public sealed class AdminApiClient(HttpClient http) {
     public Task<AdminSaveResponse> RestartAsync(AdminTarget target, CancellationToken ct = default) =>
         SendAsync<AdminSaveResponse>(target, HttpMethod.Post, "restart", null, ct);
 
+    public Task<AdminSaveResponse> StartCloneAsync(AdminTarget target, CancellationToken ct = default) =>
+        SendAsync<AdminSaveResponse>(target, HttpMethod.Post, "clone", null, ct);
+
+    public Task<CloneStatusResponse> GetCloneStatusAsync(AdminTarget target, CancellationToken ct = default) =>
+        SendAsync<CloneStatusResponse>(target, HttpMethod.Get, "clone", null, ct);
+
     private async Task<T> SendAsync<T>(
         AdminTarget target, HttpMethod method, string path, HttpContent? content, CancellationToken ct) {
         ArgumentNullException.ThrowIfNull(target);

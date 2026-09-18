@@ -543,10 +543,10 @@ public sealed partial class SettingsPanel : IDisposable {
         var edit = _rowEdit;
         var descriptor = edit.Descriptor;
         var id = edit.Values.GetValueOrDefault(descriptor.IdField)?.Trim() ?? "";
-        var values = new Dictionary<string, string?>(StringComparer.Ordinal);
-        foreach (var f in descriptor.Fields) {
-            values[f.Name] = IsSecret(f) ? edit.Values.GetValueOrDefault(f.Name) : ToStored(f.Kind, edit.Values.GetValueOrDefault(f.Name));
-        }
+        var values = descriptor.Fields.ToDictionary(
+            f => f.Name,
+            f => IsSecret(f) ? edit.Values.GetValueOrDefault(f.Name) : ToStored(f.Kind, edit.Values.GetValueOrDefault(f.Name)),
+            StringComparer.Ordinal);
         _busy = true;
         try {
             var result = edit.IsNew
