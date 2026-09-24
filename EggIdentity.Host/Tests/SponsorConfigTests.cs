@@ -23,7 +23,7 @@ public class SponsorConfigTests {
             var config = SponsorConfig.FromEnvironment();
 
             Assert.NotNull(config);
-            Assert.Equal("pat-1", config!.GitHubPat);
+            Assert.Equal("pat-1", config.GitHubPat);
             Assert.Equal("DavidArthurCole", config.GitHubTarget);
             Assert.Equal("whsecret", config.GitHubWebhookSecret);
             Assert.Equal("bottoken", config.DiscordBotToken);

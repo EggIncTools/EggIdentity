@@ -12,7 +12,7 @@ public enum ThemeScope {
 public sealed record ThemeCssSerializeResult(string Output, bool Ok, string? Reason);
 
 public static class ThemeCssSerializer {
-    public const string LivePrefix = "html[data-eggidentity-theme=\"u\"]";
+    public const string LivePrefix = """html[data-eggidentity-theme="u"]""";
     public const string PreviewPrefix = ".theme-preview-scope";
     public const int MaxLane2OutputBytes = 8 * 1024;
 
@@ -43,8 +43,9 @@ public static class ThemeCssSerializer {
         string output = sb.ToString();
         if (Encoding.UTF8.GetByteCount(output) > MaxLane2OutputBytes) return new ThemeCssSerializeResult("", false, "lane-2 output over size cap");
         if (!Lane2AlphabetOk(output)) return new ThemeCssSerializeResult("", false, "lane-2 self-check failed");
-        if (!OutputAlphabetOk(output)) return new ThemeCssSerializeResult("", false, "serializer self-check failed");
-        return new ThemeCssSerializeResult(output, true, null);
+        return OutputAlphabetOk(output)
+            ? new ThemeCssSerializeResult(output, true, null)
+            : new ThemeCssSerializeResult("", false, "serializer self-check failed");
     }
 
     private static string ScopedSelector(string root, string canonical) {

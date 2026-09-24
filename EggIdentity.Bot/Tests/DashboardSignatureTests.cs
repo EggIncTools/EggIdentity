@@ -14,9 +14,8 @@ public class DashboardSignatureTests {
     };
 
     [Fact]
-    public void SameSnapshot_SameSignature() {
+    public void SameSnapshot_SameSignature() =>
         Assert.Equal(DashboardSignature.Of(Sample()), DashboardSignature.Of(Sample()));
-    }
 
     [Fact]
     public void ChangedField_ChangesSignature() {

@@ -13,9 +13,9 @@ public sealed class DeployAgentClient {
             using var req = new HttpRequestMessage(HttpMethod.Post, agentUrl);
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", secret);
             using var resp = await Http.SendAsync(req, ct);
-            if (!resp.IsSuccessStatusCode)
-                return new DeployResponse { Tail = $"deploy agent returned {(int)resp.StatusCode} {resp.ReasonPhrase}" };
-            return Parse(await resp.Content.ReadAsStringAsync(ct));
+            return resp.IsSuccessStatusCode
+                ? Parse(await resp.Content.ReadAsStringAsync(ct))
+                : new DeployResponse { Tail = $"deploy agent returned {(int)resp.StatusCode} {resp.ReasonPhrase}" };
         } catch (Exception ex) {
             return new DeployResponse { Tail = ex.Message };
         }

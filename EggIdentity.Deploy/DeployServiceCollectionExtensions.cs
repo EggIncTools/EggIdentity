@@ -16,8 +16,9 @@ public static class DeployServiceCollectionExtensions {
         services.AddHttpClient(DeployOptions.HttpClientName, http => {
             http.BaseAddress = options.BaseAddress;
             http.Timeout = Timeout.InfiniteTimeSpan;
-        })
-            .AddTypedClient((http, _) => new AgentClient(http, options, session));
+        });
+        services.AddSingleton(sp => new AgentClient(
+            sp.GetRequiredService<IHttpClientFactory>(), options, session, sp.GetRequiredService<TimeProvider>()));
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<DeployEventHub>();
@@ -41,8 +42,8 @@ public static class DeployServiceCollectionExtensions {
 
         var agentUrl = Environment.GetEnvironmentVariable(DeployOptions.AgentUrlEnv);
         var session = SessionCookieOptions.FromEnvironment();
-        if (string.IsNullOrWhiteSpace(agentUrl) || session is null) return services;
-
-        return services.AddEggIdentityDeploy(new DeployOptions(agentUrl, appName) { CallerName = appName }, session);
+        return string.IsNullOrWhiteSpace(agentUrl) || session is null
+            ? services
+            : services.AddEggIdentityDeploy(new DeployOptions(agentUrl, appName) { CallerName = appName }, session);
     }
 }

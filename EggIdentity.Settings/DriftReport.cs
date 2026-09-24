@@ -41,15 +41,13 @@ public sealed record DriftReport(IReadOnlyList<DriftEntry> Entries) {
         var entries = present.Values
             .OrderBy(i => i.Name, StringComparer.Ordinal)
             .Select(i => ClassifyPresent(i, declared))
-            .Where(e => e is not null)
-            .Select(e => e!)
+            .OfType<DriftEntry>()
             .ToList();
 
         entries.AddRange(declared.Values
             .OrderBy(d => d.EnvKey, StringComparer.Ordinal)
             .Select(d => ClassifyMissing(d, present, databaseKeys))
-            .Where(e => e is not null)
-            .Select(e => e!));
+            .OfType<DriftEntry>());
 
         return new DriftReport(entries);
     }

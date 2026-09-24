@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using EggIdentity.Agent.Models.Stack;
 using EggIdentity.Auth;
 using EggIdentity.Contract;
@@ -30,9 +31,9 @@ internal static class StackRoutes {
     }
 
     private static async Task<IResult> EnvAsync(AgentRuntime runtime, IHttpClientFactory factory, string stackName, CancellationToken ct) {
-        if (Resolve(runtime, stackName, out var stack) is { } refused) return refused;
+        if (!TryResolve(runtime, stackName, out var stack, out var portainer, out var refused)) return refused;
         try {
-            var remote = await runtime.Portainer!.CreateClient(factory.CreateClient(), stack).GetStackAsync(ct);
+            var remote = await portainer.CreateClient(factory.CreateClient(), stack).GetStackAsync(ct);
             return Results.Json(remote.Env.OrderBy(e => e.Name, StringComparer.Ordinal).Select(MaskedEnvEntry.From));
         } catch (Exception e) when (e is not OperationCanceledException) {
             return Results.Problem(e.Message, statusCode: 502);
@@ -40,7 +41,7 @@ internal static class StackRoutes {
     }
 
     private static async Task<IResult> RedeployAsync(AgentRuntime runtime, string stackName, CancellationToken ct, CancellationToken stopping) {
-        if (Resolve(runtime, stackName, out var stack) is { } refused) return refused;
+        if (!TryResolve(runtime, stackName, out var stack, out _, out var refused)) return refused;
         try {
             var readiness = await runtime.Stacks.ResolveAsync(stack, ct);
             if (!readiness.Ready) return Results.Problem(readiness.Info.Refusal, statusCode: 409);
@@ -57,11 +58,11 @@ internal static class StackRoutes {
         AgentRuntime runtime, IHttpClientFactory factory, string appName, Dictionary<string, string?> changes, CancellationToken ct) {
         if (changes is null || changes.Count == 0) return Results.BadRequest("no changes supplied");
         if (!runtime.Service.TryGetApp(appName, out _)) return Results.NotFound();
-        if (runtime.Service.StackFor(appName) is not { } stack)
+        if (runtime.Service.StackFor(appName) is not { } row)
             return Results.Problem($"deploy.apps row {appName} has no enabled deploy.stacks row", statusCode: 409);
-        if (Resolve(runtime, stack.Name, out stack) is { } refused) return refused;
+        if (!TryResolve(runtime, row.Name, out var stack, out var portainer, out var refused)) return refused;
         try {
-            await runtime.Portainer!.CreateClient(factory.CreateClient(), stack).UpdateEnvAsync(changes, ct);
+            await portainer.CreateClient(factory.CreateClient(), stack).UpdateEnvAsync(changes, ct);
             return Results.Json(new { updated = changes.Count, stack = stack.Name });
         } catch (StackBusyException e) {
             return Results.Problem(e.Message, statusCode: 409);
@@ -78,13 +79,26 @@ internal static class StackRoutes {
         }
     }
 
-    private static IResult? Resolve(AgentRuntime runtime, string stackName, out DeployStack stack) {
-        stack = null!;
-        var found = runtime.Service.Stacks.FirstOrDefault(s => string.Equals(s.Name, stackName, StringComparison.OrdinalIgnoreCase));
-        if (found is null) return Results.NotFound();
-        stack = found;
-        if (runtime.Portainer is null) return Results.Problem("portainer is not configured", statusCode: 503);
-        if (!stack.HasPortainerIds) return Results.Problem($"deploy.stacks row {stack.Name} has no stack_id and endpoint_id", statusCode: 409);
-        return null;
+    private static bool TryResolve(
+        AgentRuntime runtime, string stackName,
+        [NotNullWhen(true)] out DeployStack? stack,
+        [NotNullWhen(true)] out PortainerConfig? portainer,
+        [NotNullWhen(false)] out IResult? refused) {
+        stack = runtime.Service.Stacks.FirstOrDefault(s => string.Equals(s.Name, stackName, StringComparison.OrdinalIgnoreCase));
+        portainer = runtime.Portainer;
+        if (stack is null) {
+            refused = Results.NotFound();
+            return false;
+        }
+        if (portainer is null) {
+            refused = Results.Problem("portainer is not configured", statusCode: 503);
+            return false;
+        }
+        if (!stack.HasPortainerIds) {
+            refused = Results.Problem($"deploy.stacks row {stack.Name} has no stack_id and endpoint_id", statusCode: 409);
+            return false;
+        }
+        refused = null;
+        return true;
     }
 }

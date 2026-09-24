@@ -195,11 +195,10 @@ public sealed class SettingsStore(NpgsqlDataSource dataSource, SecretProtector? 
 
     private string? Reveal(string label, string? raw) {
         if (!SecretProtector.IsProtected(raw)) return raw;
-        if (protector is null) {
-            throw new InvalidOperationException(
-                $"stored secret {label} cannot be read: EGGIDENTITY_SETTINGS_KEY is not configured");
-        }
-        return protector.Unprotect(raw) ?? throw new InvalidOperationException(
-            $"stored secret {label} cannot be decrypted: EGGIDENTITY_SETTINGS_KEY does not match the key it was written with");
+        return protector is null
+            ? throw new InvalidOperationException(
+                $"stored secret {label} cannot be read: EGGIDENTITY_SETTINGS_KEY is not configured")
+            : protector.Unprotect(raw) ?? throw new InvalidOperationException(
+                $"stored secret {label} cannot be decrypted: EGGIDENTITY_SETTINGS_KEY does not match the key it was written with");
     }
 }

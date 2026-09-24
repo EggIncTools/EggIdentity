@@ -7,12 +7,14 @@ using Npgsql;
 
 namespace EggIdentity.Host;
 
-public sealed class BotHostedService(string configFilePath, string postgresConnectionString) : IHostedService {
+public sealed class BotHostedService(string configFilePath, string postgresConnectionString, TimeProvider? time = null) : IHostedService {
+    private readonly TimeProvider _time = time ?? TimeProvider.System;
+
     public EggIdentityBot? Bot { get; private set; }
 
     public async Task StartAsync(CancellationToken cancellationToken) {
         var build = BuildInfo.Build(Environment.GetEnvironmentVariable, Assembly.GetExecutingAssembly());
-        var startedAt = DateTimeOffset.UtcNow;
+        var startedAt = _time.GetUtcNow();
 
         var builder = new EggIdentityBotBuilder()
             .WithConfigFile(configFilePath)

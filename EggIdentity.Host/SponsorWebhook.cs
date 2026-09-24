@@ -17,8 +17,8 @@ public static class SponsorWebhook {
 
         var expectedBytes = Encoding.ASCII.GetBytes(expectedHex);
         var computedBytes = Encoding.ASCII.GetBytes(computedHex);
-        if (expectedBytes.Length != computedBytes.Length) return false;
-        return CryptographicOperations.FixedTimeEquals(expectedBytes, computedBytes);
+        return expectedBytes.Length == computedBytes.Length
+            && CryptographicOperations.FixedTimeEquals(expectedBytes, computedBytes);
     }
 
     public static SponsorshipWebhookEvent? ParsePayload(string json) {
@@ -37,9 +37,7 @@ public static class SponsorWebhook {
             JsonValueKind.String => idEl.GetString(),
             _ => null,
         };
-        if (string.IsNullOrEmpty(subject)) return null;
-
-        return new SponsorshipWebhookEvent(action, subject);
+        return string.IsNullOrEmpty(subject) ? null : new SponsorshipWebhookEvent(action, subject);
     }
 
     public static bool? ResolveIsSponsor(string action) => action switch {

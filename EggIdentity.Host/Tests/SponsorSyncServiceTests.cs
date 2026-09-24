@@ -82,7 +82,7 @@ public class SponsorSyncServiceTests {
         var result = await service.SyncAsync(userId, CancellationToken.None);
 
         Assert.NotNull(result);
-        Assert.True(result!.IsSponsor);
+        Assert.True(result.IsSponsor);
         Assert.Single(discord.Calls);
         Assert.Equal("add", discord.Calls[0].Action);
     }
@@ -127,7 +127,8 @@ public class SponsorSyncServiceTests {
         var store = new GitHubSponsorStatusStore(db);
         var status = await store.GetAsync(userId, CancellationToken.None);
 
-        Assert.True(status!.IsSponsor);
+        Assert.NotNull(status);
+        Assert.True(status.IsSponsor);
         Assert.Single(discord.Calls);
         Assert.Equal("add", discord.Calls[0].Action);
     }

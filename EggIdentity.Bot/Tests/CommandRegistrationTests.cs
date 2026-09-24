@@ -4,9 +4,8 @@ namespace EggIdentity.Bot.Tests;
 
 public class CommandRegistrationTests {
     [Fact]
-    public void BuiltinCommandNames_AreVerifyAndUpdateserver() {
+    public void BuiltinCommandNames_AreVerifyAndUpdateserver() =>
         Assert.Equal(new[] { "verify", "updateserver" }, EggIdentityBot.BuiltinCommandNames);
-    }
 
     [Fact]
     public void FilterExtras_DropsBuiltinCollisions() {
@@ -22,9 +21,8 @@ public class CommandRegistrationTests {
     [Theory]
     [InlineData(new[] { "a", "b" }, "c", true)]
     [InlineData(new[] { "a", "b" }, "b", false)]
-    public void NeedsRole_DetectsAbsence(string[] memberRoles, string roleId, bool expected) {
+    public void NeedsRole_DetectsAbsence(string[] memberRoles, string roleId, bool expected) =>
         Assert.Equal(expected, EggIdentityBot.NeedsRole(memberRoles, roleId));
-    }
 
     [Fact]
     public void GlobalCommands_Default_IsFalse() {

@@ -22,8 +22,7 @@ public sealed class DiscordRoleClient(IHttpClientFactory httpClientFactory, stri
         using var req = new HttpRequestMessage(HttpMethod.Get, BuildMemberUrl(guildId, discordUserId));
         req.Headers.Authorization = new AuthenticationHeaderValue("Bot", botToken);
         using var resp = await http.SendAsync(req, ct);
-        if (!resp.IsSuccessStatusCode) return false;
-        return ParseHasRole(await resp.Content.ReadAsStringAsync(ct), roleId);
+        return resp.IsSuccessStatusCode && ParseHasRole(await resp.Content.ReadAsStringAsync(ct), roleId);
     }
 
     private async Task SendAsync(HttpMethod method, string guildId, string discordUserId, string roleId, CancellationToken ct) {

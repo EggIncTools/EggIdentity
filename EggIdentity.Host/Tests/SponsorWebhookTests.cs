@@ -11,7 +11,7 @@ public class SponsorWebhookTests {
 
     [Fact]
     public void VerifySignature_ValidSignature_ReturnsTrue() {
-        var body = Encoding.UTF8.GetBytes("{\"action\":\"created\"}");
+        var body = Encoding.UTF8.GetBytes("""{"action":"created"}""");
         var signature = Sign("secret1", body);
 
         Assert.True(SponsorWebhook.VerifySignature("secret1", body, signature));
@@ -19,7 +19,7 @@ public class SponsorWebhookTests {
 
     [Fact]
     public void VerifySignature_WrongSecret_ReturnsFalse() {
-        var body = Encoding.UTF8.GetBytes("{\"action\":\"created\"}");
+        var body = Encoding.UTF8.GetBytes("""{"action":"created"}""");
         var signature = Sign("secret1", body);
 
         Assert.False(SponsorWebhook.VerifySignature("secret2", body, signature));
@@ -48,13 +48,13 @@ public class SponsorWebhookTests {
         var result = SponsorWebhook.ParsePayload(json);
 
         Assert.NotNull(result);
-        Assert.Equal("created", result!.Action);
+        Assert.Equal("created", result.Action);
         Assert.Equal("12345", result.SponsorSubject);
     }
 
     [Fact]
     public void ParsePayload_MissingSponsorship_ReturnsNull() {
-        var result = SponsorWebhook.ParsePayload("{\"action\":\"created\"}");
+        var result = SponsorWebhook.ParsePayload("""{"action":"created"}""");
 
         Assert.Null(result);
     }
@@ -69,17 +69,14 @@ public class SponsorWebhookTests {
     }
 
     [Fact]
-    public void ResolveIsSponsor_Created_ReturnsTrue() {
+    public void ResolveIsSponsor_Created_ReturnsTrue() =>
         Assert.True(SponsorWebhook.ResolveIsSponsor("created"));
-    }
 
     [Fact]
-    public void ResolveIsSponsor_Cancelled_ReturnsFalse() {
+    public void ResolveIsSponsor_Cancelled_ReturnsFalse() =>
         Assert.False(SponsorWebhook.ResolveIsSponsor("cancelled"));
-    }
 
     [Fact]
-    public void ResolveIsSponsor_TierChanged_ReturnsNull() {
+    public void ResolveIsSponsor_TierChanged_ReturnsNull() =>
         Assert.Null(SponsorWebhook.ResolveIsSponsor("tier_changed"));
-    }
 }

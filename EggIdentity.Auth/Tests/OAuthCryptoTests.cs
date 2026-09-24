@@ -9,9 +9,8 @@ public class OAuthCryptoTests {
     }
 
     [Fact]
-    public void GenerateEncryptionKey_IsRandom() {
+    public void GenerateEncryptionKey_IsRandom() =>
         Assert.NotEqual(OAuthCrypto.GenerateEncryptionKey(), OAuthCrypto.GenerateEncryptionKey());
-    }
 
     [Fact]
     public void RandomHex_ProducesRequestedLength() {

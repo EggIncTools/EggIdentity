@@ -113,7 +113,7 @@ public class AgentClientTests {
         var handler = new FakeAgentHandler((req, _) => {
             Assert.Equal(HttpMethod.Patch, req.Method);
             Assert.Equal("/env/eggledger", req.RequestUri!.AbsolutePath);
-            return FakeAgentHandler.Json("{\"updated\":2}");
+            return FakeAgentHandler.Json("""{"updated":2}""");
         });
 
         var failure = await TestFixtures.Client(handler).PatchStackEnvAsync(

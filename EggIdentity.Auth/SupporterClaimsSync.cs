@@ -37,7 +37,8 @@ public static class SupporterClaimsSync {
     }
 
     private static Guid? ResolveUserId(ClaimsPrincipal principal, string? idClaimType) {
-        if (idClaimType is not null && Guid.TryParse(principal.FindFirstValue(idClaimType), out var claimId)) return claimId;
-        return principal.EggIdentityUserId();
+        return idClaimType is not null && Guid.TryParse(principal.FindFirstValue(idClaimType), out var claimId)
+            ? claimId
+            : principal.EggIdentityUserId();
     }
 }

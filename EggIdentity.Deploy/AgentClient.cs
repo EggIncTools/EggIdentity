@@ -9,14 +9,32 @@ using EggIdentity.Settings;
 
 namespace EggIdentity.Deploy;
 
-public sealed class AgentClient(HttpClient http, DeployOptions options, SessionCookieOptions session) {
+public sealed class AgentClient {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static readonly MediaTypeWithQualityHeaderValue EventStream = new("text/event-stream");
+    private readonly Func<HttpClient> _http;
+    private readonly DeployOptions _options;
+    private readonly SessionCookieOptions _session;
+    private readonly TimeProvider _time;
+
+    public AgentClient(HttpClient http, DeployOptions options, SessionCookieOptions session, TimeProvider? time = null)
+        : this(() => http, options, session, time) {
+    }
+
+    public AgentClient(IHttpClientFactory factory, DeployOptions options, SessionCookieOptions session, TimeProvider? time = null)
+        : this(() => factory.CreateClient(DeployOptions.HttpClientName), options, session, time) {
+    }
+
+    private AgentClient(Func<HttpClient> http, DeployOptions options, SessionCookieOptions session, TimeProvider? time) {
+        _http = http;
+        _options = options;
+        _session = session;
+        _time = time ?? TimeProvider.System;
+    }
 
     public async Task<DeployStatus?> GetStatusAsync(string app, CancellationToken ct) {
         using var response = await SendAsync(HttpMethod.Get, $"status/{Uri.EscapeDataString(app)}", null, ct);
-        if (response.StatusCode == HttpStatusCode.NotFound) return null;
-        return await ReadAsync<DeployStatus>(response, ct);
+        return response.StatusCode == HttpStatusCode.NotFound ? null : await ReadAsync<DeployStatus>(response, ct);
     }
 
     public async Task<IReadOnlyList<DeployStatus>> GetAllStatusAsync(CancellationToken ct) {
@@ -43,8 +61,7 @@ public sealed class AgentClient(HttpClient http, DeployOptions options, SessionC
         var path = $"logs/{Uri.EscapeDataString(app)}/tail?lines={lines.ToString(CultureInfo.InvariantCulture)}";
         using var response = await SendAsync(HttpMethod.Get, path, null, ct);
         var body = await response.Content.ReadAsStringAsync(ct);
-        if (!response.IsSuccessStatusCode) throw new HttpRequestException(Describe(response, body), null, response.StatusCode);
-        return body;
+        return response.IsSuccessStatusCode ? body : throw new HttpRequestException(Describe(response, body), null, response.StatusCode);
     }
 
     public async Task<IReadOnlyList<EnvKeyInfo>> GetEnvAsync(string app, CancellationToken ct) {
@@ -74,7 +91,7 @@ public sealed class AgentClient(HttpClient http, DeployOptions options, SessionC
         request.Headers.Accept.Add(EventStream);
         if (afterId is { } id) request.Headers.TryAddWithoutValidation("Last-Event-ID", id.ToString(CultureInfo.InvariantCulture));
 
-        using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        using var response = await _http().SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
         if (!response.IsSuccessStatusCode) {
             var body = await response.Content.ReadAsStringAsync(ct);
             throw new HttpRequestException(Describe(response, body), null, response.StatusCode);
@@ -91,19 +108,19 @@ public sealed class AgentClient(HttpClient http, DeployOptions options, SessionC
 
     private async Task<string?> ReadLineWithIdleTimeoutAsync(StreamReader reader, CancellationToken ct) {
         using var idle = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        idle.CancelAfter(options.StreamIdleTimeout);
+        idle.CancelAfter(_options.StreamIdleTimeout);
         try {
             return await reader.ReadLineAsync(idle.Token);
         } catch (OperationCanceledException) when (!ct.IsCancellationRequested) {
-            throw new TimeoutException($"agent event stream idle for {options.StreamIdleTimeout}");
+            throw new TimeoutException($"agent event stream idle for {_options.StreamIdleTimeout}");
         }
     }
 
     private HttpRequestMessage NewRequest(HttpMethod method, string path) {
         var request = new HttpRequestMessage(method, path);
-        var caller = options.CallerName ?? options.AppName;
-        var token = SessionToken.Issue(session, new SessionUser(caller, null, UserRoles.ToName(UserRole.Admin)), DateTimeOffset.UtcNow);
-        request.Headers.TryAddWithoutValidation("Cookie", $"{session.CookieName}={token}");
+        var caller = _options.CallerName ?? _options.AppName;
+        var token = SessionToken.Issue(_session, new SessionUser(caller, null, UserRoles.ToName(UserRole.Admin)), _time.GetUtcNow());
+        request.Headers.TryAddWithoutValidation("Cookie", $"{_session.CookieName}={token}");
         return request;
     }
 
@@ -111,11 +128,11 @@ public sealed class AgentClient(HttpClient http, DeployOptions options, SessionC
         using var request = NewRequest(method, path);
         request.Content = content;
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(options.CallTimeout);
+        timeout.CancelAfter(_options.CallTimeout);
         try {
-            return await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, timeout.Token);
+            return await _http().SendAsync(request, HttpCompletionOption.ResponseContentRead, timeout.Token);
         } catch (OperationCanceledException) when (!ct.IsCancellationRequested) {
-            throw new TimeoutException($"agent {method} {path} timed out after {options.CallTimeout}");
+            throw new TimeoutException($"agent {method} {path} timed out after {_options.CallTimeout}");
         }
     }
 
@@ -128,10 +145,8 @@ public sealed class AgentClient(HttpClient http, DeployOptions options, SessionC
             ?? throw new HttpRequestException("agent returned an empty body", null, response.StatusCode);
     }
 
-    private static async Task<string?> FailureAsync(HttpResponseMessage response, CancellationToken ct) {
-        if (response.IsSuccessStatusCode) return null;
-        return Describe(response, await response.Content.ReadAsStringAsync(ct));
-    }
+    private static async Task<string?> FailureAsync(HttpResponseMessage response, CancellationToken ct) =>
+        response.IsSuccessStatusCode ? null : Describe(response, await response.Content.ReadAsStringAsync(ct));
 
     private static string Describe(HttpResponseMessage response, string body) {
         var code = ((int)response.StatusCode).ToString(CultureInfo.InvariantCulture);
@@ -146,7 +161,7 @@ public sealed class AgentClient(HttpClient http, DeployOptions options, SessionC
         public string? Value { get; set; }
         public bool? Referenced { get; set; }
 
-        public EnvKeyInfo ToInfo() => new(Name!, ParseOrigin(Origin)) {
+        public EnvKeyInfo ToInfo() => new(Name ?? throw new InvalidOperationException("env entry has no name"), ParseOrigin(Origin)) {
             Masked = Masked ?? false,
             Value = Value,
             Referenced = Referenced ?? true,

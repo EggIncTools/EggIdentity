@@ -61,7 +61,8 @@ public static class IconPack {
     }
 
     private static string ReadResource(Assembly assembly, string resource) {
-        using var stream = assembly.GetManifestResourceStream(resource)!;
+        using var stream = assembly.GetManifestResourceStream(resource)
+            ?? throw new InvalidOperationException($"missing embedded resource '{resource}'");
         using var reader = new StreamReader(stream, Encoding.UTF8);
         return reader.ReadToEnd();
     }

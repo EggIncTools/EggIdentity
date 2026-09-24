@@ -34,8 +34,7 @@ public class RetryTests {
         var calls = 0;
         var task = Retry.RunAsync(_ => {
             calls++;
-            if (calls < 3) throw new InvalidOperationException("boom");
-            return Task.FromResult("ok");
+            return calls < 3 ? throw new InvalidOperationException("boom") : Task.FromResult("ok");
         }, Options, time);
 
         Assert.False(task.IsCompleted);

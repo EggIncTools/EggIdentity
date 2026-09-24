@@ -53,39 +53,32 @@ public class RelinkUrlTests {
     }
 
     [Fact]
-    public void IsAllowedRelinkTarget_Null_ReturnsFalse() {
+    public void IsAllowedRelinkTarget_Null_ReturnsFalse() =>
         Assert.False(Program.IsAllowedRelinkTarget(null, "https://auth.example.com", Providers));
-    }
 
     [Fact]
-    public void IsAllowedRelinkTarget_Empty_ReturnsFalse() {
+    public void IsAllowedRelinkTarget_Empty_ReturnsFalse() =>
         Assert.False(Program.IsAllowedRelinkTarget("", "https://auth.example.com", Providers));
-    }
 
     [Fact]
-    public void IsAllowedRelinkTarget_RelativeUrl_ReturnsFalse() {
+    public void IsAllowedRelinkTarget_RelativeUrl_ReturnsFalse() =>
         Assert.False(Program.IsAllowedRelinkTarget("/if/flow/discord-only-auth/", "https://auth.example.com", Providers));
-    }
 
     [Fact]
-    public void IsAllowedRelinkTarget_WrongAuthority_ReturnsFalse() {
+    public void IsAllowedRelinkTarget_WrongAuthority_ReturnsFalse() =>
         Assert.False(Program.IsAllowedRelinkTarget("https://evil.com/if/flow/discord-only-auth/", "https://auth.example.com", Providers));
-    }
 
     [Fact]
-    public void IsAllowedRelinkTarget_AuthorityPrefixTrick_ReturnsFalse() {
+    public void IsAllowedRelinkTarget_AuthorityPrefixTrick_ReturnsFalse() =>
         Assert.False(Program.IsAllowedRelinkTarget("https://auth.example.com.evil.com/if/flow/discord-only-auth/", "https://auth.example.com", Providers));
-    }
 
     [Fact]
-    public void IsAllowedRelinkTarget_UnknownFlowSlug_ReturnsFalse() {
+    public void IsAllowedRelinkTarget_UnknownFlowSlug_ReturnsFalse() =>
         Assert.False(Program.IsAllowedRelinkTarget("https://auth.example.com/if/flow/other-auth/", "https://auth.example.com", Providers));
-    }
 
     [Fact]
-    public void IsAllowedRelinkTarget_NonFlowPath_ReturnsFalse() {
+    public void IsAllowedRelinkTarget_NonFlowPath_ReturnsFalse() =>
         Assert.False(Program.IsAllowedRelinkTarget("https://auth.example.com/foo", "https://auth.example.com", Providers));
-    }
 
     [Fact]
     public void IsAllowedRelinkTarget_ForeignNextParam_ReturnsFalse() {

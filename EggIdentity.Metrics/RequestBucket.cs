@@ -10,8 +10,7 @@ public sealed class RequestBucketClassifier(RequestMetricsOptions options) {
             && ctx.Request.Headers.ContainsKey(options.InternalMarkerHeader)) {
             return RequestBucket.Internal;
         }
-        if (user?.Identity?.IsAuthenticated == true) return RequestBucket.Cross;
-        return RequestBucket.External;
+        return user?.Identity?.IsAuthenticated == true ? RequestBucket.Cross : RequestBucket.External;
     }
 
     public static string ToName(RequestBucket bucket) => bucket.ToString().ToLowerInvariant();

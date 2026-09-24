@@ -10,11 +10,11 @@ public static class Promotion {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         var rows = apps.Where(a => string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase)).ToList();
-        var source = rows.FirstOrDefault(a => a.TracksLatest);
-        var target = rows.FirstOrDefault(a => !a.TracksLatest);
-        if (source is null || target is null) return null;
-
-        return new PromotionPlan(target.Name, target.ResolvedTag, source.ResolvedTag, target);
+        var source = rows.Find(a => a.TracksLatest);
+        var target = rows.Find(a => !a.TracksLatest);
+        return source is null || target is null
+            ? null
+            : new PromotionPlan(target.Name, target.ResolvedTag, source.ResolvedTag, target);
     }
 
     public static DeployApp Apply(PromotionPlan plan) {

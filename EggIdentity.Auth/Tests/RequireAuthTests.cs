@@ -7,9 +7,8 @@ public class RequireAuthTests {
     [InlineData("Bearer abc123", "abc123")]
     [InlineData("abc123", "abc123")]
     [InlineData("", "")]
-    public void ExtractToken_StripsBearerPrefix(string header, string expected) {
+    public void ExtractToken_StripsBearerPrefix(string header, string expected) =>
         Assert.Equal(expected, RequireAuth.ExtractToken(header));
-    }
 
     [Fact]
     public async Task Invoke_NoToken_Returns401() {

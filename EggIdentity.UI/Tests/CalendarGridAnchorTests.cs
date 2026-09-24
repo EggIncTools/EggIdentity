@@ -3,9 +3,8 @@ namespace EggIdentity.UI.Tests;
 public class CalendarGridAnchorTests {
     private static readonly TimeZoneInfo Eastern = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
 
-    private static DateTimeOffset AtLocal(TimeZoneInfo tz, DateTime local) {
-        return new DateTimeOffset(local, tz.GetUtcOffset(local));
-    }
+    private static DateTimeOffset AtLocal(TimeZoneInfo tz, DateTime local) =>
+        new(local, tz.GetUtcOffset(local));
 
     private static DateOnly FindSpringForwardDate(TimeZoneInfo tz, int year) {
         var date = new DateOnly(year, 1, 1);

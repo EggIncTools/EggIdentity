@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace EggIdentity.Settings.Api;
 
 public sealed record AdminTargetRow {
@@ -7,7 +9,7 @@ public sealed record AdminTargetRow {
 
     public bool IsUsable => !string.IsNullOrWhiteSpace(Name) && TryUrl(AdminBaseUrl, out _);
 
-    internal static bool TryUrl(string value, out Uri? url) {
+    internal static bool TryUrl(string value, [NotNullWhen(true)] out Uri? url) {
         url = null;
         if (!Uri.TryCreate(value, UriKind.Absolute, out var parsed)) return false;
         if (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps) return false;
@@ -61,16 +63,15 @@ public static class AdminTargets {
             return new AdminTargetStatus(row.Name, envKey, false, "this row has no app name");
         if (!row.Enabled)
             return new AdminTargetStatus(row.Name, envKey, false, "disabled in admin.targets");
-        if (!row.IsUsable)
+        if (!AdminTargetRow.TryUrl(row.AdminBaseUrl, out var url))
             return new AdminTargetStatus(row.Name, envKey, false, "admin base URL is not an absolute URL");
 
         var secret = environment(envKey);
         if (string.IsNullOrWhiteSpace(secret))
             return new AdminTargetStatus(row.Name, envKey, false, $"{envKey} is not set on this host");
 
-        AdminTargetRow.TryUrl(row.AdminBaseUrl, out var url);
         return new AdminTargetStatus(row.Name, envKey, true, null) {
-            Target = new AdminTarget(row.Name, url!, secret),
+            Target = new AdminTarget(row.Name, url, secret),
         };
     }
 }

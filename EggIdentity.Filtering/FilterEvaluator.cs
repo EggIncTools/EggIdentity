@@ -55,20 +55,17 @@ public sealed class FilterEvaluator<TItem, TField> where TField : notnull {
         return true;
     }
 
-    private bool MatchesSync(TItem item, Condition<TField> c) {
-        if (!_sync.TryGetValue(c.Field, out var accessor)) return true;
-        return accessor switch {
+    private bool MatchesSync(TItem item, Condition<TField> c) =>
+        !_sync.TryGetValue(c.Field, out var accessor) || accessor switch {
             EnumFieldAccessor<TItem> e => EnumMatch(e.Get(item), c),
             NumberFieldAccessor<TItem> n => NumberMatch(n.Get(item), c),
             DayFieldAccessor<TItem> d => DayMatch(d.Get(item), c),
             FlagFieldAccessor<TItem> f => FlagMatch(f.Get(item), c.Operator),
             _ => true,
         };
-    }
 
-    private static bool EnumMatch(int? actual, Condition<TField> c) {
-        if (c.Value is not FilterValue.EnumValue e) return false;
-        return c.Operator switch {
+    private static bool EnumMatch(int? actual, Condition<TField> c) =>
+        c.Value is FilterValue.EnumValue e && c.Operator switch {
             FilterOperator.Equals => actual == e.Code,
             FilterOperator.NotEquals => actual != e.Code,
             FilterOperator.Greater => actual is { } a && a > e.Code,
@@ -77,11 +74,9 @@ public sealed class FilterEvaluator<TItem, TField> where TField : notnull {
             FilterOperator.LessOrEqual => actual is { } a && a <= e.Code,
             _ => false,
         };
-    }
 
-    private static bool NumberMatch(double? actual, Condition<TField> c) {
-        if (c.Value is not FilterValue.Number n) return false;
-        return c.Operator switch {
+    private static bool NumberMatch(double? actual, Condition<TField> c) =>
+        c.Value is FilterValue.Number n && c.Operator switch {
             FilterOperator.Equals => actual == n.N,
             FilterOperator.NotEquals => actual != n.N,
             FilterOperator.Greater => actual is { } a && a > n.N,
@@ -90,11 +85,9 @@ public sealed class FilterEvaluator<TItem, TField> where TField : notnull {
             FilterOperator.LessOrEqual => actual is { } a && a <= n.N,
             _ => false,
         };
-    }
 
-    private static bool DayMatch(DateOnly? actual, Condition<TField> c) {
-        if (c.Value is not FilterValue.Day d) return false;
-        return c.Operator switch {
+    private static bool DayMatch(DateOnly? actual, Condition<TField> c) =>
+        c.Value is FilterValue.Day d && c.Operator switch {
             FilterOperator.Equals => actual == d.Date,
             FilterOperator.NotEquals => actual != d.Date,
             FilterOperator.Greater => actual is { } a && a > d.Date,
@@ -103,7 +96,6 @@ public sealed class FilterEvaluator<TItem, TField> where TField : notnull {
             FilterOperator.LessOrEqual => actual is { } a && a <= d.Date,
             _ => false,
         };
-    }
 
     private static bool FlagMatch(bool? actual, FilterOperator op) => op switch {
         FilterOperator.IsTrue => actual == true,

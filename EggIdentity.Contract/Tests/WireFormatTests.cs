@@ -8,14 +8,14 @@ public class WireFormatTests {
         var dr = new DeployResponse { Ok = true, AlreadyUpToDate = true, FromHash = "abc1234", ToHash = "abc1234" };
         var json = JsonSerializer.Serialize(dr);
         Assert.Equal(
-            "{\"ok\":true,\"alreadyUpToDate\":true,\"fromHash\":\"abc1234\",\"toHash\":\"abc1234\"}",
+            """{"ok":true,"alreadyUpToDate":true,"fromHash":"abc1234","toHash":"abc1234"}""",
             json);
     }
 
     [Fact]
     public void DeployResponse_Empty_EmitsOnlyOk() {
         var json = JsonSerializer.Serialize(new DeployResponse { Ok = false });
-        Assert.Equal("{\"ok\":false}", json);
+        Assert.Equal("""{"ok":false}""", json);
     }
 
     [Fact]
@@ -29,14 +29,14 @@ public class WireFormatTests {
         };
         var json = JsonSerializer.Serialize(e);
         Assert.Equal(
-            "{\"package\":\"com.auxbrain.egginc\",\"version\":\"1.34\",\"apkRef\":\"/x/base.apk\",\"protoSha\":\"deadbeef\",\"detectedAt\":\"2026-06-10T00:00:00Z\"}",
+            """{"package":"com.auxbrain.egginc","version":"1.34","apkRef":"/x/base.apk","protoSha":"deadbeef","detectedAt":"2026-06-10T00:00:00Z"}""",
             json);
     }
 
     [Fact]
     public void VerifyInfo_AllFieldsAlwaysPresent() {
         var json = JsonSerializer.Serialize(new VerifyInfo { Name = "EggLedger", Sha256 = "ab", Version = "v1", Date = "d" });
-        Assert.Equal("{\"name\":\"EggLedger\",\"sha256\":\"ab\",\"version\":\"v1\",\"date\":\"d\"}", json);
+        Assert.Equal("""{"name":"EggLedger","sha256":"ab","version":"v1","date":"d"}""", json);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class WireFormatTests {
         var lr = new LinkResultResponse { Linked = false, Conflict = true, ConflictUsername = "bob", ConflictCreatedAt = DateTimeOffset.Parse("2026-01-01T00:00:00Z") };
         var json = System.Text.Json.JsonSerializer.Serialize(lr);
         Assert.Equal(
-            "{\"linked\":false,\"conflict\":true,\"conflictUsername\":\"bob\",\"conflictCreatedAt\":\"2026-01-01T00:00:00+00:00\"}",
+            """{"linked":false,"conflict":true,"conflictUsername":"bob","conflictCreatedAt":"2026-01-01T00:00:00+00:00"}""",
             json);
     }
 }

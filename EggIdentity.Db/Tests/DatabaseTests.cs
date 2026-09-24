@@ -17,9 +17,8 @@ public class DatabaseTests {
     [InlineData("Host=frame;Username=app;Password=pw;Database=app")]
     [InlineData("host=frame;database=app")]
     [InlineData("")]
-    public void KeywordForm_IsAccepted(string connStr) {
+    public void KeywordForm_IsAccepted(string connStr) =>
         Assert.Null(Database.DescribeUriForm(connStr));
-    }
 
     [Fact]
     public async Task InitAsync_FailsFastOnAUri_WithoutOpeningAConnection() {
@@ -30,7 +29,6 @@ public class DatabaseTests {
     }
 
     [Fact]
-    public async Task InitAsync_StillRejectsEmpty() {
+    public async Task InitAsync_StillRejectsEmpty() =>
         await Assert.ThrowsAsync<ArgumentException>(() => Database.InitAsync(""));
-    }
 }

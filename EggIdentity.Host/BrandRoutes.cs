@@ -20,28 +20,30 @@ internal static class BrandRoutes {
 
         routes.MapGet("/{slug}/icon-{size:int}.png", (HttpContext ctx, string slug, int size, IWebHostEnvironment env) => {
             var brand = Brands.Find(slug);
-            if (brand is null || !brand.Has(BrandFamily.Icon) || !Brands.IconSizes.Contains(size))
-                return Results.NotFound();
-            return Serve(ctx, env, Brands.IconPath(brand.Slug, size), PngContentType);
+            return brand is null || !brand.Has(BrandFamily.Icon) || !Brands.IconSizes.Contains(size)
+                ? Results.NotFound()
+                : Serve(ctx, env, Brands.IconPath(brand.Slug, size), PngContentType);
         });
 
         routes.MapGet("/{slug}/lockup.png", (HttpContext ctx, string slug, IWebHostEnvironment env) => {
             var brand = Brands.Find(slug);
-            if (brand is null || !brand.Has(BrandFamily.Lockup)) return Results.NotFound();
-            return Serve(ctx, env, Brands.LockupPath(brand.Slug), PngContentType);
+            return brand is null || !brand.Has(BrandFamily.Lockup)
+                ? Results.NotFound()
+                : Serve(ctx, env, Brands.LockupPath(brand.Slug), PngContentType);
         });
 
         routes.MapGet("/{slug}/wordmark.png", (HttpContext ctx, string slug, IWebHostEnvironment env) => {
             var brand = Brands.Find(slug);
-            if (brand is null || !brand.Has(BrandFamily.Wordmark)) return Results.NotFound();
-            return Serve(ctx, env, Brands.WordmarkPath(brand.Slug), PngContentType);
+            return brand is null || !brand.Has(BrandFamily.Wordmark)
+                ? Results.NotFound()
+                : Serve(ctx, env, Brands.WordmarkPath(brand.Slug), PngContentType);
         });
 
         routes.MapGet("/{slug}/{name}.ico", (HttpContext ctx, string slug, string name, IWebHostEnvironment env) => {
             var brand = Brands.Find(slug);
-            if (brand is null || !brand.HasFavicon || !string.Equals(name, brand.Slug, StringComparison.Ordinal))
-                return Results.NotFound();
-            return Serve(ctx, env, Brands.FaviconPath(brand.Slug), IcoContentType);
+            return brand is null || !brand.HasFavicon || !string.Equals(name, brand.Slug, StringComparison.Ordinal)
+                ? Results.NotFound()
+                : Serve(ctx, env, Brands.FaviconPath(brand.Slug), IcoContentType);
         });
     }
 

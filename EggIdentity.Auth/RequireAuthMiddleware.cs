@@ -7,14 +7,8 @@ public interface ISessionStore {
     Task TouchAsync(string token, long newExpiresAt, CancellationToken ct);
 }
 
-public sealed class RequireAuth {
-    private readonly RequestDelegate _next;
-    private readonly ISessionStore _store;
-
-    public RequireAuth(RequestDelegate next, ISessionStore store) {
-        _next = next;
-        _store = store;
-    }
+public sealed class RequireAuth(RequestDelegate next, ISessionStore store, TimeProvider? time = null) {
+    private readonly TimeProvider _time = time ?? TimeProvider.System;
 
     public const string UserIdHeader = "X-User-Id";
 
@@ -27,16 +21,16 @@ public sealed class RequireAuth {
             await Unauthorized(ctx);
             return;
         }
-        var (found, discordId, expiresAt) = await _store.LookupAsync(token, ctx.RequestAborted);
-        var nowUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        if (!found || nowUnix > expiresAt) {
+        var (found, discordId, expiresAt) = await store.LookupAsync(token, ctx.RequestAborted);
+        var now = _time.GetUtcNow();
+        if (!found || now.ToUnixTimeSeconds() > expiresAt) {
             await Unauthorized(ctx);
             return;
         }
-        var slid = DateTimeOffset.UtcNow.AddDays(30).ToUnixTimeSeconds();
-        await _store.TouchAsync(token, slid, ctx.RequestAborted);
+        var slid = now.AddDays(30).ToUnixTimeSeconds();
+        await store.TouchAsync(token, slid, ctx.RequestAborted);
         ctx.Request.Headers[UserIdHeader] = discordId;
-        await _next(ctx);
+        await next(ctx);
     }
 
     private static async Task Unauthorized(HttpContext ctx) {

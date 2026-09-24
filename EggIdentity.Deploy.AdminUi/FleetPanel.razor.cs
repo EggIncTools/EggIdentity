@@ -48,12 +48,12 @@ public sealed partial class FleetPanel : ComponentBase {
         var snapshot = await _cache.GetAsync();
         _apps = [.. snapshot.Collection<DeployApp>(DeployApps.Key).Where(a => a.Enabled)];
         _loaded = true;
-        await LoadAgentAsync();
+        await LoadAgentAsync(_client);
     }
 
-    private async Task LoadAgentAsync() {
+    private async Task LoadAgentAsync(AgentClient client) {
         try {
-            _statuses = await _client!.GetAllStatusAsync(CancellationToken.None);
+            _statuses = await client.GetAllStatusAsync(CancellationToken.None);
             _agentError = null;
         } catch (Exception e) when (IsAgentFailure(e)) {
             _agentError = e.Message;
@@ -61,7 +61,7 @@ public sealed partial class FleetPanel : ComponentBase {
         }
 
         try {
-            _stacks = await _client.GetStacksAsync(CancellationToken.None);
+            _stacks = await client.GetStacksAsync(CancellationToken.None);
             _stacksError = null;
         } catch (Exception e) when (IsAgentFailure(e)) {
             _stacksError = e.Message;
@@ -69,14 +69,14 @@ public sealed partial class FleetPanel : ComponentBase {
     }
 
     private async Task CheckAllAsync() {
-        if (_busy || _client is null) return;
+        if (_busy || _client is not { } client) return;
         _busy = true;
         var failures = new List<string>();
         try {
             foreach (var app in _apps) {
-                if (await TryCheckAsync(app.Name) is { } failure) failures.Add(failure);
+                if (await TryCheckAsync(client, app.Name) is { } failure) failures.Add(failure);
             }
-            await LoadAgentAsync();
+            await LoadAgentAsync(client);
         } finally {
             _busy = false;
         }
@@ -85,9 +85,9 @@ public sealed partial class FleetPanel : ComponentBase {
         else _toasts?.Push(StatusNoteKind.Error, string.Join("; ", failures));
     }
 
-    private async Task<string?> TryCheckAsync(string app) {
+    private static async Task<string?> TryCheckAsync(AgentClient client, string app) {
         try {
-            await _client!.CheckAsync(app, CancellationToken.None);
+            await client.CheckAsync(app, CancellationToken.None);
             return null;
         } catch (Exception e) when (IsAgentFailure(e)) {
             return $"{app}: {e.Message}";
@@ -108,7 +108,7 @@ public sealed partial class FleetPanel : ComponentBase {
             var failure = await _client.RedeployStackAsync(stack, CancellationToken.None);
             if (failure is null) _toasts?.Push(StatusNoteKind.Ok, $"Redeploy of {stack} requested.");
             else _toasts?.Push(StatusNoteKind.Error, failure);
-            await LoadAgentAsync();
+            await LoadAgentAsync(_client);
         } catch (Exception e) when (IsAgentFailure(e)) {
             _toasts?.Push(StatusNoteKind.Error, e.Message);
         } finally {

@@ -40,9 +40,8 @@ public class CollectionBinderTests {
     }
 
     [Fact]
-    public void Bind_RejectsNonBoolStrings() {
+    public void Bind_RejectsNonBoolStrings() =>
         Assert.Throws<JsonException>(() => CollectionBinder.Bind<DeployApp>(Values(("name", "a"), ("image", "b"), ("auto_deploy", "maybe"))));
-    }
 
     [Fact]
     public void Bind_TreatsBlankAndNullAsAbsent() {

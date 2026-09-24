@@ -99,8 +99,7 @@ public sealed class AuthentikOAuth(string authority, string clientId, string cli
     }
 
     private static string? ReadClaimAsString(JsonElement root, string propertyName) {
-        if (!root.TryGetProperty(propertyName, out var el)) return null;
-        return el.ValueKind switch {
+        return !root.TryGetProperty(propertyName, out var el) ? null : el.ValueKind switch {
             JsonValueKind.String => el.GetString(),
             JsonValueKind.Number => el.GetRawText(),
             _ => null,
@@ -109,8 +108,7 @@ public sealed class AuthentikOAuth(string authority, string clientId, string cli
 
     public static string? ReadSessionIdFromIdToken(string? idToken, SecurityKey? decryptionKey = null) {
         using var doc = DecodeIdTokenPayload(idToken, decryptionKey);
-        if (doc is null) return null;
-        return doc.RootElement.TryGetProperty("sid", out var sidEl) ? sidEl.GetString() : null;
+        return doc is not null && doc.RootElement.TryGetProperty("sid", out var sidEl) ? sidEl.GetString() : null;
     }
 
     public static string? ReadAudienceFromIdToken(string? idToken, SecurityKey? decryptionKey = null) {

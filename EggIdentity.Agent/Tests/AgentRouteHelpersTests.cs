@@ -9,7 +9,6 @@ public class AgentRouteHelpersTests {
     [InlineData(2000, 2000)]
     [InlineData(5000, 2000)]
     [InlineData(int.MaxValue, 2000)]
-    public void ClampLogLines_ClampsToExpectedRange(int? requested, int expected) {
+    public void ClampLogLines_ClampsToExpectedRange(int? requested, int expected) =>
         Assert.Equal(expected, AgentRouteHelpers.ClampLogLines(requested));
-    }
 }

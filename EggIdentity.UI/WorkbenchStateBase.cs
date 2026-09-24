@@ -19,8 +19,8 @@ public abstract class WorkbenchStateBase {
 
     public string NormalizeMode(string? mode) {
         if (mode is not { Length: > 0 }) return DefaultMode;
-        foreach (var candidate in Modes) {
-            if (string.Equals(candidate.Key, mode, StringComparison.Ordinal)) return mode;
+        foreach (var (key, _, _) in Modes) {
+            if (string.Equals(key, mode, StringComparison.Ordinal)) return mode;
         }
 
         return DefaultMode;

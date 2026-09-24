@@ -9,9 +9,8 @@ public class GitHubSponsorClientTests {
     }
 
     [Fact]
-    public void ParseLogin_MissingField_ReturnsNull() {
-        Assert.Null(GitHubSponsorClient.ParseLogin("{\"id\":1}"));
-    }
+    public void ParseLogin_MissingField_ReturnsNull() =>
+        Assert.Null(GitHubSponsorClient.ParseLogin("""{"id":1}"""));
 
     [Fact]
     public void ParseIsSponsoredBy_True_ReturnsTrue() {

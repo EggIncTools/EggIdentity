@@ -6,9 +6,8 @@ public class MigratorTests {
     [InlineData("10_add_index.up.sql", 10)]
     [InlineData("2_blobs.up.sql", 2)]
     [InlineData("noprefix.up.sql", 0)]
-    public void PrefixNum_ParsesIntegerPrefix(string name, int expected) {
+    public void PrefixNum_ParsesIntegerPrefix(string name, int expected) =>
         Assert.Equal(expected, Migrator.PrefixNum(name));
-    }
 
     [Fact]
     public void MigrationFiles_OrdersByNumericPrefix_NotLexical() {

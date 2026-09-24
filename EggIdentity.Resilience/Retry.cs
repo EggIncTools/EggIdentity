@@ -27,8 +27,7 @@ public static class Retry {
         }, options, time, ct).ConfigureAwait(false);
     }
 
-    private static bool IsRetryable(Exception e, RetryOptions options, CancellationToken ct) {
-        if (e is OperationCanceledException && ct.IsCancellationRequested) return false;
-        return options.ShouldRetry?.Invoke(e) ?? e is not OperationCanceledException;
-    }
+    private static bool IsRetryable(Exception e, RetryOptions options, CancellationToken ct) =>
+        !(e is OperationCanceledException && ct.IsCancellationRequested)
+        && (options.ShouldRetry?.Invoke(e) ?? e is not OperationCanceledException);
 }

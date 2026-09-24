@@ -14,8 +14,7 @@ public sealed class ChannelStateStore(NpgsqlDataSource dataSource) {
         cmd.Parameters.AddWithValue(appName);
         cmd.Parameters.AddWithValue(kind);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
-        if (!await reader.ReadAsync(ct)) return null;
-        return Read(reader);
+        return await reader.ReadAsync(ct) ? Read(reader) : null;
     }
 
     public async Task<IReadOnlyList<ChannelState>> ListAsync(string guildId, string appName, CancellationToken ct) {

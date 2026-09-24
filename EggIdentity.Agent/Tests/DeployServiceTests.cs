@@ -197,7 +197,7 @@ public class DeployServiceTests {
 
     [Fact]
     public async Task Deploy_StackNotReady_FailsBeforePulling() {
-        const string refusal = "stack \"ei-servers\" (Portainer #56 ei-servers) is git backed but has no GitOps webhook";
+        const string refusal = """stack "ei-servers" (Portainer #56 ei-servers) is git backed but has no GitOps webhook""";
         var (service, engine, _, stacks, ring) = Build();
         stacks.Refusal = refusal;
 
@@ -406,10 +406,8 @@ public class DeployServiceTests {
     private sealed class FakeRegistry(string? digest) : IImageRegistry {
         public Exception? Fail { get; set; }
 
-        public Task<string> GetDigestAsync(ImageRef image, CancellationToken ct) {
-            if (Fail is not null) throw Fail;
-            return Task.FromResult(digest ?? throw new InvalidOperationException("no digest"));
-        }
+        public Task<string> GetDigestAsync(ImageRef image, CancellationToken ct) =>
+            Fail is not null ? throw Fail : Task.FromResult(digest ?? throw new InvalidOperationException("no digest"));
     }
 
     private sealed class FakeStacks(FakeEngine engine) : IStackRedeployer {

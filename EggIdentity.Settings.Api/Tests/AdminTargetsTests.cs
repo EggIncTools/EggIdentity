@@ -33,9 +33,8 @@ public class AdminTargetsTests {
     }
 
     [Fact]
-    public void ADisabledRow_ResolvesToNothing() {
+    public void ADisabledRow_ResolvesToNothing() =>
         Assert.Null(AdminTargets.Resolve(Row(enabled: false), Env(("ADMIN_SECRET_EGGLEDGER", "s3cret"))));
-    }
 
     [Theory]
     [InlineData("")]

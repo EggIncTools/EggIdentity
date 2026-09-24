@@ -14,9 +14,9 @@ public sealed class DeployStateStore(NpgsqlDataSource dataSource) {
             """, conn);
         cmd.Parameters.AddWithValue(appName);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
-        if (!await reader.ReadAsync(ct)) return null;
-        return new DeployState(
-            reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetFieldValue<DateTimeOffset>(3));
+        return await reader.ReadAsync(ct)
+            ? new DeployState(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetFieldValue<DateTimeOffset>(3))
+            : null;
     }
 
     public async Task UpsertAsync(string appName, string gitSha, string semver, CancellationToken ct) {

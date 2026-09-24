@@ -29,8 +29,7 @@ public sealed class SettingsSnapshot : ISettingsSource {
         }
 
         foreach (var c in registry.Collections) {
-            IReadOnlyList<CollectionRow> stored =
-                collections is not null && collections.TryGetValue(c.Key, out var rows) ? rows : [];
+            var stored = collections is not null && collections.TryGetValue(c.Key, out var rows) ? rows : [];
             _collections[c.Key] = [.. stored.Select(r => ApplyDefaults(c, r))];
         }
     }
@@ -80,8 +79,8 @@ public sealed class SettingsSnapshot : ISettingsSource {
         if (!string.IsNullOrEmpty(fromFile)) return new SettingValue(d, fromFile, SettingSource.File);
 
         var fromEnv = env(d.EnvKey);
-        if (!string.IsNullOrEmpty(fromEnv)) return new SettingValue(d, fromEnv, SettingSource.Environment);
-
-        return new SettingValue(d, d.Default, SettingSource.Default);
+        return string.IsNullOrEmpty(fromEnv)
+            ? new SettingValue(d, d.Default, SettingSource.Default)
+            : new SettingValue(d, fromEnv, SettingSource.Environment);
     }
 }

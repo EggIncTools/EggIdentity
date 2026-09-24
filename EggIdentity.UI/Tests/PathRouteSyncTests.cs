@@ -29,9 +29,8 @@ internal sealed class FakeJSRuntime : IJSRuntime {
 }
 
 public class PathRouteSyncTests {
-    private static FakeNavigationManager MakeNav(string path) {
-        return new FakeNavigationManager("https://example.test/", $"https://example.test{path}");
-    }
+    private static FakeNavigationManager MakeNav(string path) =>
+        new("https://example.test/", $"https://example.test{path}");
 
     [Fact]
     public async Task StartAsync_SeedsSegmentsAndCallsListen() {
@@ -42,9 +41,9 @@ public class PathRouteSyncTests {
         await sync.StartAsync();
 
         Assert.Equal(["Missions", "List", "Home"], sync.Segments);
-        var call = Assert.Single(jsRuntime.Calls);
-        Assert.Equal("pathRouteSyncListen", call.Identifier);
-        Assert.Equal("/missions", call.Args?[0]);
+        var (identifier, args) = Assert.Single(jsRuntime.Calls);
+        Assert.Equal("pathRouteSyncListen", identifier);
+        Assert.Equal("/missions", args?[0]);
     }
 
     [Fact]
@@ -81,10 +80,10 @@ public class PathRouteSyncTests {
 
         await sync.Push("/missions/calendar/home");
 
-        var call = Assert.Single(jsRuntime.Calls);
-        Assert.Equal("pathRouteSyncPush", call.Identifier);
-        Assert.Equal("/missions/calendar/home", call.Args?[0]);
-        Assert.False((bool)call.Args![1]!);
+        var (identifier, args) = Assert.Single(jsRuntime.Calls);
+        Assert.Equal("pathRouteSyncPush", identifier);
+        Assert.Equal("/missions/calendar/home", args?[0]);
+        Assert.False(Assert.IsType<bool>(args?[1]));
         Assert.Equal(["missions", "calendar", "home"], sync.Segments);
     }
 
@@ -98,9 +97,9 @@ public class PathRouteSyncTests {
 
         await sync.Replace("/protos/terms");
 
-        var call = Assert.Single(jsRuntime.Calls);
-        Assert.Equal("pathRouteSyncPush", call.Identifier);
-        Assert.True((bool)call.Args![1]!);
+        var (identifier, args) = Assert.Single(jsRuntime.Calls);
+        Assert.Equal("pathRouteSyncPush", identifier);
+        Assert.True(Assert.IsType<bool>(args?[1]));
     }
 
     [Fact]
@@ -156,8 +155,8 @@ public class PathRouteSyncTests {
 
         await sync.DisposeAsync();
 
-        var call = Assert.Single(jsRuntime.Calls);
-        Assert.Equal("pathRouteSyncUnlisten", call.Identifier);
-        Assert.Equal("/protos", call.Args?[0]);
+        var (identifier, args) = Assert.Single(jsRuntime.Calls);
+        Assert.Equal("pathRouteSyncUnlisten", identifier);
+        Assert.Equal("/protos", args?[0]);
     }
 }

@@ -30,11 +30,8 @@ public readonly record struct ThemeColor(double L, double C, double H, string? H
         return new ThemeColor(l, c, h, null);
     }
 
-    public string ToCss() {
-        if (Hex is not null) return Hex;
-        return string.Create(CultureInfo.InvariantCulture,
-            $"oklch({Math.Round(L * 100.0, 1):0.#}% {Math.Round(C, 3):0.###} {Math.Round(H, 1):0.#})");
-    }
+    public string ToCss() => Hex ?? string.Create(CultureInfo.InvariantCulture,
+        $"oklch({Math.Round(L * 100.0, 1):0.#}% {Math.Round(C, 3):0.###} {Math.Round(H, 1):0.#})");
 
     public ThemeColor RotateHue(double degrees) {
         double h = (H + degrees) % 360.0;

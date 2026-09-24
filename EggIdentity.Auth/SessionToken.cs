@@ -59,8 +59,7 @@ public static class SessionToken {
             ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
             LifetimeValidator = (notBefore, expires, _, _) => {
                 if (notBefore.HasValue && now.UtcDateTime + Skew < notBefore.Value) return false;
-                if (expires.HasValue && now.UtcDateTime - Skew > expires.Value) return false;
-                return true;
+                return !expires.HasValue || now.UtcDateTime - Skew <= expires.Value;
             },
         };
 

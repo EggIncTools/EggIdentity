@@ -15,7 +15,7 @@ public static class CloneAdminRoutes {
         var run = new CloneRun(plan);
 
         group.MapPost("/clone", ([FromServices] IServiceProvider services) => {
-            if (run.Refusal(services) is { } refusal)
+            if (CloneRun.Refusal(services) is { } refusal)
                 return Results.Ok(new AdminSaveResponse { Ok = false, Error = refusal });
             return run.TryStart()
                 ? Results.Ok(new AdminSaveResponse { Ok = true })
@@ -45,7 +45,7 @@ public static class CloneAdminRoutes {
         private readonly CloneTracker _tracker = new();
         private int _active;
 
-        public string? Refusal(IServiceProvider services) {
+        public static string? Refusal(IServiceProvider services) {
             if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(CloneConsole.SourceEnvKey)))
                 return $"{CloneConsole.SourceEnvKey} is not set on this host, so it cannot be a clone target";
             if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(CloneConsole.TargetEnvKey)))

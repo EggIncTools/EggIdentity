@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace EggIdentity.Styles.Theming;
 
 public enum ThemePropertyGroup {
@@ -15,7 +17,7 @@ public sealed class ThemeCssCatalog(IReadOnlyList<ThemeCatalogEntry> entries) {
     private readonly Dictionary<string, ThemeCatalogEntry> _byName =
         entries.ToDictionary(e => e.Name, StringComparer.Ordinal);
 
-    private static readonly Dictionary<string, ThemePropertyGroup> PropertyFloor = new(StringComparer.Ordinal) {
+    private static readonly FrozenDictionary<string, ThemePropertyGroup> PropertyFloor = new Dictionary<string, ThemePropertyGroup> {
         ["color"] = ThemePropertyGroup.ColorOnly,
         ["background-color"] = ThemePropertyGroup.ColorOnly,
         ["border-color"] = ThemePropertyGroup.ColorOnly,
@@ -36,7 +38,7 @@ public sealed class ThemeCssCatalog(IReadOnlyList<ThemeCatalogEntry> entries) {
         ["caret-color"] = ThemePropertyGroup.Full,
         ["accent-color"] = ThemePropertyGroup.Full,
         ["opacity"] = ThemePropertyGroup.Full
-    };
+    }.ToFrozenDictionary(StringComparer.Ordinal);
 
     public ThemeCatalogEntry? Find(string name) =>
         _byName.TryGetValue(name, out var entry) ? entry : null;

@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using EggIdentity.Settings.Store;
 using EggIdentity.UI;
 using Microsoft.AspNetCore.Components;
@@ -45,9 +46,9 @@ public sealed partial class SettingsPanel : IDisposable {
     private static readonly TimeSpan DeleteConfirmWindow = TimeSpan.FromSeconds(5);
 
     internal static readonly IReadOnlyDictionary<string, string> Icons = new Dictionary<string, string>(StringComparer.Ordinal) {
-        ["lock"] = "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"/><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"/></svg>",
-        ["copy"] = "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"9\" y=\"9\" width=\"13\" height=\"13\" rx=\"2\"/><path d=\"M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1\"/></svg>",
-    };
+        ["lock"] = """<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>""",
+        ["copy"] = """<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>""",
+    }.ToFrozenDictionary(StringComparer.Ordinal);
 
     [Inject] private IServiceProvider Services { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
@@ -115,8 +116,7 @@ public sealed partial class SettingsPanel : IDisposable {
         var nav = Nav;
         if (nav.Count > 0 && nav[0].Categories.Count > 0)
             return new Pane(PaneKind.Category, nav[0].Categories[0].Category);
-        if (_collections.Count > 0) return new Pane(PaneKind.Collection, _collections[0].Key);
-        return new Pane(PaneKind.Drift, null);
+        return _collections.Count > 0 ? new Pane(PaneKind.Collection, _collections[0].Key) : new Pane(PaneKind.Drift, null);
     }
 
     private IReadOnlyList<string> Categories =>
@@ -159,9 +159,7 @@ public sealed partial class SettingsPanel : IDisposable {
         _highlightKey = null;
     }
 
-    private void OnRowQueryChanged(string value) {
-        _rowQuery = value;
-    }
+    private void OnRowQueryChanged(string value) => _rowQuery = value;
 
     private IReadOnlyCollection<SettingRow>? RowsIn(string category) =>
         _rows is null ? null : [.. _rows.Where(r => string.Equals(r.Descriptor.Category, category, StringComparison.Ordinal))];
@@ -190,11 +188,10 @@ public sealed partial class SettingsPanel : IDisposable {
         || d.Key.Contains(q, StringComparison.OrdinalIgnoreCase)
         || d.EnvKey.Contains(q, StringComparison.OrdinalIgnoreCase);
 
-    private LocalSettingsAdmin? Local() {
-        if (Services.GetService<SettingsAdminService>() is not { } service) return null;
-        return new LocalSettingsAdmin(
-            "", service, Services.GetService<IEnvSource>(), Services.GetService<IRestartTrigger>());
-    }
+    private LocalSettingsAdmin? Local() =>
+        Services.GetService<SettingsAdminService>() is { } service
+            ? new LocalSettingsAdmin("", service, Services.GetService<IEnvSource>(), Services.GetService<IRestartTrigger>())
+            : null;
 
     private async Task LoadRowsAsync() {
         if (_admin is null) return;
@@ -310,8 +307,9 @@ public sealed partial class SettingsPanel : IDisposable {
 
     private bool IsDirty(SettingRow row) {
         if (!_drafts.TryGetValue(row.Descriptor.Key, out var draft)) return false;
-        if (IsSecret(row.Descriptor)) return !string.IsNullOrEmpty(draft);
-        return !string.Equals(draft ?? "", ToControl(row.Descriptor.Kind, row.Display), StringComparison.Ordinal);
+        return IsSecret(row.Descriptor)
+            ? !string.IsNullOrEmpty(draft)
+            : !string.Equals(draft ?? "", ToControl(row.Descriptor.Kind, row.Display), StringComparison.Ordinal);
     }
 
     private void SetDraft(SettingRow row, string? value) {
@@ -379,7 +377,7 @@ public sealed partial class SettingsPanel : IDisposable {
             false);
     }
 
-    private ControlSpec FieldSpec(RowEdit edit, FieldDescriptor field) {
+    private static ControlSpec FieldSpec(RowEdit edit, FieldDescriptor field) {
         var secret = IsSecret(field);
         var isId = string.Equals(field.Name, edit.Descriptor.IdField, StringComparison.Ordinal);
         return new ControlSpec(
@@ -676,10 +674,8 @@ public sealed partial class SettingsPanel : IDisposable {
     private IReadOnlyList<EnvKeyInfo> SortedEnv =>
         _env is null ? [] : [.. _env.OrderBy(e => e.Name, StringComparer.Ordinal)];
 
-    private static string EnvValueText(EnvKeyInfo info) {
-        if (info.Masked) return SettingsAdminService.SecretMask;
-        return info.Value ?? "";
-    }
+    private static string EnvValueText(EnvKeyInfo info) =>
+        info.Masked ? SettingsAdminService.SecretMask : info.Value ?? "";
 
     private void GoToSetting(string envKey) {
         var row = _rows?.FirstOrDefault(r => string.Equals(r.Descriptor.EnvKey, envKey, StringComparison.Ordinal));

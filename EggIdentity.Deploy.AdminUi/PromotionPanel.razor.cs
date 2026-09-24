@@ -22,7 +22,7 @@ public sealed partial class PromotionPanel : ComponentBase {
     protected override async Task OnInitializedAsync() {
         _service = Services.GetService<PromotionService>();
         if (_service is null) return;
-        await LoadAsync();
+        await LoadAsync(_service);
     }
 
     private bool IsConfirming(string action, string app) =>
@@ -46,26 +46,27 @@ public sealed partial class PromotionPanel : ComponentBase {
 
     private Task PromoteAsync(string app) =>
         Arm(PromoteAction, app)
-            ? RunAsync(ct => _service!.PromoteAsync(app, UpdatedBy, ct), $"{app} promoted.")
+            ? RunAsync((service, ct) => service.PromoteAsync(app, UpdatedBy, ct), $"{app} promoted.")
             : Task.CompletedTask;
 
     private Task RollBackAsync(string app) =>
         Arm(RollBackAction, app)
-            ? RunAsync(ct => _service!.RollBackAsync(app, UpdatedBy, ct), $"{app} rolled back.")
+            ? RunAsync((service, ct) => service.RollBackAsync(app, UpdatedBy, ct), $"{app} rolled back.")
             : Task.CompletedTask;
 
-    private async Task RunAsync(Func<CancellationToken, Task<string?>> work, string success) {
+    private async Task RunAsync(Func<PromotionService, CancellationToken, Task<string?>> work, string success) {
+        if (_service is not { } service) return;
         _busy = true;
         _error = null;
         _note = null;
         try {
-            var failure = await work(CancellationToken.None);
+            var failure = await work(service, CancellationToken.None);
             if (failure is not null) {
                 _error = failure;
                 return;
             }
             _note = success;
-            await LoadAsync();
+            await LoadAsync(service);
         } catch (Exception e) {
             _error = e.Message;
         } finally {
@@ -73,9 +74,9 @@ public sealed partial class PromotionPanel : ComponentBase {
         }
     }
 
-    private async Task LoadAsync() {
+    private async Task LoadAsync(PromotionService service) {
         try {
-            _views = await _service!.ViewAsync(CancellationToken.None);
+            _views = await service.ViewAsync(CancellationToken.None);
         } catch (Exception e) {
             _views = [];
             _error = e.Message;

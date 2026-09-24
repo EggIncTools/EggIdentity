@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using EggIdentity.Contract;
 
 namespace EggIdentity.Host;
@@ -5,11 +6,11 @@ namespace EggIdentity.Host;
 public static class AvatarStore {
     public const long MaxBytes = 2 * 1024 * 1024;
 
-    private static readonly Dictionary<string, string> AllowedTypes = new() {
+    private static readonly FrozenDictionary<string, string> AllowedTypes = new Dictionary<string, string> {
         ["image/png"] = "png",
         ["image/jpeg"] = "jpg",
         ["image/webp"] = "webp",
-    };
+    }.ToFrozenDictionary();
 
     public static async Task<string?> SaveAsync(string dir, Guid userId, Stream content, string contentType, CancellationToken ct) {
         if (!AllowedTypes.TryGetValue(contentType, out var ext)) return null;

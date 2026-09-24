@@ -13,8 +13,6 @@ public static class SecretMasking {
         return false;
     }
 
-    public static string Mask(string key, string value) {
-        if (!LooksSecret(key)) return value;
-        return value.Length == 0 ? "" : "********";
-    }
+    public static string Mask(string key, string value) =>
+        !LooksSecret(key) || value.Length == 0 ? value : "********";
 }

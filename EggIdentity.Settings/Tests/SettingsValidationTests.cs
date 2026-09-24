@@ -30,16 +30,14 @@ public class SettingsValidationTests {
     [Theory]
     [InlineData("true", true)]
     [InlineData("nope", false)]
-    public void Bool_ChecksParse(string value, bool ok) {
+    public void Bool_ChecksParse(string value, bool ok) =>
         Assert.Equal(ok, SettingsValidation.Validate(Of(SettingKind.Bool), value) is null);
-    }
 
     [Theory]
     [InlineData("42", true)]
     [InlineData("4.2", false)]
-    public void Int_ChecksParse(string value, bool ok) {
+    public void Int_ChecksParse(string value, bool ok) =>
         Assert.Equal(ok, SettingsValidation.Validate(Of(SettingKind.Number), value) is null);
-    }
 
     [Theory]
     [InlineData("30s", true)]
@@ -47,25 +45,22 @@ public class SettingsValidationTests {
     [InlineData("1h30m", true)]
     [InlineData("5", false)]
     [InlineData("5x", false)]
-    public void Duration_ChecksUnits(string value, bool ok) {
+    public void Duration_ChecksUnits(string value, bool ok) =>
         Assert.Equal(ok, SettingsValidation.Validate(Of(SettingKind.Duration), value) is null);
-    }
 
     [Theory]
     [InlineData("https://example.com", true)]
     [InlineData("not a url", false)]
-    public void Url_RequiresAbsolute(string value, bool ok) {
+    public void Url_RequiresAbsolute(string value, bool ok) =>
         Assert.Equal(ok, SettingsValidation.Validate(Of(SettingKind.Url), value) is null);
-    }
 
     [Theory]
     [InlineData("192.168.1.0/24", true)]
     [InlineData("2a01:4f8:c012:e15b:8000::/65", true)]
     [InlineData("192.168.1.0", false)]
     [InlineData("192.168.1.0/99", false)]
-    public void CidrList_ValidatesEachEntry(string value, bool ok) {
+    public void CidrList_ValidatesEachEntry(string value, bool ok) =>
         Assert.Equal(ok, SettingsValidation.Validate(Of(SettingKind.CidrList), value) is null);
-    }
 
     [Fact]
     public void Enum_RestrictsToDeclaredValues() {
@@ -76,14 +71,12 @@ public class SettingsValidationTests {
     }
 
     [Fact]
-    public void ReadOnly_IsNeverWritable() {
+    public void ReadOnly_IsNeverWritable() =>
         Assert.NotNull(SettingsValidation.Validate(Of(SettingKind.ReadOnly), "anything"));
-    }
 
     [Fact]
-    public void External_IsNeverWritable() {
+    public void External_IsNeverWritable() =>
         Assert.NotNull(SettingsValidation.Validate(Of(SettingKind.External), "eth0"));
-    }
 
     [Fact]
     public void Json_RejectsMalformedPayloads() {
@@ -117,17 +110,15 @@ public class SettingsValidationTests {
     [InlineData("")]
     [InlineData("has space")]
     [InlineData("semi;colon")]
-    public void Row_RejectsBadIds(string? id) {
+    public void Row_RejectsBadIds(string? id) =>
         Assert.NotNull(SettingsValidation.ValidateRow(Apps, Row(("name", id), ("image", "b"))));
-    }
 
     [Theory]
     [InlineData("eggledger")]
     [InlineData("https://ledger.example.com/")]
     [InlineData("user@host:1.2-3_4")]
-    public void Row_AcceptsPathSafeIds(string id) {
+    public void Row_AcceptsPathSafeIds(string id) =>
         Assert.Null(SettingsValidation.ValidateRow(Apps, Row(("name", id), ("image", "b"))));
-    }
 
     [Fact]
     public void Path_MustExistAndBeReadable() {
@@ -160,7 +151,6 @@ public class SettingsValidationTests {
     }
 
     [Fact]
-    public void Row_OptionalBlankFieldsAreFine() {
+    public void Row_OptionalBlankFieldsAreFine() =>
         Assert.Null(SettingsValidation.ValidateRow(Apps, Row(("name", "a"), ("image", "b"), ("deploy_secret", ""), ("auto_deploy", null))));
-    }
 }

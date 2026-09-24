@@ -8,7 +8,8 @@ public static class ConsentReconciler {
         if (server is null) return new ConsentReconciliation(cookie, false, true);
         if (cookie is null) return new ConsentReconciliation(server, true, false);
         if (server.DecidedAt > cookie.DecidedAt) return new ConsentReconciliation(server, true, false);
-        if (cookie.DecidedAt > server.DecidedAt) return new ConsentReconciliation(cookie, false, true);
-        return new ConsentReconciliation(cookie, false, false);
+        return cookie.DecidedAt > server.DecidedAt
+            ? new ConsentReconciliation(cookie, false, true)
+            : new ConsentReconciliation(cookie, false, false);
     }
 }

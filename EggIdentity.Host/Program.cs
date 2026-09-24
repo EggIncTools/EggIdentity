@@ -53,7 +53,7 @@ public static class Program {
         BrandRoutes.Map(app);
 
         if (config.ProfileEnabled) ProfileLinkRoutes.Map(app, config);
-        if (config.SponsorEnabled) SponsorRoutes.Map(app, config, sponsorSync!);
+        if (sponsorSync is not null) SponsorRoutes.Map(app, config, sponsorSync);
 
         IdentityApiRoutes.Map(app, config);
         var adminApi = app.MapAdminApi(new AdminApiOptions("eggidentity", config.ApiSecret));
@@ -91,24 +91,23 @@ public static class Program {
 
     public static string ComputeLinkFlag(string? requestedProvider, LinkOutcome authentikOutcome, IReadOnlyList<(string Provider, LinkOutcome Outcome)> sourceOutcomes) {
         if (requestedProvider is not null) {
-            var requested = sourceOutcomes.FirstOrDefault(o => o.Provider == requestedProvider);
-            if (requested.Provider is not null) {
-                if (requested.Outcome.Conflict) return $"linkConflict={requestedProvider}";
-                if (requested.Outcome.NotAvailable) return $"linkUnavailable={requestedProvider}";
-                if (requested.Outcome.AlreadyLinked) return $"linkRejected={requestedProvider}";
-                if (requested.Outcome.Linked) return "linked=ok";
+            var (provider, outcome) = sourceOutcomes.FirstOrDefault(o => o.Provider == requestedProvider);
+            if (provider is not null) {
+                if (outcome.Conflict) return $"linkConflict={requestedProvider}";
+                if (outcome.NotAvailable) return $"linkUnavailable={requestedProvider}";
+                if (outcome.AlreadyLinked) return $"linkRejected={requestedProvider}";
+                if (outcome.Linked) return "linked=ok";
             }
             return "linkError=1";
         }
 
-        var conflict = sourceOutcomes.FirstOrDefault(o => o.Outcome.Conflict);
-        if (conflict.Provider is not null) return $"linkConflict={conflict.Provider}";
+        var (conflictProvider, _) = sourceOutcomes.FirstOrDefault(o => o.Outcome.Conflict);
+        if (conflictProvider is not null) return $"linkConflict={conflictProvider}";
         if (authentikOutcome.Conflict) return "linkConflict=authentik";
-        var rejected = sourceOutcomes.FirstOrDefault(o => o.Outcome.AlreadyLinked);
-        if (rejected.Provider is not null) return $"linkRejected={rejected.Provider}";
+        var (rejectedProvider, _) = sourceOutcomes.FirstOrDefault(o => o.Outcome.AlreadyLinked);
+        if (rejectedProvider is not null) return $"linkRejected={rejectedProvider}";
         if (authentikOutcome.AlreadyLinked) return "linkRejected=authentik";
-        if (authentikOutcome.Linked || sourceOutcomes.Any(o => o.Outcome.Linked)) return "linked=ok";
-        return "linkError=1";
+        return authentikOutcome.Linked || sourceOutcomes.Any(o => o.Outcome.Linked) ? "linked=ok" : "linkError=1";
     }
 
     public static string BuildEndSessionUrl(string endSessionEndpoint, string? idTokenHint, string? returnUrl) {
@@ -162,7 +161,7 @@ public static class Program {
         if (!Uri.TryCreate(target, UriKind.Absolute, out var parsed)) return false;
         if (parsed.Scheme != Uri.UriSchemeHttps && parsed.Scheme != Uri.UriSchemeHttp) return false;
         var trimmed = authority.TrimEnd('/');
-        if (!knownProviders.Any(provider => target.StartsWith($"{trimmed}/if/flow/{provider}-only-auth/", StringComparison.Ordinal)))
+        if (!Array.Exists(knownProviders, provider => target.StartsWith($"{trimmed}/if/flow/{provider}-only-auth/", StringComparison.Ordinal)))
             return false;
 
         var next = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(parsed.Query).TryGetValue("next", out var values)

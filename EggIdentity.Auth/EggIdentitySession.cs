@@ -25,8 +25,7 @@ internal sealed class SessionRevocationGuard(IServiceProvider services, string s
     public Task StartAsync(CancellationToken cancellationToken) {
         var options = services.GetRequiredService<IOptionsMonitor<EggIdentitySessionOptions>>().Get(scheme);
         if (!options.RequireRevocationCheck) return Task.CompletedTask;
-        if (services.GetService<IdentityApiClient>() is not null) return Task.CompletedTask;
-        throw new InvalidOperationException(
+        return services.GetService<IdentityApiClient>() is not null ? Task.CompletedTask : throw new InvalidOperationException(
             $"The \"{scheme}\" authentication scheme checks whether a session has been revoked, which needs an "
             + "IdentityApiClient in the service collection, and none is registered. Without it a revoked session "
             + "stays usable until its cookie expires on its own. Register one (services.AddHttpClient<IdentityApiClient>"

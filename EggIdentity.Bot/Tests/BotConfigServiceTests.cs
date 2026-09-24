@@ -21,24 +21,20 @@ public class BotConfigServiceTests {
     }
 
     [Fact]
-    public void ValidateEmbedJson_ValidSpec_ReturnsNull() {
-        Assert.Null(BotConfigService.ValidateEmbedJson("{\"title\":\"ok\",\"description\":\"{{ from_hash }}\"}"));
-    }
+    public void ValidateEmbedJson_ValidSpec_ReturnsNull() =>
+        Assert.Null(BotConfigService.ValidateEmbedJson("""{"title":"ok","description":"{{ from_hash }}"}"""));
 
     [Fact]
-    public void ValidateEmbedJson_MalformedJson_ReturnsMessage() {
+    public void ValidateEmbedJson_MalformedJson_ReturnsMessage() =>
         Assert.NotNull(BotConfigService.ValidateEmbedJson("{not json"));
-    }
 
     [Fact]
-    public void ValidateEmbedJson_BrokenTemplateField_ReturnsMessage() {
-        Assert.NotNull(BotConfigService.ValidateEmbedJson("{\"description\":\"{{ 1 + }}\"}"));
-    }
+    public void ValidateEmbedJson_BrokenTemplateField_ReturnsMessage() =>
+        Assert.NotNull(BotConfigService.ValidateEmbedJson("""{"description":"{{ 1 + }}"}"""));
 
     [Fact]
-    public void ValidateEmbedJson_BrokenTemplateInFields_ReturnsMessage() {
-        Assert.NotNull(BotConfigService.ValidateEmbedJson("{\"fields\":[{\"name\":\"n\",\"value\":\"{{ 1 + }}\",\"inline\":false}]}"));
-    }
+    public void ValidateEmbedJson_BrokenTemplateInFields_ReturnsMessage() =>
+        Assert.NotNull(BotConfigService.ValidateEmbedJson("""{"fields":[{"name":"n","value":"{{ 1 + }}","inline":false}]}"""));
 
     [Fact]
     public void DefaultsAndVariables_Exposed() {

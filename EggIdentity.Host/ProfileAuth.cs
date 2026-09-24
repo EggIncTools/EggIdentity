@@ -19,8 +19,6 @@ public static class ProfileAuth {
         if (userId is null) return null;
 
         var sid = principal.FindFirstValue(SessionClaims.SessionId);
-        if (!string.IsNullOrEmpty(sid) && await isRevokedAsync(sid, ct)) return null;
-
-        return userId;
+        return !string.IsNullOrEmpty(sid) && await isRevokedAsync(sid, ct) ? null : userId;
     }
 }

@@ -130,14 +130,16 @@ internal static class Program {
 
         app.MapPost("/check/{appName}", async (string appName, HttpContext ctx) => {
             if (!ctx.User.IsAtLeast(UserRole.Admin)) return Results.Forbid();
-            if (!service.TryGetApp(appName, out _)) return Results.NotFound();
-            return Results.Json(await service.CheckAsync(appName, ctx.RequestAborted));
+            return !service.TryGetApp(appName, out _)
+                ? Results.NotFound()
+                : Results.Json(await service.CheckAsync(appName, ctx.RequestAborted));
         });
 
         app.MapPost("/restart/{appName}", async (string appName, HttpContext ctx, IHostApplicationLifetime lifetime) => {
             if (!ctx.User.IsAtLeast(UserRole.Admin)) return Results.Forbid();
-            if (!service.TryGetApp(appName, out _)) return Results.NotFound();
-            return Results.Json(await service.RestartAsync(appName, lifetime.ApplicationStopping));
+            return !service.TryGetApp(appName, out _)
+                ? Results.NotFound()
+                : Results.Json(await service.RestartAsync(appName, lifetime.ApplicationStopping));
         });
 
         app.MapGet("/events", async ctx => {

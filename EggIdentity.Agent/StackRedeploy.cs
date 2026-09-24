@@ -33,8 +33,10 @@ public sealed class StackRedeployer(HttpClient http, PortainerConfig? portainer)
         ArgumentNullException.ThrowIfNull(stack);
         ArgumentNullException.ThrowIfNull(readiness);
         if (!readiness.Ready) throw new InvalidOperationException(readiness.Info.Refusal);
-        if (readiness.WebhookUrl is { } url) return InvokeWebhookAsync(url, ct);
-        return portainer!.CreateClient(http, stack).RedeployAsync(forceRecreate: false, ct);
+        return readiness.WebhookUrl is { } url
+            ? InvokeWebhookAsync(url, ct)
+            : (portainer ?? throw new InvalidOperationException("portainer is not configured"))
+                .CreateClient(http, stack).RedeployAsync(forceRecreate: false, ct);
     }
 
     private async Task InvokeWebhookAsync(Uri url, CancellationToken ct) {

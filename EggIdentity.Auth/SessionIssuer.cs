@@ -8,13 +8,11 @@ public static class SessionIssuer {
         WriteCookie(response, options, token, now + options.Ttl);
     }
 
-    public static void WriteCookie(HttpResponse response, SessionCookieOptions options, string token, DateTimeOffset expires) {
+    public static void WriteCookie(HttpResponse response, SessionCookieOptions options, string token, DateTimeOffset expires) =>
         response.Cookies.Append(options.CookieName, token, BuildCookieOptions(options, expires));
-    }
 
-    public static void ClearCookie(HttpResponse response, SessionCookieOptions options) {
+    public static void ClearCookie(HttpResponse response, SessionCookieOptions options) =>
         response.Cookies.Append(options.CookieName, "", BuildCookieOptions(options, DateTimeOffset.UnixEpoch));
-    }
 
     private static CookieOptions BuildCookieOptions(SessionCookieOptions options, DateTimeOffset expires) => new() {
         Domain = options.CookieDomain,

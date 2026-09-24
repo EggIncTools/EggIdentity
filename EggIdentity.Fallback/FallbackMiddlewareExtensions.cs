@@ -53,10 +53,9 @@ public static class FallbackMiddlewareExtensions {
             return Results.NoContent();
         });
 
-        app.MapGet("/admin/maintenance", (HttpContext ctx) => {
-            if (!IsAdmin(ctx, branding)) return Results.StatusCode(StatusCodes.Status403Forbidden);
-            return Results.Content(FallbackPages.RenderMaintenanceAdmin(branding, maintenance.IsOn), "text/html");
-        });
+        app.MapGet("/admin/maintenance", (HttpContext ctx) => IsAdmin(ctx, branding)
+            ? Results.Content(FallbackPages.RenderMaintenanceAdmin(branding, maintenance.IsOn), "text/html")
+            : Results.StatusCode(StatusCodes.Status403Forbidden));
 
         app.Use(async (ctx, next) => {
             await next();

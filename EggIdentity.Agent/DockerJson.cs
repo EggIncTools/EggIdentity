@@ -63,12 +63,13 @@ public static class DockerJson {
         if (string.IsNullOrWhiteSpace(line)) return null;
         using var doc = JsonDocument.Parse(line);
         var root = doc.RootElement;
-        if (root.ValueKind != JsonValueKind.Object) return null;
-        return new PullProgress(
-            ReadString(root, "status"),
-            ReadString(root, "id"),
-            ReadString(root, "progress"),
-            ReadString(root, "error"));
+        return root.ValueKind != JsonValueKind.Object
+            ? null
+            : new PullProgress(
+                ReadString(root, "status"),
+                ReadString(root, "id"),
+                ReadString(root, "progress"),
+                ReadString(root, "error"));
     }
 
     public static string? ReadErrorMessage(string body) {
@@ -94,10 +95,11 @@ public static class DockerJson {
     }
 
     private static Dictionary<string, string> ReadStringMap(JsonElement element, string name) {
-        if (!element.TryGetProperty(name, out var obj) || obj.ValueKind != JsonValueKind.Object) return [];
-        return obj.EnumerateObject()
-            .Where(property => property.Value.ValueKind == JsonValueKind.String)
-            .ToDictionary(property => property.Name, property => property.Value.GetString() ?? "", StringComparer.Ordinal);
+        return !element.TryGetProperty(name, out var obj) || obj.ValueKind != JsonValueKind.Object
+            ? []
+            : obj.EnumerateObject()
+                .Where(property => property.Value.ValueKind == JsonValueKind.String)
+                .ToDictionary(property => property.Name, property => property.Value.GetString() ?? "", StringComparer.Ordinal);
     }
 
     private static JsonElement EmptyObject() {

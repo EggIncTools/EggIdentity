@@ -20,15 +20,21 @@ public sealed class FilterGroupDraft<TField> where TField : notnull {
         if (Conditions.Count == 0) Conditions.Add(new FilterConditionDraft<TField>());
     }
 
-    public IReadOnlyList<Condition<TField>> CompleteConditions() =>
-        [.. Conditions.Where(c => c.IsComplete).Select(c => new Condition<TField>(c.Field!, c.Operator!.Value, c.Value!))];
+    public IReadOnlyList<Condition<TField>> CompleteConditions() {
+        List<Condition<TField>> result = [];
+        foreach (var c in Conditions) {
+            if (c is { Field: { } field, Operator: { } op, Value: { } value }) result.Add(new Condition<TField>(field, op, value));
+        }
+
+        return result;
+    }
 }
 
 public sealed class FilterDraft<TField> where TField : notnull {
     public List<FilterGroupDraft<TField>> Groups { get; } = [new()];
 
     public void EnsureTrailingGroup() {
-        if (Groups.Count == 0 || Groups[^1].Conditions.Any(c => c.IsComplete)) Groups.Add(new FilterGroupDraft<TField>());
+        if (Groups.Count == 0 || Groups[^1].Conditions.Exists(c => c.IsComplete)) Groups.Add(new FilterGroupDraft<TField>());
     }
 
     public void RemoveGroupAt(int index) {

@@ -63,10 +63,8 @@ public sealed class LocalSettingsAdmin(
     public Task<SettingsSaveResult> DeleteRowAsync(string collectionKey, string id, CancellationToken ct = default) =>
         admin.DeleteRowAsync(collectionKey, id, ct);
 
-    public async Task<DriftReport?> DriftAsync(CancellationToken ct = default) {
-        if (env is null) return null;
-        return await admin.DriftAsync(await env.GetAsync(ct), ct);
-    }
+    public async Task<DriftReport?> DriftAsync(CancellationToken ct = default) =>
+        env is null ? null : await admin.DriftAsync(await env.GetAsync(ct), ct);
 
     public Task<IReadOnlyList<string>> PendingRestartKeysAsync(CancellationToken ct = default) =>
         Task.FromResult(admin.PendingRestartKeys);

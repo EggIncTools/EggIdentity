@@ -34,9 +34,9 @@ public sealed class RegistryClient(HttpClient http) : IImageRegistry {
             throw new HttpRequestException($"registry HEAD {image} returned no Docker-Content-Digest header");
 
         var digest = values.FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(digest))
-            throw new HttpRequestException($"registry HEAD {image} returned an empty Docker-Content-Digest header");
-        return digest;
+        return string.IsNullOrWhiteSpace(digest)
+            ? throw new HttpRequestException($"registry HEAD {image} returned an empty Docker-Content-Digest header")
+            : digest;
     }
 
     private async Task<string?> FetchTokenAsync(ImageRef image, CancellationToken ct) {
@@ -47,8 +47,8 @@ public sealed class RegistryClient(HttpClient http) : IImageRegistry {
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
         if (doc.RootElement.TryGetProperty("token", out var token) && token.ValueKind == JsonValueKind.String)
             return token.GetString();
-        if (doc.RootElement.TryGetProperty("access_token", out var accessToken) && accessToken.ValueKind == JsonValueKind.String)
-            return accessToken.GetString();
-        return null;
+        return doc.RootElement.TryGetProperty("access_token", out var accessToken) && accessToken.ValueKind == JsonValueKind.String
+            ? accessToken.GetString()
+            : null;
     }
 }

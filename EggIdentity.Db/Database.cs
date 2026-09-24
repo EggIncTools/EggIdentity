@@ -32,9 +32,7 @@ public static class Database {
     public static bool IsTransient(Exception e) {
         ArgumentNullException.ThrowIfNull(e);
         for (var current = e; current is not null; current = current.InnerException) {
-            if (current is SocketException) return true;
-            if (current is TimeoutException) return true;
-            if (current is NpgsqlException { IsTransient: true }) return true;
+            if (current is SocketException or TimeoutException or NpgsqlException { IsTransient: true }) return true;
             if (current is PostgresException pg) return IsStarting(pg.SqlState);
         }
         return false;
@@ -46,11 +44,10 @@ public static class Database {
     public static string? DescribeUriForm(string connStr) {
         if (string.IsNullOrEmpty(connStr)) return null;
         var text = connStr.TrimStart();
-        if (!text.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
-            && !text.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase)) {
-            return null;
-        }
-        return "connection string is a URI; Npgsql needs keyword form, "
-            + "for example \"Host=frame;Port=5432;Username=app;Password=...;Database=app\"";
+        return text.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
+            || text.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase)
+            ? "connection string is a URI; Npgsql needs keyword form, "
+                + "for example \"Host=frame;Port=5432;Username=app;Password=...;Database=app\""
+            : null;
     }
 }

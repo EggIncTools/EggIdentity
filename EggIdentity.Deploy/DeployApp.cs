@@ -98,8 +98,7 @@ public sealed record DeployApp {
     private static string Compose(string repository, string tag) {
         var repo = repository.Trim();
         if (repo.Length == 0) return "";
-        if (tag.StartsWith("sha256:", StringComparison.Ordinal)) return $"{repo}@{tag}";
-        return $"{repo}:{tag}";
+        return tag.StartsWith("sha256:", StringComparison.Ordinal) ? $"{repo}@{tag}" : $"{repo}:{tag}";
     }
 }
 

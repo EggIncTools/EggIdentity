@@ -25,8 +25,6 @@ public static class SettingsFormat {
         return num.Length == 0 ? total : null;
     }
 
-    public static IReadOnlyList<string> ParseList(string? s) {
-        if (string.IsNullOrWhiteSpace(s)) return [];
-        return [.. s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
-    }
+    public static IReadOnlyList<string> ParseList(string? s) =>
+        string.IsNullOrWhiteSpace(s) ? [] : [.. s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
 }

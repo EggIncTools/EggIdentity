@@ -48,15 +48,15 @@ public sealed partial class DeployPanel : ComponentBase, IDisposable {
         _options = Services.GetService<DeployOptions>();
         if (_client is null || _events is null || _options is null) return;
 
-        SeedTimeline();
+        SeedTimeline(_events);
         _events.Received += OnEvent;
         await LoadStatusAsync();
         _refreshCts = new CancellationTokenSource();
         _ = RefreshLoopAsync(_refreshCts.Token);
     }
 
-    private void SeedTimeline() {
-        foreach (var evt in _events!.Recent(AppName).Reverse()) Append(evt);
+    private void SeedTimeline(IDeployEvents events) {
+        foreach (var evt in events.Recent(AppName).Reverse()) Append(evt);
     }
 
     private void Append(DeployEvent evt) {
@@ -93,24 +93,21 @@ public sealed partial class DeployPanel : ComponentBase, IDisposable {
         }
     }
 
-    private Task CheckNowAsync() => RunAsync(async () => {
-        _status = await _client!.CheckAsync(AppName, CancellationToken.None);
-    });
+    private Task CheckNowAsync() =>
+        RunAsync(async client => _status = await client.CheckAsync(AppName, CancellationToken.None));
 
-    private Task UpdateNowAsync() {
-        if (!Confirmed("update")) return Task.CompletedTask;
-        return RunAsync(async () => {
-            _status = await _client!.DeployAsync(AppName, CancellationToken.None);
-        });
-    }
+    private Task UpdateNowAsync() =>
+        !Confirmed("update")
+            ? Task.CompletedTask
+            : RunAsync(async client => _status = await client.DeployAsync(AppName, CancellationToken.None));
 
-    private Task RestartNowAsync() {
-        if (!Confirmed("restart")) return Task.CompletedTask;
-        return RunAsync(async () => {
-            var failure = await _client!.RestartAsync(AppName, CancellationToken.None);
-            if (failure is not null) _error = failure;
-        });
-    }
+    private Task RestartNowAsync() =>
+        !Confirmed("restart")
+            ? Task.CompletedTask
+            : RunAsync(async client => {
+                var failure = await client.RestartAsync(AppName, CancellationToken.None);
+                if (failure is not null) _error = failure;
+            });
 
     private bool Confirmed(string action) {
         if (!IsOwnApp) return true;
@@ -136,12 +133,12 @@ public sealed partial class DeployPanel : ComponentBase, IDisposable {
         }
     }
 
-    private async Task RunAsync(Func<Task> work) {
-        if (_working || _client is null) return;
+    private async Task RunAsync(Func<AgentClient, Task> work) {
+        if (_working || _client is not { } client) return;
         _working = true;
         _error = null;
         try {
-            await work();
+            await work(client);
         } catch (Exception e) when (e is HttpRequestException or TimeoutException or OperationCanceledException) {
             _error = e.Message;
         } finally {
@@ -150,6 +147,7 @@ public sealed partial class DeployPanel : ComponentBase, IDisposable {
     }
 
     private async Task ToggleLogsAsync() {
+        if (_client is not { } client) return;
         if (_logsOpen) {
             _logsOpen = false;
             return;
@@ -157,7 +155,7 @@ public sealed partial class DeployPanel : ComponentBase, IDisposable {
         _logsOpen = true;
         _logsLoading = true;
         try {
-            _logs = await _client!.GetLogsTailAsync(AppName, LogLines, CancellationToken.None);
+            _logs = await client.GetLogsTailAsync(AppName, LogLines, CancellationToken.None);
         } catch (Exception e) when (e is HttpRequestException or TimeoutException or OperationCanceledException) {
             _logs = e.Message;
         } finally {

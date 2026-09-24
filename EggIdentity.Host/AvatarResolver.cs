@@ -36,8 +36,7 @@ public static class AvatarResolver {
         ComputeETag($"{path}|{length}|{lastWriteUtc.Ticks}");
 
     public static bool IfNoneMatchHits(string? header, string etag) {
-        if (string.IsNullOrEmpty(header)) return false;
-        return header.Split(',')
+        return !string.IsNullOrEmpty(header) && header.Split(',')
             .Select(raw => raw.Trim())
             .Select(tag => tag.StartsWith("W/", StringComparison.Ordinal) ? tag[2..] : tag)
             .Any(tag => tag == "*" || tag == etag);

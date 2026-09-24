@@ -13,9 +13,9 @@ public sealed class StaticSettingsProvider(IReadOnlyList<SettingDescriptor> desc
 public sealed class AttributeSettingsProvider<T> : ISettingsProvider {
     private readonly List<SettingDescriptor> _descriptors = [.. typeof(T)
         .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-        .Select(p => (Prop: p, Attr: p.GetCustomAttribute<SettingAttribute>()))
-        .Where(x => x.Attr is not null)
-        .Select(x => Build(x.Attr!))];
+        .Select(p => p.GetCustomAttribute<SettingAttribute>())
+        .OfType<SettingAttribute>()
+        .Select(Build)];
 
     public IReadOnlyList<SettingDescriptor> Describe() => _descriptors;
 

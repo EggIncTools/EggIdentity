@@ -5,12 +5,12 @@ namespace EggIdentity.Deploy.Tests;
 public class SseParserTests {
     [Fact]
     public void Parse_ReadsIdEventAndData() {
-        var messages = SseParser.Parse(["id: 7", "event: deploy", "data: {\"x\":1}", ""]);
+        var messages = SseParser.Parse(["id: 7", "event: deploy", """data: {"x":1}""", ""]);
 
         var message = Assert.Single(messages);
         Assert.Equal(7, message.Id);
         Assert.Equal("deploy", message.Event);
-        Assert.Equal("{\"x\":1}", message.Data);
+        Assert.Equal("""{"x":1}""", message.Data);
     }
 
     [Fact]

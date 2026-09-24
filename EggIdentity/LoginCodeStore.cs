@@ -5,8 +5,9 @@ namespace EggIdentity;
 
 public sealed record RedeemedLogin(Guid UserId, bool IsNew);
 
-public sealed class LoginCodeStore(NpgsqlDataSource dataSource, TimeSpan? ttl = null) {
+public sealed class LoginCodeStore(NpgsqlDataSource dataSource, TimeSpan? ttl = null, TimeProvider? time = null) {
     private readonly TimeSpan _ttl = ttl ?? TimeSpan.FromSeconds(60);
+    private readonly TimeProvider _time = time ?? TimeProvider.System;
 
     public async Task<string> IssueAsync(Guid userId, bool isNew, CancellationToken ct) {
         var code = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
@@ -16,7 +17,7 @@ public sealed class LoginCodeStore(NpgsqlDataSource dataSource, TimeSpan? ttl = 
         cmd.Parameters.AddWithValue(code);
         cmd.Parameters.AddWithValue(userId);
         cmd.Parameters.AddWithValue(isNew);
-        cmd.Parameters.AddWithValue(DateTimeOffset.UtcNow.Add(_ttl));
+        cmd.Parameters.AddWithValue(_time.GetUtcNow().Add(_ttl));
         await cmd.ExecuteNonQueryAsync(ct);
         return code;
     }
@@ -31,7 +32,6 @@ public sealed class LoginCodeStore(NpgsqlDataSource dataSource, TimeSpan? ttl = 
             """, conn);
         cmd.Parameters.AddWithValue(code);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
-        if (!await reader.ReadAsync(ct)) return null;
-        return new RedeemedLogin(reader.GetGuid(0), reader.GetBoolean(1));
+        return await reader.ReadAsync(ct) ? new RedeemedLogin(reader.GetGuid(0), reader.GetBoolean(1)) : null;
     }
 }

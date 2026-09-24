@@ -7,8 +7,7 @@ public static class Migrator {
     public static int PrefixNum(string path) {
         var baseName = Path.GetFileName(path);
         var idx = baseName.IndexOf('_');
-        if (idx <= 0) return 0;
-        return int.TryParse(baseName[..idx], out var n) ? n : 0;
+        return idx > 0 && int.TryParse(baseName[..idx], out var n) ? n : 0;
     }
 
     public static IReadOnlyList<string> MigrationFiles(string dir) {

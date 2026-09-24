@@ -19,7 +19,6 @@ public static class DashboardSignature {
         return sb.ToString();
     }
 
-    private static void Append(StringBuilder sb, string value) {
+    private static void Append(StringBuilder sb, string value) =>
         sb.Append(value.Length).Append(':').Append(value);
-    }
 }

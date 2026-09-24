@@ -4,8 +4,9 @@ namespace EggIdentity;
 
 public sealed record OAuthState(string CodeVerifier, string ReturnUrl, string Mode);
 
-public sealed class OAuthStateStore(NpgsqlDataSource dataSource, TimeSpan? ttl = null) {
+public sealed class OAuthStateStore(NpgsqlDataSource dataSource, TimeSpan? ttl = null, TimeProvider? time = null) {
     private readonly TimeSpan _ttl = ttl ?? TimeSpan.FromMinutes(5);
+    private readonly TimeProvider _time = time ?? TimeProvider.System;
 
     public async Task SaveAsync(string state, string codeVerifier, string returnUrl, string mode, CancellationToken ct) {
         await using var conn = await dataSource.OpenConnectionAsync(ct);
@@ -15,7 +16,7 @@ public sealed class OAuthStateStore(NpgsqlDataSource dataSource, TimeSpan? ttl =
         cmd.Parameters.AddWithValue(codeVerifier);
         cmd.Parameters.AddWithValue(returnUrl);
         cmd.Parameters.AddWithValue(mode);
-        cmd.Parameters.AddWithValue(DateTimeOffset.UtcNow.Add(_ttl));
+        cmd.Parameters.AddWithValue(_time.GetUtcNow().Add(_ttl));
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
@@ -25,7 +26,6 @@ public sealed class OAuthStateStore(NpgsqlDataSource dataSource, TimeSpan? ttl =
             "DELETE FROM oauth_states WHERE state = $1 AND expires_at > now() RETURNING code_verifier, return_url, mode", conn);
         cmd.Parameters.AddWithValue(state);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
-        if (!await reader.ReadAsync(ct)) return null;
-        return new OAuthState(reader.GetString(0), reader.GetString(1), reader.GetString(2));
+        return await reader.ReadAsync(ct) ? new OAuthState(reader.GetString(0), reader.GetString(1), reader.GetString(2)) : null;
     }
 }

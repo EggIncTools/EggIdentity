@@ -100,7 +100,8 @@ public class AuthentikOAuthTests {
             return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(raw)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
         }
 
-        return $"{Enc("{\"alg\":\"RS256\"}")}.{Enc(payloadJson)}.sig";
+        var header = Enc("""{"alg":"RS256"}""");
+        return $"{header}.{Enc(payloadJson)}.sig";
     }
 
     [Fact]

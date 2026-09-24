@@ -16,8 +16,8 @@ public static class VisitBeacon {
         if (request.Headers["DNT"].ToString().Trim() == "1") return true;
         if (request.Headers["Sec-GPC"].ToString().Trim() == "1") return true;
         var ua = request.Headers.UserAgent.ToString();
-        if (Array.Exists(BotMarkers, m => ua.Contains(m, StringComparison.OrdinalIgnoreCase))) return true;
-        return request.Cookies.TryGetValue(ConsentCookie, out var consent) && AnalyticsDeclined(consent);
+        return Array.Exists(BotMarkers, m => ua.Contains(m, StringComparison.OrdinalIgnoreCase))
+            || (request.Cookies.TryGetValue(ConsentCookie, out var consent) && AnalyticsDeclined(consent));
     }
 
     public static bool AnalyticsDeclined(string? cookie) {

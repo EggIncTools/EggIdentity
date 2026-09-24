@@ -50,9 +50,8 @@ public class AppAuthConfigTests {
     }
 
     [Fact]
-    public void FromSnapshot_EmptyCollection_IsEmpty() {
+    public void FromSnapshot_EmptyCollection_IsEmpty() =>
         Assert.Empty(AppAuthConfigs.FromSnapshot(Snapshot(), Authority));
-    }
 
     [Fact]
     public void FromRows_SkipsRowsWithoutOrigin() {

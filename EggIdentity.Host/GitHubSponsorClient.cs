@@ -11,8 +11,7 @@ public interface IGitHubSponsorClient {
 public sealed class GitHubSponsorClient(IHttpClientFactory httpClientFactory, string pat, string target) : IGitHubSponsorClient {
     public async Task<bool> IsSponsoredByUserIdAsync(string githubUserId, CancellationToken ct) {
         var login = await ResolveLoginAsync(githubUserId, ct);
-        if (login is null) return false;
-        return await CheckIsSponsoredByAsync(login, ct);
+        return login is not null && await CheckIsSponsoredByAsync(login, ct);
     }
 
     private async Task<string?> ResolveLoginAsync(string githubUserId, CancellationToken ct) {

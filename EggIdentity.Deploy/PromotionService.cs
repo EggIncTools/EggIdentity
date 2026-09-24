@@ -29,8 +29,9 @@ public sealed class PromotionService(IPromotionStore store) {
         var rows = await store.GetRowsAsync(DeployApps.Key, ct);
         var apps = Bind(rows);
         if (Promotion.Plan(apps, app) is not { } plan) return NoPair(app);
-        if (plan.IsNoOp) return $"{app} is already running {plan.ToTag}";
-        return await WriteAsync(rows, Promotion.Apply(plan), updatedBy, ct);
+        return plan.IsNoOp
+            ? $"{app} is already running {plan.ToTag}"
+            : await WriteAsync(rows, Promotion.Apply(plan), updatedBy, ct);
     }
 
     public async Task<string?> RollBackAsync(string app, string? updatedBy, CancellationToken ct = default) {
@@ -39,8 +40,9 @@ public sealed class PromotionService(IPromotionStore store) {
         var prod = Bind(rows).FirstOrDefault(a =>
             !a.TracksLatest && string.Equals(a.Name, app, StringComparison.OrdinalIgnoreCase));
         if (prod is null) return $"{app} has no production row in {DeployApps.Key}";
-        if (!prod.CanRollBack) return $"{app} has no previous tag to roll back to";
-        return await WriteAsync(rows, prod.RollBack(), updatedBy, ct);
+        return !prod.CanRollBack
+            ? $"{app} has no previous tag to roll back to"
+            : await WriteAsync(rows, prod.RollBack(), updatedBy, ct);
     }
 
     private static PromotionView Describe(IReadOnlyList<DeployApp> apps, DeployApp prod) {

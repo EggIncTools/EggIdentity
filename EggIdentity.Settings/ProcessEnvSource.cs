@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace EggIdentity.Settings;
 
 public sealed class ProcessEnvSource(SettingsRegistry registry) : IEnvSource {
@@ -27,12 +29,11 @@ public sealed class ProcessEnvSource(SettingsRegistry registry) : IEnvSource {
         && name.All(c => char.IsAsciiLetterUpper(c) || char.IsAsciiDigit(c) || c == '_')
         && !Ignored.Contains(name);
 
-    private static readonly HashSet<string> Ignored = [
-        with(StringComparer.Ordinal),
+    private static readonly FrozenSet<string> Ignored = FrozenSet.Create(
+        StringComparer.Ordinal,
         "ALLUSERSPROFILE", "APPDATA", "COMPUTERNAME", "COMSPEC", "DOTNET_ROOT", "HOME", "HOMEDRIVE",
         "HOMEPATH", "HOSTNAME", "LANG", "LOCALAPPDATA", "LOGONSERVER", "NUMBER_OF_PROCESSORS", "OS",
         "PATH", "PATHEXT", "PROCESSOR_ARCHITECTURE", "PROCESSOR_IDENTIFIER", "PROCESSOR_LEVEL",
         "PROCESSOR_REVISION", "PROGRAMDATA", "PROGRAMFILES", "PSMODULEPATH", "PUBLIC", "PWD", "SHLVL",
-        "SYSTEMDRIVE", "SYSTEMROOT", "TEMP", "TERM", "TMP", "USERDOMAIN", "USERNAME", "USERPROFILE", "WINDIR",
-    ];
+        "SYSTEMDRIVE", "SYSTEMROOT", "TEMP", "TERM", "TMP", "USERDOMAIN", "USERNAME", "USERPROFILE", "WINDIR");
 }

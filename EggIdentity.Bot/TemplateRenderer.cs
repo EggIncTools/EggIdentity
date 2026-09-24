@@ -5,15 +5,11 @@ using Scriban.Runtime;
 namespace EggIdentity.Bot;
 
 public static class TemplateRenderer {
-    public static string Render(string? template, string fallback, IReadOnlyDictionary<string, object?> vars) {
-        if (string.IsNullOrEmpty(template)) return fallback;
-        return TryRender(template, vars, out var rendered) ? rendered : fallback;
-    }
+    public static string Render(string? template, string fallback, IReadOnlyDictionary<string, object?> vars) =>
+        !string.IsNullOrEmpty(template) && TryRender(template, vars, out var rendered) ? rendered : fallback;
 
-    public static string RenderOrEmpty(string? template, IReadOnlyDictionary<string, object?> vars) {
-        if (string.IsNullOrEmpty(template)) return "";
-        return TryRender(template, vars, out var rendered) ? rendered : "";
-    }
+    public static string RenderOrEmpty(string? template, IReadOnlyDictionary<string, object?> vars) =>
+        Render(template, "", vars);
 
     public static string Render(string? template, string fallback, DeployResponse res, string appName) =>
         Render(template, fallback, DeployVars.Build(res, appName));

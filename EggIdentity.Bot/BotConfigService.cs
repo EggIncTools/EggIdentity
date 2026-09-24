@@ -134,8 +134,7 @@ public sealed class BotConfigService(
         } catch (JsonException ex) {
             return ex.Message;
         }
-        if (spec is null) return "empty spec";
-        return ValidateEmbedSpec(spec);
+        return spec is null ? "empty spec" : ValidateEmbedSpec(spec);
     }
 
     public static string? ValidateMessageJson(string? json) {
@@ -174,9 +173,8 @@ public sealed class BotConfigService(
         return state?.DiscordId;
     }
 
-    private static List<VariableDoc> BuildVariables(IReadOnlyList<(string Name, string Desc)> source) {
-        return [.. source.Select(s => new VariableDoc(s.Name, s.Desc))];
-    }
+    private static List<VariableDoc> BuildVariables(IReadOnlyList<(string Name, string Desc)> source) =>
+        [.. source.Select(s => new VariableDoc(s.Name, s.Desc))];
 
     private static string? Blank(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
 

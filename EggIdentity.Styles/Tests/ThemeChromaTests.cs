@@ -38,12 +38,10 @@ public class ThemeChromaTests {
     }
 
     [Fact]
-    public void HueRotate_Clamped_ClampsSecondsToUpperBound() {
+    public void HueRotate_Clamped_ClampsSecondsToUpperBound() =>
         Assert.Equal(120, new ThemeHueRotate(true, 999).Clamped().Seconds);
-    }
 
     [Fact]
-    public void HueRotate_Clamped_ClampsSecondsToLowerBound() {
+    public void HueRotate_Clamped_ClampsSecondsToLowerBound() =>
         Assert.Equal(6, new ThemeHueRotate(true, 1).Clamped().Seconds);
-    }
 }

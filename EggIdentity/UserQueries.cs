@@ -12,8 +12,7 @@ public sealed class UserQueries(NpgsqlDataSource dataSource) {
             conn);
         cmd.Parameters.AddWithValue(userId);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
-        if (!await reader.ReadAsync(ct)) return null;
-        return Read(reader);
+        return await reader.ReadAsync(ct) ? Read(reader) : null;
     }
 
     public async Task<IReadOnlyList<User>> ListAsync(CancellationToken ct) {

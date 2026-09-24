@@ -45,8 +45,8 @@ public sealed partial class CookieBanner {
         }
 
         var winner = cookie;
-        var api = SessionToken is null ? null : Services.GetService<IdentityApiClient>();
-        if (api is not null) winner = await ReconcileAsync(api, SessionToken!, cookie);
+        if (SessionToken is { } token && Services.GetService<IdentityApiClient>() is { } api)
+            winner = await ReconcileAsync(api, token, cookie);
 
         Reader.Set(winner);
         _phase = winner is null ? Phase.Prompt : Phase.Hidden;

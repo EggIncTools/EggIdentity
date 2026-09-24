@@ -2,14 +2,12 @@ namespace EggIdentity.Host.Tests;
 
 public class LoginRoutesTests {
     [Fact]
-    public void ValidateMode_Redirect_ReturnsRedirect() {
+    public void ValidateMode_Redirect_ReturnsRedirect() =>
         Assert.Equal("redirect", Program.ValidateMode("redirect"));
-    }
 
     [Fact]
-    public void ValidateMode_Inline_ReturnsInline() {
+    public void ValidateMode_Inline_ReturnsInline() =>
         Assert.Equal("inline", Program.ValidateMode("inline"));
-    }
 
     [Fact]
     public void ValidateMode_UnknownOrNull_DefaultsToPopup() {
@@ -27,7 +25,7 @@ public class LoginRoutesTests {
         var result = Program.ResolveApp("https://app.example.com/deep/path?x=1", configs);
 
         Assert.NotNull(result);
-        Assert.Equal("https://app.example.com", result!.Origin);
+        Assert.Equal("https://app.example.com", result.Origin);
     }
 
     [Fact]
@@ -156,20 +154,20 @@ public class LoginRoutesTests {
     public void ParseLinkMode_UserIdOnly_ReturnsNullProvider() {
         var userId = Guid.NewGuid();
 
-        var result = Program.ParseLinkMode($"link:{userId}");
+        var (parsedUserId, provider) = Program.ParseLinkMode($"link:{userId}");
 
-        Assert.Equal(userId, result.UserId);
-        Assert.Null(result.Provider);
+        Assert.Equal(userId, parsedUserId);
+        Assert.Null(provider);
     }
 
     [Fact]
     public void ParseLinkMode_UserIdAndProvider_ReturnsBoth() {
         var userId = Guid.NewGuid();
 
-        var result = Program.ParseLinkMode($"link:{userId}:github");
+        var (parsedUserId, provider) = Program.ParseLinkMode($"link:{userId}:github");
 
-        Assert.Equal(userId, result.UserId);
-        Assert.Equal("github", result.Provider);
+        Assert.Equal(userId, parsedUserId);
+        Assert.Equal("github", provider);
     }
 
     [Fact]
@@ -189,7 +187,6 @@ public class LoginRoutesTests {
     }
 
     [Fact]
-    public void ShouldThrottleSponsorRefresh_NoPriorSync_ReturnsFalse() {
+    public void ShouldThrottleSponsorRefresh_NoPriorSync_ReturnsFalse() =>
         Assert.False(Program.ShouldThrottleSponsorRefresh(null, DateTimeOffset.UtcNow));
-    }
 }

@@ -50,12 +50,10 @@ public class SecretProtectorTests {
     [InlineData(null)]
     [InlineData("")]
     [InlineData("not-base64!")]
-    public void BadKey_YieldsNoProtector(string? key) {
+    public void BadKey_YieldsNoProtector(string? key) =>
         Assert.Null(SecretProtector.FromKey(key));
-    }
 
     [Fact]
-    public void ShortKey_IsRejected() {
+    public void ShortKey_IsRejected() =>
         Assert.Null(SecretProtector.FromKey(Convert.ToBase64String(RandomNumberGenerator.GetBytes(16))));
-    }
 }

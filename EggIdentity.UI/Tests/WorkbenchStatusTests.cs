@@ -10,17 +10,15 @@ public class WorkbenchStatusTests {
     [InlineData("failed", WorkbenchStatusKind.Error)]
     [InlineData("offerable", WorkbenchStatusKind.Info)]
     [InlineData("QuEuEd", WorkbenchStatusKind.Queued)]
-    public void Parse_RecognizesKnownValuesCaseInsensitively(string value, WorkbenchStatusKind expected) {
+    public void Parse_RecognizesKnownValuesCaseInsensitively(string value, WorkbenchStatusKind expected) =>
         Assert.Equal(expected, WorkbenchStatus.Parse(value));
-    }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("unrecognized")]
-    public void Parse_FallsBackToMuted(string? value) {
+    public void Parse_FallsBackToMuted(string? value) =>
         Assert.Equal(WorkbenchStatusKind.Muted, WorkbenchStatus.Parse(value));
-    }
 
     [Theory]
     [InlineData(WorkbenchStatusKind.Queued, "wb-st-queued")]
@@ -29,7 +27,6 @@ public class WorkbenchStatusTests {
     [InlineData(WorkbenchStatusKind.Error, "wb-st-err")]
     [InlineData(WorkbenchStatusKind.Info, "wb-st-offer")]
     [InlineData(WorkbenchStatusKind.Muted, "wb-st-muted")]
-    public void Class_MapsEachKindToItsCssClass(WorkbenchStatusKind kind, string expected) {
+    public void Class_MapsEachKindToItsCssClass(WorkbenchStatusKind kind, string expected) =>
         Assert.Equal(expected, WorkbenchStatus.Class(kind));
-    }
 }

@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace EggIdentity.UI;
 
 public enum WorkbenchStatusKind {
@@ -10,7 +12,7 @@ public enum WorkbenchStatusKind {
 }
 
 public static class WorkbenchStatus {
-    private static readonly Dictionary<string, WorkbenchStatusKind> Known = new(StringComparer.OrdinalIgnoreCase) {
+    private static readonly FrozenDictionary<string, WorkbenchStatusKind> Known = new Dictionary<string, WorkbenchStatusKind> {
         ["queued"] = WorkbenchStatusKind.Queued,
         ["pending"] = WorkbenchStatusKind.Queued,
         ["running"] = WorkbenchStatusKind.Running,
@@ -24,21 +26,17 @@ public static class WorkbenchStatus {
         ["info"] = WorkbenchStatusKind.Info,
         ["offer"] = WorkbenchStatusKind.Info,
         ["offerable"] = WorkbenchStatusKind.Info
+    }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
+    public static string Class(WorkbenchStatusKind kind) => kind switch {
+        WorkbenchStatusKind.Queued => "wb-st-queued",
+        WorkbenchStatusKind.Running => "wb-st-run",
+        WorkbenchStatusKind.Done => "wb-st-done",
+        WorkbenchStatusKind.Error => "wb-st-err",
+        WorkbenchStatusKind.Info => "wb-st-offer",
+        _ => "wb-st-muted"
     };
 
-    public static string Class(WorkbenchStatusKind kind) {
-        return kind switch {
-            WorkbenchStatusKind.Queued => "wb-st-queued",
-            WorkbenchStatusKind.Running => "wb-st-run",
-            WorkbenchStatusKind.Done => "wb-st-done",
-            WorkbenchStatusKind.Error => "wb-st-err",
-            WorkbenchStatusKind.Info => "wb-st-offer",
-            _ => "wb-st-muted"
-        };
-    }
-
-    public static WorkbenchStatusKind Parse(string? value) {
-        if (value is not { Length: > 0 }) return WorkbenchStatusKind.Muted;
-        return Known.TryGetValue(value, out var kind) ? kind : WorkbenchStatusKind.Muted;
-    }
+    public static WorkbenchStatusKind Parse(string? value) =>
+        value is { Length: > 0 } && Known.TryGetValue(value, out var kind) ? kind : WorkbenchStatusKind.Muted;
 }

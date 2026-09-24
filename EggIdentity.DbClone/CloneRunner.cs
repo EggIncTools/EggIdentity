@@ -77,8 +77,9 @@ public static class CloneRunner {
         await using var cmd = new NpgsqlCommand(
             $"SELECT app, source_database, cloned_at FROM {StampTable} ORDER BY cloned_at DESC LIMIT 1", conn);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
-        if (!await reader.ReadAsync(ct)) return null;
-        return new CloneStamp(reader.GetString(0), reader.GetString(1), reader.GetFieldValue<DateTime>(2));
+        return await reader.ReadAsync(ct)
+            ? new CloneStamp(reader.GetString(0), reader.GetString(1), reader.GetFieldValue<DateTime>(2))
+            : null;
     }
 
     internal static string CountSql(TablePolicy policy) =>

@@ -85,8 +85,9 @@ public static class PlanValidator {
             }
         }
 
-        if (errors.Count > 0) throw new InvalidOperationException("clone plan rejected: " + string.Join("; ", errors));
-        return new ValidatedPlan(plan, [.. plan.Tables.Where(t => t.Truncates)], reports);
+        return errors.Count > 0
+            ? throw new InvalidOperationException("clone plan rejected: " + string.Join("; ", errors))
+            : new ValidatedPlan(plan, [.. plan.Tables.Where(t => t.Truncates)], reports);
     }
 
     private static HashSet<string> Ignored(ClonePlan plan) =>

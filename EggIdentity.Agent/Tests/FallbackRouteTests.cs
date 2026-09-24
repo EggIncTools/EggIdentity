@@ -73,8 +73,7 @@ public class FallbackRouteTests {
         var apps = new Dictionary<string, string> { ["eggledger"] = "eggledger" };
         app.MapGet("/logs/{appName}/tail", (string appName, HttpContext ctx, int? lines) => {
             if (!ctx.User.IsAtLeast(UserRole.Admin)) return Results.StatusCode(StatusCodes.Status403Forbidden);
-            if (!apps.ContainsKey(appName)) return Results.NotFound();
-            return Results.Text("ok", "text/plain");
+            return !apps.ContainsKey(appName) ? Results.NotFound() : Results.Text("ok", "text/plain");
         });
 
         await app.StartAsync();

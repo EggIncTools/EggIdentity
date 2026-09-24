@@ -16,9 +16,8 @@ public class ClaimsPrincipalExtensionsTests {
     }
 
     [Fact]
-    public void EggIdentityRole_MissingClaim_DefaultsToViewer() {
+    public void EggIdentityRole_MissingClaim_DefaultsToViewer() =>
         Assert.Equal(UserRole.Viewer, Principal().EggIdentityRole());
-    }
 
     [Fact]
     public void IsAtLeast_AdminMeetsContributor() {
@@ -44,7 +43,6 @@ public class ClaimsPrincipalExtensionsTests {
     }
 
     [Fact]
-    public void EggIdentityUserId_MissingClaim_ReturnsNull() {
+    public void EggIdentityUserId_MissingClaim_ReturnsNull() =>
         Assert.Null(Principal().EggIdentityUserId());
-    }
 }

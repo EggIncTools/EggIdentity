@@ -31,7 +31,6 @@ public class ConsentCookieTests {
     [InlineData("v=1&f=1&a=0")]
     [InlineData("v=x&f=1&a=0&t=1700000000")]
     [InlineData("v=1&f=1&a=0&t=1700000000&z=1")]
-    public void Parse_Malformed_ReturnsNull(string? value) {
+    public void Parse_Malformed_ReturnsNull(string? value) =>
         Assert.Null(ConsentCookie.Parse(value, 1));
-    }
 }

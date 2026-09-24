@@ -7,11 +7,11 @@ namespace EggIdentity.Host;
 
 internal static class ProfileLinkRoutes {
     public static void Map(WebApplication app, HostConfig config) {
-        var sessionOptions = config.SessionOptions!;
+        if (config is not { SessionOptions: { } sessionOptions, AvatarStorageDir: { } avatarDir, AuthentikAuthority: { } authority }) return;
         var revocations = app.Services.GetRequiredService<RevocationStore>();
         var apps = app.Services.GetService<AppAuthConfigs>();
 
-        ProfileRoutes.Map(app, sessionOptions, config.AvatarStorageDir!, revocations,
+        ProfileRoutes.Map(app, sessionOptions, avatarDir, revocations,
             app.Services.GetRequiredService<ProfileService>(),
             app.Services.GetRequiredService<UserQueries>());
         ConsentRoutes.Map(app, sessionOptions, revocations, app.Services.GetRequiredService<ConsentService>());
@@ -25,7 +25,7 @@ internal static class ProfileLinkRoutes {
 
         app.MapGet("/auth/relink/continue", (HttpContext ctx) => {
             var target = ctx.Request.Query["state"].ToString();
-            return Program.IsAllowedRelinkTarget(target, config.AuthentikAuthority!, IdentityWire.KnownProviders)
+            return Program.IsAllowedRelinkTarget(target, authority, IdentityWire.KnownProviders)
                 ? Results.Redirect(target)
                 : Results.BadRequest("invalid relink target");
         });

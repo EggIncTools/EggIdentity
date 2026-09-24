@@ -11,8 +11,7 @@ public sealed class ConsentService(NpgsqlDataSource dataSource) {
             conn);
         cmd.Parameters.AddWithValue(userId);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
-        if (!await reader.ReadAsync(ct)) return null;
-        return new CookieConsent {
+        return !await reader.ReadAsync(ct) ? null : new CookieConsent {
             UserId = reader.GetGuid(0),
             Functional = reader.GetBoolean(1),
             Analytics = reader.GetBoolean(2),

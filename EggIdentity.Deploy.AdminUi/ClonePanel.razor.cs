@@ -30,13 +30,13 @@ public sealed partial class ClonePanel : ComponentBase, IDisposable {
     private CancellationTokenSource? _pollCts;
     private Task? _pollTask;
 
-    private bool AnyActive => _rows?.Any(r => r.Active) == true;
+    private bool AnyActive => _rows?.Exists(r => r.Active) == true;
 
     protected override async Task OnInitializedAsync() {
         _store = Services.GetService<IPromotionStore>();
         _client = Services.GetService<AdminApiClient>();
         if (_store is null || _client is null) return;
-        await LoadAsync();
+        await LoadAsync(_store);
         if (AnyActive) EnsurePolling();
     }
 
@@ -70,12 +70,12 @@ public sealed partial class ClonePanel : ComponentBase, IDisposable {
     }
 
     private async Task CloneAsync(CloneRow row) {
-        if (!Arm(row.App) || row.Status.Target is not { } target) return;
+        if (_client is not { } client || !Arm(row.App) || row.Status.Target is not { } target) return;
         _busy = true;
         _error = null;
         _note = null;
         try {
-            var result = await _client!.StartCloneAsync(target, CancellationToken.None);
+            var result = await client.StartCloneAsync(target, CancellationToken.None);
             if (!result.Ok) {
                 _error = result.Error ?? $"{row.App} refused the clone";
                 return;
@@ -90,10 +90,10 @@ public sealed partial class ClonePanel : ComponentBase, IDisposable {
         }
     }
 
-    private async Task LoadAsync() {
+    private async Task LoadAsync(IPromotionStore store) {
         try {
-            var targets = await _store!.GetRowsAsync(AdminTargets.Key, CancellationToken.None);
-            var apps = await _store.GetRowsAsync(DeployApps.Key, CancellationToken.None);
+            var targets = await store.GetRowsAsync(AdminTargets.Key, CancellationToken.None);
+            var apps = await store.GetRowsAsync(DeployApps.Key, CancellationToken.None);
             var subProd = new HashSet<string>(
                 apps.Select(r => CollectionBinder.Bind<DeployApp>(r.Values))
                     .Where(a => a.TracksLatest)
@@ -112,9 +112,9 @@ public sealed partial class ClonePanel : ComponentBase, IDisposable {
     }
 
     private async Task RefreshAsync(CloneRow row) {
-        if (row.Status.Target is not { } target) return;
+        if (_client is not { } client || row.Status.Target is not { } target) return;
         try {
-            row.Clone = await _client!.GetCloneStatusAsync(target, CancellationToken.None);
+            row.Clone = await client.GetCloneStatusAsync(target, CancellationToken.None);
             row.Error = null;
         } catch (Exception e) when (e is HttpRequestException or TimeoutException or OperationCanceledException) {
             row.Error = e.Message;

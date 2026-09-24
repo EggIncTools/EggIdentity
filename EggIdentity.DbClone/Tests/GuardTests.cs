@@ -6,9 +6,8 @@ public class GuardTests {
     private static readonly ClonePlan Plan = new("app", "app_subprod", []);
 
     [Fact]
-    public void EnsureDatabase_AcceptsMatchingName() {
+    public void EnsureDatabase_AcceptsMatchingName() =>
         Assert.Equal("app_subprod", SubProdGuard.EnsureDatabase("Host=h;Database=app_subprod", "app_subprod"));
-    }
 
     [Fact]
     public void EnsureDatabase_RejectsOtherName() {
@@ -17,14 +16,12 @@ public class GuardTests {
     }
 
     [Fact]
-    public void EnsureDatabase_RejectsUriForm() {
+    public void EnsureDatabase_RejectsUriForm() =>
         Assert.Throws<InvalidOperationException>(() => SubProdGuard.EnsureDatabase("postgres://u:p@h/app_subprod", "app_subprod"));
-    }
 
     [Fact]
-    public void Check_RejectsSameDatabaseOnBothSides() {
+    public void Check_RejectsSameDatabaseOnBothSides() =>
         Assert.Throws<InvalidOperationException>(() => CloneGuards.Check(Plan, "Host=h;Database=app_subprod", "Host=h;Database=app_subprod"));
-    }
 
     [Fact]
     public void Check_AppendsReadOnlyOptionToSource() {

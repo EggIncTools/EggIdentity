@@ -62,16 +62,12 @@ public class AuthentikAspNetAuthTests {
     }
 
     private sealed class StubIdentityHandler(IdentityUserResponse? getResult, bool revoked) : HttpMessageHandler {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) {
-            if (request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath.EndsWith("/revoked")) {
-                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) {
-                    Content = System.Net.Http.Json.JsonContent.Create(revoked)
-                });
-            }
-            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) {
-                Content = System.Net.Http.Json.JsonContent.Create(getResult)
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
+            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) {
+                Content = request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath.EndsWith("/revoked")
+                    ? System.Net.Http.Json.JsonContent.Create(revoked)
+                    : System.Net.Http.Json.JsonContent.Create(getResult)
             });
-        }
     }
 
     private static IdentityApiClient StubIdentityClient(IdentityUserResponse? getResult, bool revoked = false) =>

@@ -17,8 +17,7 @@ public static class ServerSentEvents {
 
     public static long ResolveAfter(string? lastEventIdHeader, string? afterQuery) {
         if (TryParse(lastEventIdHeader, out var fromHeader)) return fromHeader;
-        if (TryParse(afterQuery, out var fromQuery)) return fromQuery;
-        return 0;
+        return TryParse(afterQuery, out var fromQuery) ? fromQuery : 0;
     }
 
     private static bool TryParse(string? text, out long value) {

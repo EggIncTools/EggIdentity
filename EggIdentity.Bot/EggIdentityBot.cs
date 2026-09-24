@@ -252,10 +252,9 @@ public sealed class EggIdentityBot : IAsyncDisposable {
         if (!TryParseSnowflake(_cfg.GuildId, "guild id", out var guildId)) return;
         if (!TryParseSnowflake(_cfg.SharedRoleId, "shared role id", out var roleId)) return;
         var guild = Client.GetGuild(guildId);
-        var self = guild?.CurrentUser;
-        if (self is null) return;
+        if (guild?.CurrentUser is not { } self) return;
         if (self.Roles.Any(r => r.Id == roleId)) return;
-        var role = guild!.GetRole(roleId);
+        var role = guild.GetRole(roleId);
         if (role is not null)
             await self.AddRoleAsync(role);
     }
@@ -298,7 +297,7 @@ public sealed class EggIdentityBot : IAsyncDisposable {
         }
         await cmd.DeferAsync();
         var res = await DeployAgentClient.CallAsync(_cfg.DeployAgentUrl, _cfg.DeployAgentSecret);
-        Embed? embed = res.AlreadyUpToDate
+        var embed = res.AlreadyUpToDate
             ? _builder?.ResolveAlreadyUpToDateEmbed(_cfg, res.FromHash ?? "") ?? DefaultEmbeds.AlreadyUpToDate(_cfg, res.FromHash ?? "")
             : res.Ok
                 ? _builder?.ResolveSuccessEmbed(_cfg, res.FromHash ?? "", res.ToHash ?? "") ?? DefaultEmbeds.Success(_cfg, res.FromHash ?? "", res.ToHash ?? "")

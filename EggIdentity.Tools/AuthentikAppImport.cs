@@ -23,14 +23,13 @@ internal static class AuthentikAppImport {
             m => fileValues.TryGetValue(m.File, out var v) && v.Length > 0 ? v : null,
             StringComparer.Ordinal);
 
-        var unknown = fileValues.Keys.Where(k => !FieldMap.Any(m => m.File == k)).ToList();
+        var unknown = fileValues.Keys.Where(k => !Array.Exists(FieldMap, m => m.File == k)).ToList();
         if (unknown.Count > 0)
             throw new InvalidOperationException($"unknown key(s): {string.Join(", ", unknown)}");
 
-        if (SettingsValidation.ValidateRow(AuthentikApps.Descriptor, values) is string error)
-            throw new InvalidOperationException(error);
-
-        return (values["origin"]!, values);
+        return SettingsValidation.ValidateRow(AuthentikApps.Descriptor, values) is string error
+            ? throw new InvalidOperationException(error)
+            : (values["origin"] ?? throw new InvalidOperationException("origin is required"), values);
     }
 
     public static async Task<int> RunAsync(string dir, CancellationToken ct) {

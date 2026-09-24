@@ -3,6 +3,7 @@ using EggIdentity.Deploy;
 using EggIdentity.Fallback;
 using EggIdentity.Settings;
 using EggIdentity.Settings.Store;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Npgsql;
@@ -20,6 +21,7 @@ internal static class HostServices {
 
         var dataSource = NpgsqlDataSource.Create(config.ConnString);
         builder.Services.AddSingleton(dataSource);
+        builder.Services.TryAddSingleton(TimeProvider.System);
         builder.Services.AddSingleton(AdminAllowlist.FromConfig(config.AdminIds));
         builder.Services.AddSingleton<IdentityResolver>();
         builder.Services.AddSingleton<RevocationStore>();
@@ -54,9 +56,8 @@ internal static class HostServices {
     }
 
     private static void RegisterLoginWidget(WebApplicationBuilder builder, HostConfig config) {
-        if (!config.LoginWidgetEnabled) return;
+        if (!config.LoginWidgetEnabled || config.AuthentikAuthority is not { } authority) return;
 
-        var authority = config.AuthentikAuthority!;
         builder.Services.AddSingleton(sp => new IconCache(sp.GetRequiredService<IHttpClientFactory>(), authority));
         builder.Services.AddSingleton(sp => new AppAuthConfigs(
             sp.GetRequiredService<SettingsCache>(), authority, config.AuthentikAppsDir, config.AuthentikTokenDecryptionKey));

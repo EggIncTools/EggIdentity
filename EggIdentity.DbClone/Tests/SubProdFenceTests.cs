@@ -47,7 +47,6 @@ public class SubProdFenceTests {
     }
 
     [Fact]
-    public void AllowKey_UpperCasesAndReplacesPunctuation() {
+    public void AllowKey_UpperCasesAndReplacesPunctuation() =>
         Assert.Equal("SUBPROD_ALLOW_EGG_IDENTITY", SubProdFence.AllowKey("egg-identity"));
-    }
 }

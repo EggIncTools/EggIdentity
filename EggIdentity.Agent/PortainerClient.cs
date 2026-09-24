@@ -35,8 +35,7 @@ public sealed record PortainerConfig(string BaseUrl, string ApiKey) {
         ArgumentNullException.ThrowIfNull(snapshot);
         var baseUrl = (snapshot.GetString(AgentSettings.PortainerApiUrl) ?? "").TrimEnd('/');
         var key = snapshot.GetString(AgentSettings.PortainerApiKey) ?? "";
-        if (baseUrl.Length == 0 || key.Length == 0) return null;
-        return new PortainerConfig(baseUrl, key);
+        return baseUrl.Length == 0 || key.Length == 0 ? null : new PortainerConfig(baseUrl, key);
     }
 
     public HttpClient Configure(HttpClient http) {
@@ -179,13 +178,13 @@ public sealed class PortainerClient(HttpClient http, int stackId, int endpointId
             string.IsNullOrEmpty(username) ? null : username);
     }
 
-    private static List<StackEnvEntry> ReadEnv(JsonElement stack) {
-        if (Prop(stack, "Env") is not { ValueKind: JsonValueKind.Array } env) return [];
-        return [.. env.EnumerateArray()
-            .Select(item => (Name: Str(item, "name") ?? "", Value: Str(item, "value") ?? ""))
-            .Where(pair => pair.Name.Length > 0)
-            .Select(pair => new StackEnvEntry(pair.Name, pair.Value))];
-    }
+    private static List<StackEnvEntry> ReadEnv(JsonElement stack) =>
+        Prop(stack, "Env") is not { ValueKind: JsonValueKind.Array } env
+            ? []
+            : [.. env.EnumerateArray()
+                .Select(item => (Name: Str(item, "name") ?? "", Value: Str(item, "value") ?? ""))
+                .Where(pair => pair.Name.Length > 0)
+                .Select(pair => new StackEnvEntry(pair.Name, pair.Value))];
 
     private static JsonElement? Prop(JsonElement e, string name) =>
         e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined)

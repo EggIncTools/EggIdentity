@@ -50,8 +50,6 @@ public static class CommandSignature {
 
     private static bool Flag(bool? value) => value ?? false;
 
-    private static IReadOnlyList<OptionShape> ToShapes(IEnumerable<OptionShape>? shapes) {
-        if (shapes is null) return Array.Empty<OptionShape>();
-        return shapes.ToList();
-    }
+    private static IReadOnlyList<OptionShape> ToShapes(IEnumerable<OptionShape>? shapes) =>
+        shapes is null ? [] : [.. shapes];
 }

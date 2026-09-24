@@ -7,16 +7,16 @@ namespace EggIdentity.Host;
 
 internal static class SponsorRoutes {
     public static void Map(WebApplication app, HostConfig config, SponsorSyncService sponsorSync) {
-        var sessionOptions = config.SessionOptions!;
+        if (config is not { SessionOptions: { } sessionOptions, SponsorConfig: { } sponsorConfig }) return;
         var sponsorStore = app.Services.GetRequiredService<GitHubSponsorStatusStore>();
         var revocations = app.Services.GetRequiredService<RevocationStore>();
 
-        app.MapPost("/profile/sponsor/refresh", async (HttpContext ctx) => {
+        app.MapPost("/profile/sponsor/refresh", async (HttpContext ctx, TimeProvider time) => {
             var userId = await ProfileAuth.TryGetUserIdAsync(ctx, sessionOptions, revocations.IsRevokedAsync, ctx.RequestAborted);
             if (userId is null) return Results.Unauthorized();
 
             var existing = await sponsorStore.GetAsync(userId.Value, ctx.RequestAborted);
-            if (Program.ShouldThrottleSponsorRefresh(existing?.LastSyncedAt, DateTimeOffset.UtcNow)) {
+            if (Program.ShouldThrottleSponsorRefresh(existing?.LastSyncedAt, time.GetUtcNow())) {
                 ctx.Response.Headers.RetryAfter = "30";
                 return Results.StatusCode(StatusCodes.Status429TooManyRequests);
             }
@@ -28,12 +28,12 @@ internal static class SponsorRoutes {
                 Console.Error.WriteLine($"sponsor refresh failed for {userId}: {exc.Message}");
                 return Results.StatusCode(StatusCodes.Status502BadGateway);
             }
-            if (status is null) return Results.BadRequest("no linked github account");
-
-            return Results.Ok(new SponsorStatusResponse {
-                IsSponsor = status.IsSponsor,
-                LastSyncedAt = status.LastSyncedAt,
-            });
+            return status is null
+                ? Results.BadRequest("no linked github account")
+                : Results.Ok(new SponsorStatusResponse {
+                    IsSponsor = status.IsSponsor,
+                    LastSyncedAt = status.LastSyncedAt,
+                });
         });
 
         app.MapPost("/profile/supporter/refresh", async (HttpContext ctx) => {
@@ -56,18 +56,18 @@ internal static class SponsorRoutes {
             return Results.Ok(new SupporterStatusResponse { IsSupporter = refreshed.Value });
         });
 
-        Func<HttpContext, Task<IResult>> webhook = ctx => Webhook(ctx, config, sponsorSync);
+        Func<HttpContext, Task<IResult>> webhook = ctx => Webhook(ctx, sponsorConfig.GitHubWebhookSecret, sponsorSync);
         app.MapPost("/webhooks/github/sponsorship", webhook);
     }
 
-    private static async Task<IResult> Webhook(HttpContext ctx, HostConfig config, SponsorSyncService sponsorSync) {
+    private static async Task<IResult> Webhook(HttpContext ctx, string webhookSecret, SponsorSyncService sponsorSync) {
         using var bodyStream = new MemoryStream();
         await ctx.Request.Body.CopyToAsync(bodyStream, ctx.RequestAborted);
         var bodyBytes = bodyStream.ToArray();
         var bodyText = Encoding.UTF8.GetString(bodyBytes);
 
         var signature = ctx.Request.Headers["X-Hub-Signature-256"].ToString();
-        if (!SponsorWebhook.VerifySignature(config.SponsorConfig!.GitHubWebhookSecret, bodyBytes, signature))
+        if (!SponsorWebhook.VerifySignature(webhookSecret, bodyBytes, signature))
             return Results.Unauthorized();
 
         SponsorshipWebhookEvent? evt;

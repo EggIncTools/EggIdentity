@@ -6,7 +6,7 @@ public class CssBuildTextTests {
         var dir = Directory.CreateTempSubdirectory();
         try {
             var path = Path.Combine(dir.FullName, "sample.razor");
-            File.WriteAllText(path, "<div class=\"flex items-center px-3\">x</div>");
+            File.WriteAllText(path, """<div class="flex items-center px-3">x</div>""");
 
             var tokens = CssBuildText.Scan([path]);
 
@@ -91,7 +91,7 @@ public class CssBuildTextTests {
 
     [Fact]
     public void UnwrapLayersAndSpliceRaw_PreservesTextBetweenLayerBlocksInPlace() {
-        var compiled = "@layer base { .a{color:red} } @property --x { syntax: \"*\"; } @layer properties { .p{color:teal} }";
+        var compiled = """@layer base { .a{color:red} } @property --x { syntax: "*"; } @layer properties { .p{color:teal} }""";
 
         var result = CssBuildText.UnwrapLayersAndSpliceRaw(compiled, "");
 

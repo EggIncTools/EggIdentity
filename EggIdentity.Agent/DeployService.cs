@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using EggIdentity.Contract;
 using EggIdentity.Deploy;
 using EggIdentity.Resilience;
@@ -174,7 +175,7 @@ public sealed class DeployService(
         foreach (var state in self) await TickOneAsync(state, ct);
     }
 
-    private bool IsSelfApp(AppState state) =>
+    private static bool IsSelfApp(AppState state) =>
         string.Equals(state.Config.ContainerName, SelfContainer.Name(), StringComparison.Ordinal);
 
     public async Task RunPollLoopAsync(Func<TimeSpan> interval, CancellationToken ct) {
@@ -339,15 +340,15 @@ public sealed class DeployService(
         }
     }
 
-    private bool TryGetState(string app, out AppState state) {
+    private bool TryGetState(string app, [NotNullWhen(true)] out AppState? state) {
         lock (_gate) {
-            return _apps.TryGetValue(app, out state!);
+            return _apps.TryGetValue(app, out state);
         }
     }
 
     private bool TryGetStack(string name, out DeployStack stack) {
         lock (_gate) {
-            return _catalog.TryGetStack(name, out stack!);
+            return _catalog.TryGetStack(name, out stack);
         }
     }
 
@@ -390,8 +391,6 @@ public sealed class DeployService(
         return fallback;
     }
 
-    private static string Short(string? revision) {
-        if (string.IsNullOrEmpty(revision)) return "unknown";
-        return revision.Length > 7 ? revision[..7] : revision;
-    }
+    private static string Short(string? revision) =>
+        string.IsNullOrEmpty(revision) ? "unknown" : revision[..Math.Min(7, revision.Length)];
 }

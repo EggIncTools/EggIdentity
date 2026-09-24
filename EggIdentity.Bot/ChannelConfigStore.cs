@@ -30,8 +30,7 @@ public sealed class ChannelConfigStore(NpgsqlDataSource dataSource) {
         cmd.Parameters.AddWithValue(guildId);
         cmd.Parameters.AddWithValue(appName);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
-        if (!await reader.ReadAsync(ct)) return null;
-        return Read(reader);
+        return await reader.ReadAsync(ct) ? Read(reader) : null;
     }
 
     public async Task UpsertAsync(ChannelConfig config, CancellationToken ct) {

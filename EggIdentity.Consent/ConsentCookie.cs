@@ -27,8 +27,9 @@ public static class ConsentCookie {
             }
         }
         if (version is null || functional is null || analytics is null || unix is null) return null;
-        if (version.Value < minPolicyVersion) return null;
-        return new ConsentState(functional.Value == 1, analytics.Value == 1, version.Value, DateTimeOffset.FromUnixTimeSeconds(unix.Value));
+        return version.Value < minPolicyVersion
+            ? null
+            : new ConsentState(functional.Value == 1, analytics.Value == 1, version.Value, DateTimeOffset.FromUnixTimeSeconds(unix.Value));
     }
 
     private static int? ParseInt(string raw) =>

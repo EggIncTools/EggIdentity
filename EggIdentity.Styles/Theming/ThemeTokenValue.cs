@@ -14,7 +14,6 @@ public sealed record ThemeTokenValue(
     double? H = null) {
     public ThemeColor? Resolve() {
         if (Hex is not null) return L is null && C is null && H is null ? ThemeColor.FromHex(Hex) : null;
-        if (L is { } l && C is { } c && H is { } h) return ThemeColor.FromOklch(l, c, h);
-        return null;
+        return L is { } l && C is { } c && H is { } h ? ThemeColor.FromOklch(l, c, h) : null;
     }
 }

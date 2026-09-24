@@ -80,8 +80,9 @@ public sealed class DockerEngineClient(HttpClient http, TimeSpan callTimeout, Fu
     private async Task<JsonDocument?> GetJsonAsync(string path, CancellationToken ct) {
         using var response = await http.GetAsync(new Uri(path, UriKind.Relative), ct);
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
-        if (!response.IsSuccessStatusCode) throw await FailureAsync("GET " + path, response, ct);
-        return JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+        return response.IsSuccessStatusCode
+            ? JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct))
+            : throw await FailureAsync("GET " + path, response, ct);
     }
 
     private async Task PostAsync(string path, CancellationToken ct) {

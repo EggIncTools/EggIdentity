@@ -20,8 +20,8 @@ internal static class LoginRoutes {
         routes.MapGet("/sources", sources);
         routes.MapGet("/icons/{provider}", (HttpContext ctx, string provider) => Icon(ctx, provider, ctx.RequestServices.GetService<IconCache>(), config));
         routes.MapGet("/go/{provider}", (HttpContext ctx, string provider, OAuthStateStore states) => Go(ctx, provider, states, config, apps));
-        routes.MapGet("/callback", (HttpContext ctx, OAuthStateStore states, IdentityResolver resolver, LoginCodeStore codes, UserQueries users) =>
-            Callback(ctx, states, resolver, codes, users, config, apps, sponsorSync));
+        routes.MapGet("/callback", (HttpContext ctx, OAuthStateStore states, IdentityResolver resolver, LoginCodeStore codes, UserQueries users, TimeProvider time) =>
+            Callback(ctx, states, resolver, codes, users, time, config, apps, sponsorSync));
         routes.MapPost("/backchannel-logout", (HttpContext ctx, RevocationStore revocations) => BackchannelLogout(ctx, revocations, config));
 
         Func<HttpContext, Task<IResult>> logout = ctx => Logout(ctx, config, apps);
@@ -47,12 +47,12 @@ internal static class LoginRoutes {
     }
 
     private static async Task<IResult> Icon(HttpContext ctx, string provider, IconCache? icons, HostConfig config) {
-        if (!config.LoginWidgetEnabled || icons is null) return Results.NotFound();
+        if (!config.LoginWidgetEnabled || icons is null || config.AuthentikAuthority is not { } authority) return Results.NotFound();
         if (!IdentityWire.KnownProviders.Contains(provider)) return Results.NotFound();
 
         var icon = await icons.GetAsync(provider, ctx.RequestAborted);
         if (icon is null)
-            return Results.Redirect($"{config.AuthentikAuthority!.TrimEnd('/')}/static/authentik/sources/{provider}.svg");
+            return Results.Redirect($"{authority.TrimEnd('/')}/static/authentik/sources/{provider}.svg");
 
         ctx.Response.Headers.CacheControl = "public, max-age=86400";
         return Results.Bytes(icon.Bytes, icon.ContentType);
@@ -80,7 +80,7 @@ internal static class LoginRoutes {
 
     private static async Task<IResult> Callback(
         HttpContext ctx, OAuthStateStore states, IdentityResolver resolver, LoginCodeStore codes, UserQueries users,
-        HostConfig config, AppAuthConfigs? apps, SponsorSyncService? sponsorSync) {
+        TimeProvider time, HostConfig config, AppAuthConfigs? apps, SponsorSyncService? sponsorSync) {
         if (!config.LoginWidgetEnabled) return Results.NotFound();
         var code = ctx.Request.Query["code"].ToString();
         var state = ctx.Request.Query["state"].ToString();
@@ -102,7 +102,7 @@ internal static class LoginRoutes {
             if (saved.Mode.StartsWith(LinkPrefix, StringComparison.Ordinal))
                 return await CompleteLinkAsync(ctx, resolver, saved, token, sponsorSync);
 
-            loginCode = await CompleteLoginAsync(ctx, resolver, codes, users, token, config, sponsorSync);
+            loginCode = await CompleteLoginAsync(ctx, resolver, codes, users, time, token, config, sponsorSync);
         } catch (Exception exc) {
             return CallbackFailure(exc, saved, appConfig);
         }
@@ -134,7 +134,7 @@ internal static class LoginRoutes {
     }
 
     private static async Task<string> CompleteLoginAsync(
-        HttpContext ctx, IdentityResolver resolver, LoginCodeStore codes, UserQueries users,
+        HttpContext ctx, IdentityResolver resolver, LoginCodeStore codes, UserQueries users, TimeProvider time,
         AuthentikTokenResult token, HostConfig config, SponsorSyncService? sponsorSync) {
         var resolved = await resolver.ResolveAsync(
             "authentik", token.Sub, token.DiscordId, token.Username, token.Avatar, ctx.RequestAborted);
@@ -150,15 +150,14 @@ internal static class LoginRoutes {
         }
 
         if (config.SessionOptions is { } sessionOptions)
-            await IssueSessionAsync(ctx, users, resolved, token, sessionOptions);
+            await IssueSessionAsync(ctx, users, resolved, token, sessionOptions, time.GetUtcNow());
 
         return loginCode;
     }
 
     private static async Task IssueSessionAsync(
         HttpContext ctx, UserQueries users, ResolveResult resolved, AuthentikTokenResult token,
-        SessionCookieOptions sessionOptions) {
-        var issuedAt = DateTimeOffset.UtcNow;
+        SessionCookieOptions sessionOptions, DateTimeOffset issuedAt) {
         var user = await users.GetAsync(resolved.UserId, ctx.RequestAborted);
         SessionIssuer.IssueCookie(ctx.Response, sessionOptions, new SessionUser(
             UserId: resolved.UserId.ToString(),

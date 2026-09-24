@@ -86,23 +86,24 @@ public static class AuthentikAspNetAuth {
 
     public static async Task OnValidatePrincipalCheckRevoked(
         CookieValidatePrincipalContext ctx, IdentityApiClient identity, string userIdClaimType, string roleClaimType) {
-        var sid = ctx.Principal?.FindFirstValue(SessionClaims.SessionId);
+        if (ctx.Principal is not { } principal) return;
+        var sid = principal.FindFirstValue(SessionClaims.SessionId);
         if (!string.IsNullOrEmpty(sid) && await identity.IsRevokedAsync(sid, ctx.HttpContext.RequestAborted)) {
             ctx.RejectPrincipal();
             await ctx.HttpContext.SignOutAsync(ctx.Scheme.Name);
             return;
         }
 
-        var userIdClaim = ctx.Principal?.FindFirstValue(userIdClaimType);
+        var userIdClaim = principal.FindFirstValue(userIdClaimType);
         if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var userId)) return;
 
         var user = await identity.GetAsync(userId, ctx.HttpContext.RequestAborted);
         if (user is null) return;
 
-        var currentRole = ctx.Principal!.FindFirstValue(roleClaimType);
+        var currentRole = principal.FindFirstValue(roleClaimType);
         if (currentRole == user.Role) return;
 
-        var claimsIdentity = (ClaimsIdentity)ctx.Principal!.Identity!;
+        var claimsIdentity = (ClaimsIdentity)principal.Identity!;
         var existing = claimsIdentity.FindFirst(roleClaimType);
         if (existing is not null) claimsIdentity.RemoveClaim(existing);
         claimsIdentity.AddClaim(new Claim(roleClaimType, user.Role));

@@ -35,9 +35,9 @@ internal sealed class HostConfig {
     private static string? ReadPemOrFile(string envKey, string? value) {
         if (string.IsNullOrWhiteSpace(value)) return null;
         if (value.Contains("-----BEGIN", StringComparison.Ordinal)) return value;
-        if (SettingsValidation.ValidateKind(SettingKind.Path, value, []) is string error)
-            throw new InvalidOperationException($"{envKey} is not PEM text, and as a path {error}: \"{value}\"");
-        return File.ReadAllText(value);
+        return SettingsValidation.ValidateKind(SettingKind.Path, value, []) is string error
+            ? throw new InvalidOperationException($"{envKey} is not PEM text, and as a path {error}: \"{value}\"")
+            : File.ReadAllText(value);
     }
 
     public static HostConfig FromEnvironment() {

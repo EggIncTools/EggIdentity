@@ -166,6 +166,6 @@ public class StackRedeployerTests {
 
         var info = StackRedeployer.Describe(GitRow, PortainerClient.ReadStack(doc.RootElement));
 
-        Assert.Contains("stack \"egg-apps\" (Portainer #56 ei-servers)", info.Refusal!, StringComparison.Ordinal);
+        Assert.Contains("""stack "egg-apps" (Portainer #56 ei-servers)""", info.Refusal!, StringComparison.Ordinal);
     }
 }

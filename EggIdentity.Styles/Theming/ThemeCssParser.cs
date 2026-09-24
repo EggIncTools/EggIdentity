@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Globalization;
 using System.Text;
 
@@ -42,8 +43,7 @@ public static class ThemeCssParser {
 
     private static readonly string[] Units = ["", "px", "em", "ms", "s", "deg", "%"];
 
-#pragma warning disable IDE0028
-    private static readonly HashSet<string> NamedColors = new(StringComparer.Ordinal) {
+    private static readonly FrozenSet<string> NamedColors = FrozenSet.Create(StringComparer.Ordinal,
         "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige", "bisque", "black",
         "blanchedalmond", "blue", "blueviolet", "brown", "burlywood", "cadetblue", "chartreuse",
         "chocolate", "coral", "cornflowerblue", "cornsilk", "crimson", "cyan", "darkblue", "darkcyan",
@@ -65,13 +65,10 @@ public static class ThemeCssParser {
         "red", "rosybrown", "royalblue", "saddlebrown", "salmon", "sandybrown", "seagreen", "seashell",
         "sienna", "silver", "skyblue", "slateblue", "slategray", "slategrey", "snow", "springgreen",
         "steelblue", "tan", "teal", "thistle", "tomato", "turquoise", "violet", "wheat", "white",
-        "whitesmoke", "yellow", "yellowgreen"
-    };
+        "whitesmoke", "yellow", "yellowgreen");
 
-    private static readonly HashSet<string> TransitionTargets = new(StringComparer.Ordinal) {
-        "color", "background-color", "border-color", "box-shadow", "opacity", "outline-color"
-    };
-#pragma warning restore IDE0028
+    private static readonly FrozenSet<string> TransitionTargets = FrozenSet.Create(StringComparer.Ordinal,
+        "color", "background-color", "border-color", "box-shadow", "opacity", "outline-color");
 
     private static readonly string[] BorderStyles = ["none", "solid", "dashed", "dotted", "double"];
     private static readonly string[] FontStyles = ["normal", "italic"];
@@ -637,8 +634,7 @@ public static class ThemeCssParser {
                     if (toks[p].Kind == TokKind.Ident && toks[p].Text.StartsWith("--color-", StringComparison.Ordinal) &&
                         tokens.Canonicalize(toks[p].Text["--color-".Length..]) is { } token) {
                         p++;
-                        if (!Eat(toks, ref p, TokKind.RParen, errors)) return null;
-                        return new CssFunc("var", [[new CssKeyword("--color-" + token)]]);
+                        return Eat(toks, ref p, TokKind.RParen, errors) ? new CssFunc("var", [[new CssKeyword("--color-" + token)]]) : null;
                     }
 
                     errors.Add(Expected(toks[p], "a settable --color-* token"));
@@ -673,8 +669,7 @@ public static class ThemeCssParser {
                         p++;
                     }
 
-                    if (!Eat(toks, ref p, TokKind.RParen, errors)) return null;
-                    return new CssFunc(fn == "rgba" ? "rgba" : "rgb", argGroups);
+                    return Eat(toks, ref p, TokKind.RParen, errors) ? new CssFunc(fn == "rgba" ? "rgba" : "rgb", argGroups) : null;
                 }
             case "hsl": {
                     if (toks[p].Kind != TokKind.Number || toks[p].Unit is not ("" or "deg")) {
@@ -697,8 +692,7 @@ public static class ThemeCssParser {
                         p++;
                     }
 
-                    if (!Eat(toks, ref p, TokKind.RParen, errors)) return null;
-                    return new CssFunc("hsl", groups);
+                    return Eat(toks, ref p, TokKind.RParen, errors) ? new CssFunc("hsl", groups) : null;
                 }
             case "oklch": {
                     if (toks[p].Kind != TokKind.Number || toks[p].Unit is not ("" or "%")) {
@@ -723,8 +717,9 @@ public static class ThemeCssParser {
                     double h = toks[p].Num % 360;
                     if (h < 0) h += 360;
                     p++;
-                    if (!Eat(toks, ref p, TokKind.RParen, errors)) return null;
-                    return new CssFunc("oklch", [[new CssNumber(l, "%")], [new CssNumber(c, "")], [new CssNumber(h, "")]]);
+                    return Eat(toks, ref p, TokKind.RParen, errors)
+                        ? new CssFunc("oklch", [[new CssNumber(l, "%")], [new CssNumber(c, "")], [new CssNumber(h, "")]])
+                        : null;
                 }
             case "oklab": {
                     if (toks[p].Kind != TokKind.Number || toks[p].Unit is not ("" or "%")) {
@@ -745,8 +740,7 @@ public static class ThemeCssParser {
                         p++;
                     }
 
-                    if (!Eat(toks, ref p, TokKind.RParen, errors)) return null;
-                    return new CssFunc("oklab", ab);
+                    return Eat(toks, ref p, TokKind.RParen, errors) ? new CssFunc("oklab", ab) : null;
                 }
             case "color-mix": {
                     if (toks[p].Kind != TokKind.Ident || toks[p].Text != "in") {
@@ -776,8 +770,7 @@ public static class ThemeCssParser {
                         if (k == 0 && !Eat(toks, ref p, TokKind.Comma, errors)) return null;
                     }
 
-                    if (!Eat(toks, ref p, TokKind.RParen, errors)) return null;
-                    return new CssFunc("color-mix", args);
+                    return Eat(toks, ref p, TokKind.RParen, errors) ? new CssFunc("color-mix", args) : null;
                 }
             default:
                 errors.Add(new CssError(t.Line, t.Col, $"unknown function '{fn}'"));

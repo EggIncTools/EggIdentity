@@ -20,8 +20,8 @@ public static class CloneGuards {
         ArgumentNullException.ThrowIfNull(plan);
         var target = SubProdGuard.EnsureDatabase(targetConn, plan.TargetDatabase);
         var source = SubProdGuard.DatabaseName(sourceConn);
-        if (string.Equals(source, target, StringComparison.Ordinal))
-            throw new InvalidOperationException($"source and target are the same database \"{target}\"");
-        return new CloneEndpoints(source, target, ReadOnlySource(sourceConn));
+        return string.Equals(source, target, StringComparison.Ordinal)
+            ? throw new InvalidOperationException($"source and target are the same database \"{target}\"")
+            : new CloneEndpoints(source, target, ReadOnlySource(sourceConn));
     }
 }

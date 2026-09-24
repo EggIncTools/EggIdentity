@@ -34,7 +34,8 @@ public sealed record CloneStatus(
     IReadOnlyList<CloneEvent> Events,
     IReadOnlyList<CloneTableCount> Tables);
 
-public sealed class CloneTracker(int tail = 50) : IProgress<CloneEvent> {
+public sealed class CloneTracker(int tail = 50, TimeProvider? time = null) : IProgress<CloneEvent> {
+    private readonly TimeProvider _time = time ?? TimeProvider.System;
     private readonly Lock _gate = new();
     private readonly List<CloneEvent> _events = [];
     private IReadOnlyList<CloneTableCount> _tables = [];
@@ -54,7 +55,7 @@ public sealed class CloneTracker(int tail = 50) : IProgress<CloneEvent> {
     public void Start() {
         lock (_gate) {
             _state = CloneState.Running;
-            _started = DateTimeOffset.UtcNow;
+            _started = _time.GetUtcNow();
             _finished = null;
             _error = null;
             _events.Clear();
@@ -65,7 +66,7 @@ public sealed class CloneTracker(int tail = 50) : IProgress<CloneEvent> {
     public void Finish(IReadOnlyList<CloneTableCount> tables) {
         lock (_gate) {
             _state = CloneState.Succeeded;
-            _finished = DateTimeOffset.UtcNow;
+            _finished = _time.GetUtcNow();
             _tables = tables;
         }
     }
@@ -73,10 +74,10 @@ public sealed class CloneTracker(int tail = 50) : IProgress<CloneEvent> {
     public void Fail(string error) {
         lock (_gate) {
             _state = CloneState.Failed;
-            _finished = DateTimeOffset.UtcNow;
+            _finished = _time.GetUtcNow();
             _error = error;
         }
-        Report(new CloneEvent(DateTimeOffset.UtcNow, ClonePhase.Error, error));
+        Report(new CloneEvent(_time.GetUtcNow(), ClonePhase.Error, error));
     }
 
     public CloneStatus Snapshot() {

@@ -78,8 +78,7 @@ internal static class IdentityApiRoutes {
             var redeemed = await codes.RedeemAsync(req.Code, ct);
             if (redeemed is null) return Results.NotFound();
             var user = await users.GetAsync(redeemed.UserId, ct);
-            if (user is null) return Results.NotFound();
-            return Results.Ok(new RedeemLoginCodeResponse {
+            return user is null ? Results.NotFound() : Results.Ok(new RedeemLoginCodeResponse {
                 UserId = user.UserId,
                 DiscordId = user.DiscordId,
                 Username = user.Username,
