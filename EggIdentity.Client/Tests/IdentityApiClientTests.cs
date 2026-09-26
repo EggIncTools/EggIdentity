@@ -211,6 +211,42 @@ public class IdentityApiClientTests {
     }
 
     [Fact]
+    public async Task ResolveAsync_WithSourceIds_SendsThemInBody() {
+        var expected = new IdentityResolveResponse { UserId = Guid.NewGuid(), Role = "viewer", MergedUserIds = [Guid.NewGuid()] };
+        var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(expected) });
+        var sources = new Dictionary<string, string?> { ["discord"] = "d1", ["github"] = "gh1", ["google"] = null };
+
+        var result = await client.ResolveAsync("authentik", "sub", "d1", "alice", null, sources, CancellationToken.None);
+
+        Assert.Single(result.MergedUserIds);
+        Assert.Contains("\"sourceIds\":{", handler.LastRequestBody);
+        Assert.Contains("\"github\":\"gh1\"", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_WithoutSourceIds_OmitsField() {
+        var expected = new IdentityResolveResponse { UserId = Guid.NewGuid(), Role = "viewer" };
+        var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(expected) });
+
+        await client.ResolveAsync("discord", "d1", "d1", "alice", null, CancellationToken.None);
+
+        Assert.DoesNotContain("sourceIds", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task ListMergesAsync_GetsWithSince() {
+        var since = new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.Zero);
+        var expected = new List<UserMergeResponse> { new() { MergedUserId = Guid.NewGuid(), KeptUserId = Guid.NewGuid(), MergedAt = since } };
+        var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(expected) });
+
+        var result = await client.ListMergesAsync(since, CancellationToken.None);
+
+        Assert.Single(result);
+        Assert.Equal("/identity/merges", handler.LastRequest!.RequestUri!.AbsolutePath);
+        Assert.Contains("since=", handler.LastRequest.RequestUri.Query);
+    }
+
+    [Fact]
     public async Task SyncIdentitiesAsync_PostsToSyncRoute() {
         var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.NoContent));
 
@@ -238,7 +274,7 @@ public class IdentityApiClientTests {
             "MergeAsync", "SetRoleAsync", "RedeemAsync", "GetLoginSourcesAsync", "GetProfileAsync",
             "StartLinkUrl", "StartRelinkUrl", "IconUrl", "UnlinkIdentityAsync", "UploadAvatarAsync",
             "SelectAvatarAsync", "GetSponsorStatusAsync", "GetSupporterStatusAsync", "RefreshSupporterStatusAsync",
-            "SetPreferencesAsync", "GetConsentAsync", "SetConsentAsync", "SyncIdentitiesAsync",
+            "SetPreferencesAsync", "GetConsentAsync", "SetConsentAsync", "SyncIdentitiesAsync", "ListMergesAsync",
         };
         var actual = typeof(IdentityApiClient)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)

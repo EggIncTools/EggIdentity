@@ -136,13 +136,10 @@ internal static class LoginRoutes {
     private static async Task<string> CompleteLoginAsync(
         HttpContext ctx, IdentityResolver resolver, LoginCodeStore codes, UserQueries users, TimeProvider time,
         AuthentikTokenResult token, HostConfig config, SponsorSyncService? sponsorSync) {
-        var resolved = await resolver.ResolveAsync(
-            "authentik", token.Sub, token.DiscordId, token.Username, token.Avatar, ctx.RequestAborted);
-        try {
-            await SyncSourcesAsync(ctx, resolver, resolved.UserId, token);
-        } catch (Exception exc) when (exc is not OperationCanceledException) {
-            Console.Error.WriteLine($"source identity sync failed for {resolved.UserId}: {exc.Message}");
-        }
+        var resolved = await resolver.ResolveWithSourcesAsync(
+            "authentik", token.Sub, token.PerSourceIds, token.Username, token.Avatar, ctx.RequestAborted);
+        if (!string.IsNullOrEmpty(token.Username))
+            await IdentityReconcileService.TryReconcileAsync(ctx.RequestServices, resolved.UserId, token.Username, token.Sub, ctx.RequestAborted);
         var loginCode = await codes.IssueAsync(resolved.UserId, resolved.IsNew, ctx.RequestAborted);
 
         if (sponsorSync is not null) {
@@ -166,9 +163,11 @@ internal static class LoginRoutes {
             return await resolver.SyncSourceIdentitiesAsync(userId, token.PerSourceIds, ctx.RequestAborted);
 
         var result = await reconciler.ReconcileAsync(userId, token.Username, token.Sub, ctx.RequestAborted);
-        return result.Applied
+        if (!result.Applied)
+            return await resolver.SyncSourceIdentitiesAsync(userId, token.PerSourceIds, ctx.RequestAborted);
+        return result.Outcomes.Count > 0
             ? result.Outcomes
-            : await resolver.SyncSourceIdentitiesAsync(userId, token.PerSourceIds, ctx.RequestAborted);
+            : [.. token.PerSourceIds.Select(kv => (kv.Key, new LinkOutcome(Linked: !string.IsNullOrEmpty(kv.Value), Conflict: false, null, null, NotAvailable: string.IsNullOrEmpty(kv.Value))))];
     }
 
     private static async Task IssueSessionAsync(

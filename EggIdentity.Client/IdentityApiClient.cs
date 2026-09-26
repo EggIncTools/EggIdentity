@@ -3,12 +3,31 @@ using EggIdentity.Contract;
 namespace EggIdentity.Client;
 
 public sealed class IdentityApiClient(HttpClient http) {
+    public Task<IdentityResolveResponse> ResolveAsync(
+        string provider, string subject, string? discordId, string? username, string? avatar, CancellationToken ct) =>
+        ResolveAsync(provider, subject, discordId, username, avatar, sourceIds: null, ct);
+
     public async Task<IdentityResolveResponse> ResolveAsync(
-        string provider, string subject, string? discordId, string? username, string? avatar, CancellationToken ct) {
-        var req = new IdentityResolveRequest { Provider = provider, Subject = subject, DiscordId = discordId, Username = username, Avatar = avatar };
+        string provider, string subject, string? discordId, string? username, string? avatar,
+        IReadOnlyDictionary<string, string?>? sourceIds, CancellationToken ct) {
+        var req = new IdentityResolveRequest {
+            Provider = provider,
+            Subject = subject,
+            DiscordId = discordId,
+            Username = username,
+            Avatar = avatar,
+            SourceIds = sourceIds?.ToDictionary(kv => kv.Key, kv => kv.Value),
+        };
         var resp = await http.PostAsJsonAsync("/identity/resolve", req, ct);
         resp.EnsureSuccessStatusCode();
         return (await resp.Content.ReadFromJsonAsync<IdentityResolveResponse>(cancellationToken: ct))!;
+    }
+
+    public async Task<IReadOnlyList<UserMergeResponse>> ListMergesAsync(DateTimeOffset? since, CancellationToken ct) {
+        var url = since is { } s ? $"/identity/merges?since={Uri.EscapeDataString(s.ToString("O"))}" : "/identity/merges";
+        var resp = await http.GetAsync(url, ct);
+        resp.EnsureSuccessStatusCode();
+        return (await resp.Content.ReadFromJsonAsync<List<UserMergeResponse>>(cancellationToken: ct))!;
     }
 
     public async Task<IdentityUserResponse?> GetAsync(Guid userId, CancellationToken ct) {

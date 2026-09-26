@@ -8,6 +8,7 @@ internal static class SubProdClonePlan {
     public static ClonePlan Plan { get; } = new("eggidentity", TargetDatabase, [
         new TablePolicy("users", ClonePolicy.Full),
         new TablePolicy("identities", ClonePolicy.Full),
+        new TablePolicy("user_merges", ClonePolicy.Full),
         new TablePolicy("github_sponsor_status", ClonePolicy.Full),
         new TablePolicy("cookie_consent", ClonePolicy.Full),
         new TablePolicy("revoked_sessions", ClonePolicy.SchemaOnly),

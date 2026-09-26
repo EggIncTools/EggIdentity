@@ -33,14 +33,28 @@ internal static class IdentityApiRoutes {
     }
 
     public static void Map(WebApplication app, HostConfig config) {
-        app.MapPost("/identity/resolve", async (IdentityResolveRequest req, IdentityResolver resolver, CancellationToken ct) => {
-            var result = await resolver.ResolveAsync(req.Provider, req.Subject, req.DiscordId, req.Username, req.Avatar, ct);
+        app.MapPost("/identity/resolve", async (IdentityResolveRequest req, IdentityResolver resolver, HttpContext ctx, CancellationToken ct) => {
+            var sourceIds = new Dictionary<string, string?>(req.SourceIds ?? [], StringComparer.Ordinal);
+            if (!string.IsNullOrEmpty(req.DiscordId)) sourceIds.TryAdd(IdentityWire.Discord, req.DiscordId);
+            var result = await resolver.ResolveWithSourcesAsync(req.Provider, req.Subject, sourceIds, req.Username, req.Avatar, ct);
+            if (req.Provider == "authentik" && !string.IsNullOrEmpty(req.Username))
+                await IdentityReconcileService.TryReconcileAsync(ctx.RequestServices, result.UserId, req.Username, req.Subject, ct);
             return Results.Ok(new IdentityResolveResponse {
                 UserId = result.UserId,
                 Role = result.Role,
                 DiscordId = result.DiscordId,
                 IsNew = result.IsNew,
+                MergedUserIds = [.. result.MergedUserIds],
             });
+        });
+
+        app.MapGet("/identity/merges", async (DateTimeOffset? since, int? limit, UserQueries users, CancellationToken ct) => {
+            var merges = await users.ListMergesAsync(since, Math.Clamp(limit ?? 500, 1, 5000), ct);
+            return Results.Ok(merges.Select(m => new UserMergeResponse {
+                MergedUserId = m.MergedUserId,
+                KeptUserId = m.KeptUserId,
+                MergedAt = m.MergedAt,
+            }));
         });
 
         app.MapGet("/identity/{userId:guid}", async (Guid userId, UserQueries users, CancellationToken ct) => {

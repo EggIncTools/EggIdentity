@@ -42,6 +42,9 @@ public static class AuthentikAspNetAuth {
             o.Scope.Add("profile");
             o.Scope.Add("email");
             o.Scope.Add("discord_id");
+            o.Scope.Add("google_id");
+            o.Scope.Add("microsoft_id");
+            o.Scope.Add("github_id");
             o.MapInboundClaims = false;
             o.SaveTokens = true;
             o.GetClaimsFromUserInfoEndpoint = true;
@@ -60,8 +63,14 @@ public static class AuthentikAspNetAuth {
                 var discordId = principal.FindFirstValue(SessionClaims.DiscordId);
                 var username = principal.FindFirstValue("preferred_username") ?? principal.FindFirstValue(ClaimTypes.Name);
                 var identityClient = ctx.HttpContext.RequestServices.GetRequiredService<IdentityApiClient>();
+                var sourceIds = new Dictionary<string, string?>(StringComparer.Ordinal) {
+                    [IdentityWire.Discord] = discordId,
+                    [IdentityWire.Google] = principal.FindFirstValue("google_id"),
+                    [IdentityWire.Microsoft] = principal.FindFirstValue("microsoft_id"),
+                    [IdentityWire.GitHub] = principal.FindFirstValue("github_id"),
+                };
                 var result = await identityClient.ResolveAsync(
-                    "authentik", sub, discordId, username, avatar: null, ctx.HttpContext.RequestAborted);
+                    "authentik", sub, discordId, username, avatar: null, sourceIds, ctx.HttpContext.RequestAborted);
 
                 var identity = (ClaimsIdentity)principal.Identity!;
                 identity.AddClaim(new Claim(options.UserIdClaim, result.UserId.ToString()));

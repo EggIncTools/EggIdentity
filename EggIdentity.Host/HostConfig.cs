@@ -11,6 +11,7 @@ internal sealed class HostConfig {
     public required string Port { get; init; }
     public string? AdminIds { get; init; }
     public int SweepIntervalMinutes { get; init; }
+    public int ReconcileIntervalMinutes { get; init; }
 
     public string? LocalLoginKey { get; init; }
     public string? AuthentikAuthority { get; init; }
@@ -68,6 +69,8 @@ internal sealed class HostConfig {
             AdminIds = Environment.GetEnvironmentVariable("IDENTITY_ADMIN_DISCORD_IDS"),
             SweepIntervalMinutes =
                 int.TryParse(Environment.GetEnvironmentVariable("IDENTITY_LOGIN_SWEEP_INTERVAL_MINUTES"), out var m) ? m : 10,
+            ReconcileIntervalMinutes =
+                int.TryParse(Environment.GetEnvironmentVariable("IDENTITY_RECONCILE_INTERVAL_MINUTES"), out var r) && r > 0 ? r : 30,
             LocalLoginKey = Environment.GetEnvironmentVariable("EGGIDENTITY_LOCAL_KEY"),
             AuthentikAuthority = authentikAuthority,
             AuthentikAppsDir = authentikAppsDir,

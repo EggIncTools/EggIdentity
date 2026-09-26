@@ -39,6 +39,7 @@ public static class Program {
         var stopping = app.Lifetime.ApplicationStopping;
         _ = new SettingsChangeListener(runtime.DataSource, runtime.SettingsCache).RunAsync(stopping);
         _ = new ExpiredRowSweeper(runtime.DataSource, TimeSpan.FromMinutes(config.SweepIntervalMinutes)).RunAsync(stopping);
+        if (app.Services.GetService<IdentityReconcileService>() is { } reconcile) _ = reconcile.RunAsync(stopping);
     }
 
     private static void MapRoutes(WebApplication app, HostConfig config) {

@@ -5,8 +5,9 @@ namespace EggIdentity.Host;
 public sealed record ReconcileResult(
     bool Applied,
     IReadOnlyList<(string Provider, LinkOutcome Outcome)> Outcomes,
-    IReadOnlyList<Models.Identity> Removed) {
-    public static ReconcileResult Skipped { get; } = new(false, [], []);
+    IReadOnlyList<Models.Identity> Removed,
+    IReadOnlyList<Guid> MergedUserIds) {
+    public static ReconcileResult Skipped { get; } = new(false, [], [], []);
 }
 
 public sealed record IdentityDiff(
@@ -41,14 +42,22 @@ public sealed class IdentityReconciler(IAuthentikAdminClient authentik, Identity
             await profiles.DeleteIdentityAsync(userId, stale.Provider, stale.Subject, ct);
 
         var outcomes = new List<(string, LinkOutcome)>();
+        var merged = new List<Guid>();
+        var currentUserId = userId;
         foreach (var connection in diff.ToAdd) {
             var provider = connection.Provider!;
             var discordId = provider == IdentityWire.Discord ? connection.Identifier : null;
-            var outcome = await resolver.TryLinkAsync(userId, provider, connection.Identifier, discordId, null, null, ct);
+            var outcome = await resolver.TryLinkAsync(currentUserId, provider, connection.Identifier, discordId, null, null, ct);
+            if (outcome.Conflict && outcome.ConflictUserId is { } other) {
+                var kept = await resolver.MergeOldestAsync(currentUserId, other, ct);
+                merged.Add(kept == currentUserId ? other : currentUserId);
+                currentUserId = kept;
+                outcome = await resolver.TryLinkAsync(currentUserId, provider, connection.Identifier, discordId, null, null, ct);
+            }
             outcomes.Add((provider, outcome));
         }
 
-        return new ReconcileResult(true, outcomes, diff.ToRemove);
+        return new ReconcileResult(true, outcomes, diff.ToRemove, merged);
     }
 
     public async Task<bool> UnlinkAsync(Guid userId, string provider, string subject, CancellationToken ct) {

@@ -17,6 +17,10 @@ public sealed class IdentityResolveRequest {
 
     [JsonPropertyName("avatar")]
     public string? Avatar { get; set; }
+
+    [JsonPropertyName("sourceIds")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, string?>? SourceIds { get; set; }
 }
 
 public sealed class IdentityResolveResponse {
@@ -31,6 +35,20 @@ public sealed class IdentityResolveResponse {
 
     [JsonPropertyName("isNew")]
     public bool IsNew { get; set; }
+
+    [JsonPropertyName("mergedUserIds")]
+    public List<Guid> MergedUserIds { get; set; } = [];
+}
+
+public sealed class UserMergeResponse {
+    [JsonPropertyName("mergedUserId")]
+    public Guid MergedUserId { get; set; }
+
+    [JsonPropertyName("keptUserId")]
+    public Guid KeptUserId { get; set; }
+
+    [JsonPropertyName("mergedAt")]
+    public DateTimeOffset MergedAt { get; set; }
 }
 
 public sealed class IdentityUserResponse {

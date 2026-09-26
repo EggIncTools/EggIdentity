@@ -69,6 +69,9 @@ internal static class HostServices {
         builder.Services.AddSingleton<IAuthentikAdminClient>(sp =>
             new AuthentikAdminClient(sp.GetRequiredService<IHttpClientFactory>(), authority, config.AuthentikApiToken));
         builder.Services.AddSingleton<IdentityReconciler>();
+        builder.Services.AddSingleton(sp => new IdentityReconcileService(
+            sp.GetRequiredService<IdentityReconciler>(), sp.GetRequiredService<UserQueries>(),
+            TimeSpan.FromMinutes(config.ReconcileIntervalMinutes)));
     }
 
     private static void RegisterBot(WebApplicationBuilder builder, HostConfig config) {

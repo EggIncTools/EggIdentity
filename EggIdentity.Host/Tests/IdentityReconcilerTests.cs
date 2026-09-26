@@ -131,6 +131,30 @@ public class IdentityReconcilerTests {
     }
 
     [Fact]
+    public async Task ReconcileAsync_ConnectionOwnedByAnotherAccount_MergesIntoOlderAccount() {
+        if (string.IsNullOrEmpty(ConnString)) return;
+        await using var db = await MakeDbAsync();
+        var resolver = new IdentityResolver(db, AdminAllowlist.FromConfig(""));
+        var profiles = new ProfileService(db);
+        var users = new UserQueries(db);
+        var github = Guid.NewGuid().ToString();
+
+        var older = await resolver.ResolveAsync("github", github, null, "mike-old", null, CancellationToken.None);
+        var newer = await resolver.ResolveAsync("authentik", "rc-sub-4", null, "rc-user-4", null, CancellationToken.None);
+        var authentik = new FakeAuthentik([new AuthentikSourceConnection(5, "github", "GitHub", github)]);
+        var reconciler = new IdentityReconciler(authentik, resolver, profiles);
+
+        var result = await reconciler.ReconcileAsync(newer.UserId, "rc-user-4", "rc-sub-4", CancellationToken.None);
+
+        Assert.True(result.Applied);
+        Assert.Equal([newer.UserId], result.MergedUserIds);
+        Assert.Null(await users.GetAsync(newer.UserId, CancellationToken.None));
+        var kept = await profiles.ListIdentitiesAsync(older.UserId, CancellationToken.None);
+        Assert.Equal(["authentik", "github"], kept.Select(i => i.Provider).Order());
+        Assert.Equal(older.UserId, Assert.Single(await users.ListMergesAsync(null, 1000, CancellationToken.None), m => m.MergedUserId == newer.UserId).KeptUserId);
+    }
+
+    [Fact]
     public async Task UnlinkAsync_DeletesMatchingAuthentikConnection() {
         if (string.IsNullOrEmpty(ConnString)) return;
         await using var db = await MakeDbAsync();

@@ -13,6 +13,7 @@ public static class HostSettings {
     private const string Deploy = "Deploy";
 
     public const string LoginSweepIntervalMinutes = "identity.login_sweep_interval_minutes";
+    public const string ReconcileIntervalMinutes = "identity.reconcile_interval_minutes";
     public const string TokenDecryptionKey = "authentik.token_decryption_key";
     public const string SponsorTarget = "github.sponsor_target";
     public const string SponsorRoleId = "discord.sponsor_role_id";
@@ -38,6 +39,12 @@ public static class HostSettings {
         new SettingDescriptor(
             LoginSweepIntervalMinutes, "IDENTITY_LOGIN_SWEEP_INTERVAL_MINUTES", "Expired-row sweep interval (minutes)", Core,
             SettingKind.Number, ApplyTier.RestartRequired, Sensitivity.Plain) { Default = "10" },
+        new SettingDescriptor(
+            ReconcileIntervalMinutes, "IDENTITY_RECONCILE_INTERVAL_MINUTES", "Identity reconcile interval (minutes)", Identity,
+            SettingKind.Number, ApplyTier.RestartRequired, Sensitivity.Plain) {
+            Default = "30",
+            Description = "How often every account is re-checked against Authentik's connected services. Only runs when authentik.api_token is set.",
+        },
         new SettingDescriptor(
             "identity.local_key", "EGGIDENTITY_LOCAL_KEY", "Local login key", Login,
             SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret),

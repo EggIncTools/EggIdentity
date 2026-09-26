@@ -71,7 +71,9 @@ public static class ProfileRoutes {
             if (reconciler is null) return Results.NotFound();
 
             var result = await reconciler.ReconcileAsync(userId.Value, ctx.RequestAborted);
-            return result.Applied ? Results.NoContent() : Results.Conflict("authentik user not found for this account");
+            if (!result.Applied) return Results.Conflict("authentik user not found for this account");
+            var stillExists = await users.GetAsync(userId.Value, ctx.RequestAborted) is not null;
+            return stillExists ? Results.NoContent() : Results.Unauthorized();
         });
 
         profileRoutes.MapPost("/avatar", async (HttpContext ctx) => {

@@ -8,7 +8,7 @@ public sealed record ProfileAvatarContext(string? AvatarUrl, string? Error, Even
 
 public sealed record ProfileIdentityItem(ProfileIdentityResponse Identity, bool CanUnlink, EventCallback OnSelectAvatar, EventCallback OnUnlink);
 
-public sealed record ProfileIdentitiesContext(IReadOnlyList<ProfileIdentityItem> Items, string? Banner, EventCallback OnSync = default);
+public sealed record ProfileIdentitiesContext(IReadOnlyList<ProfileIdentityItem> Items, string? Banner);
 
 public sealed record ProfileLinkItem(string Provider, bool Linked, string LinkUrl, string RelinkUrl);
 
@@ -24,4 +24,4 @@ public sealed record ProfileProviderItem(
     EventCallback OnSelectAvatar,
     EventCallback OnUnlink);
 
-public sealed record ProfileProvidersContext(IReadOnlyList<ProfileProviderItem> Items, string? Banner, EventCallback OnSync = default);
+public sealed record ProfileProvidersContext(IReadOnlyList<ProfileProviderItem> Items, string? Banner);

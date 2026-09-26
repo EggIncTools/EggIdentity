@@ -115,6 +115,89 @@ public class IdentityResolverTests {
     }
 
     [Fact]
+    public async Task ResolveAsync_SourceIdOwnedByOlderAccount_MergesIntoOlderAndRecordsMerge() {
+        if (string.IsNullOrEmpty(ConnString)) return;
+        await using var db = await MakeDbAsync();
+        var resolver = MakeResolver(db);
+        var users = new UserQueries(db);
+        var github = Guid.NewGuid().ToString();
+
+        var older = await resolver.ResolveWithSourcesAsync("authentik", Guid.NewGuid().ToString(), new Dictionary<string, string?> { ["github"] = github }, "mike-old", null, CancellationToken.None);
+        var newer = await resolver.ResolveWithSourcesAsync("authentik", Guid.NewGuid().ToString(), new Dictionary<string, string?>(), "mike-new", null, CancellationToken.None);
+        Assert.NotEqual(older.UserId, newer.UserId);
+
+        var newerSub = (await new ProfileService(db).ListIdentitiesAsync(newer.UserId, CancellationToken.None)).Single().Subject;
+        var merged = await resolver.ResolveWithSourcesAsync("authentik", newerSub, new Dictionary<string, string?> { ["github"] = github }, "mike-new", null, CancellationToken.None);
+
+        Assert.Equal(older.UserId, merged.UserId);
+        Assert.False(merged.IsNew);
+        Assert.Equal([newer.UserId], merged.MergedUserIds);
+        Assert.Null(await users.GetAsync(newer.UserId, CancellationToken.None));
+        var record = Assert.Single(await users.ListMergesAsync(null, 1000, CancellationToken.None), m => m.MergedUserId == newer.UserId);
+        Assert.Equal(older.UserId, record.KeptUserId);
+        var identities = await new ProfileService(db).ListIdentitiesAsync(older.UserId, CancellationToken.None);
+        Assert.Equal(["authentik", "github"], identities.Select(i => i.Provider).Order());
+        Assert.Equal(newerSub, identities.Single(i => i.Provider == "authentik").Subject);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_SourceIds_WriteOnePerProvider() {
+        if (string.IsNullOrEmpty(ConnString)) return;
+        await using var db = await MakeDbAsync();
+        var resolver = MakeResolver(db);
+        var sources = new Dictionary<string, string?> {
+            ["discord"] = Guid.NewGuid().ToString(),
+            ["github"] = Guid.NewGuid().ToString(),
+            ["google"] = null,
+        };
+
+        var result = await resolver.ResolveWithSourcesAsync("authentik", Guid.NewGuid().ToString(), sources, "multi", null, CancellationToken.None);
+
+        var identities = await new ProfileService(db).ListIdentitiesAsync(result.UserId, CancellationToken.None);
+        Assert.Equal(["authentik", "discord", "github"], identities.Select(i => i.Provider).Order());
+        Assert.Equal(sources["discord"], result.DiscordId);
+    }
+
+    [Fact]
+    public async Task MergeOldestAsync_KeepsEarlierCreatedAccountAndPreservesHighestRole() {
+        if (string.IsNullOrEmpty(ConnString)) return;
+        await using var db = await MakeDbAsync();
+        var resolver = MakeResolver(db);
+        var users = new UserQueries(db);
+
+        var first = await resolver.ResolveAsync("authentik", Guid.NewGuid().ToString(), null, "first", null, CancellationToken.None);
+        var second = await resolver.ResolveAsync("github", Guid.NewGuid().ToString(), null, "second", null, CancellationToken.None);
+        await users.SetRoleAsync(second.UserId, Contract.UserRole.Contributor, CancellationToken.None);
+
+        var kept = await resolver.MergeOldestAsync(second.UserId, first.UserId, CancellationToken.None);
+
+        Assert.Equal(first.UserId, kept);
+        var user = await users.GetAsync(first.UserId, CancellationToken.None);
+        Assert.Equal("contributor", user!.Role);
+        Assert.Equal(2, (await new ProfileService(db).ListIdentitiesAsync(first.UserId, CancellationToken.None)).Count);
+    }
+
+    [Fact]
+    public async Task MergeAsync_ChainedMerges_FlattenToFinalKeeper() {
+        if (string.IsNullOrEmpty(ConnString)) return;
+        await using var db = await MakeDbAsync();
+        var resolver = MakeResolver(db);
+        var users = new UserQueries(db);
+
+        var a = await resolver.ResolveAsync("authentik", Guid.NewGuid().ToString(), null, "a", null, CancellationToken.None);
+        var b = await resolver.ResolveAsync("authentik", Guid.NewGuid().ToString(), null, "b", null, CancellationToken.None);
+        var c = await resolver.ResolveAsync("authentik", Guid.NewGuid().ToString(), null, "c", null, CancellationToken.None);
+
+        await resolver.MergeAsync(b.UserId, a.UserId, CancellationToken.None);
+        await resolver.MergeAsync(c.UserId, b.UserId, CancellationToken.None);
+
+        var merges = (await users.ListMergesAsync(null, 1000, CancellationToken.None))
+            .Where(m => m.MergedUserId == a.UserId || m.MergedUserId == b.UserId).ToList();
+        Assert.Equal(2, merges.Count);
+        Assert.All(merges, m => Assert.Equal(c.UserId, m.KeptUserId));
+    }
+
+    [Fact]
     public async Task TryLinkAsync_UnclaimedIdentity_LinksToCurrentUser() {
         if (string.IsNullOrEmpty(ConnString)) return;
         await using var db = await MakeDbAsync();
@@ -158,6 +241,7 @@ public class IdentityResolverTests {
         Assert.False(outcome.Linked);
         Assert.True(outcome.Conflict);
         Assert.Equal("taken-owner", outcome.ConflictUsername);
+        Assert.Equal(other.UserId, outcome.ConflictUserId);
 
         var stillOther = await resolver.ResolveAsync("authentik", "link-taken-sub-1", null, "taken-owner", null, CancellationToken.None);
         Assert.Equal(other.UserId, stillOther.UserId);
