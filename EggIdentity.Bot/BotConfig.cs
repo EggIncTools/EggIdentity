@@ -10,8 +10,8 @@ public sealed class BotConfig {
     public string GuildId { get; init; } = "";
     public string RepoUrl { get; init; } = "";
     public VerifyInfo Build { get; init; } = new();
-    public string DeployAgentUrl { get; init; } = "";
-    public string DeployAgentSecret { get; init; } = "";
+    public string DeployUrl { get; init; } = "";
+    public string DeploySecret { get; init; } = "";
     public string SharedRoleId { get; init; } = "";
     public string SupporterRoleId { get; init; } = "";
     public IReadOnlyList<BotCommand> Extra { get; init; } = Array.Empty<BotCommand>();
@@ -34,6 +34,7 @@ public sealed class BotConfig {
     public string MigrationsTableName { get; init; } = "eggidentity_migrations";
 
     public Func<CancellationToken, Task<DashboardSnapshot>>? DashboardProvider { get; init; }
+    public Func<CancellationToken, Task<IReadOnlyList<BotAppSnapshot>>>? ServedApps { get; init; }
     public TimeSpan DashboardRefreshInterval { get; init; } = TimeSpan.FromMinutes(5);
 
     public string CommitUrl(string version) => $"{RepoUrl}/commit/{version}";

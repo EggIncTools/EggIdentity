@@ -27,7 +27,13 @@ public sealed record DeployStatus(
     [property: JsonPropertyName("updateAvailable")] bool UpdateAvailable,
     [property: JsonPropertyName("lastCheckedAt")] DateTimeOffset? LastCheckedAt,
     [property: JsonPropertyName("lastEvent")] DeployEvent? LastEvent,
-    [property: JsonPropertyName("busy")] bool Busy);
+    [property: JsonPropertyName("busy")] bool Busy) {
+    [JsonPropertyName("image")] public string? Image { get; init; }
+    [JsonPropertyName("stack")] public string? Stack { get; init; }
+    [JsonPropertyName("running")] public bool? Running { get; init; }
+    [JsonPropertyName("startedAt")] public DateTimeOffset? StartedAt { get; init; }
+    [JsonPropertyName("problem")] public string? Problem { get; init; }
+}
 
 public sealed record DeployHookPayload(
     [property: JsonPropertyName("app")] string App,

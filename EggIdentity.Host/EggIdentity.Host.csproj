@@ -4,7 +4,7 @@
     <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Description>Minimal API host exposing EggIdentity over HTTP: resolve/get/merge/revoke/admin-role. Bearer-secret-gated, server-to-server only.</Description>
+    <Description>Identity host: bearer-gated identity API, SSO issuer, login widget, and the suite admin API with fleet control over Portainer.</Description>
     <RootNamespace>EggIdentity.Host</RootNamespace>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -23,6 +23,7 @@
     <ProjectReference Include="..\EggIdentity.Brand\EggIdentity.Brand.csproj" />
     <ProjectReference Include="..\EggIdentity.Deploy\EggIdentity.Deploy.csproj" />
     <ProjectReference Include="..\EggIdentity.Fallback\EggIdentity.Fallback.csproj" />
+    <ProjectReference Include="..\EggIdentity.Fleet\EggIdentity.Fleet.csproj" />
     <ProjectReference Include="..\EggIdentity.Settings\EggIdentity.Settings.csproj" />
     <ProjectReference Include="..\EggIdentity.Settings.Store\EggIdentity.Settings.Store.csproj" />
     <ProjectReference Include="..\EggIdentity.Settings.Api\EggIdentity.Settings.Api.csproj" />

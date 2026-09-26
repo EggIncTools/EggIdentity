@@ -2,8 +2,8 @@
 @implements IDisposable
 
 <section class="dp panel dp-clone">
-    @if (_store is null || _client is null) {
-        <p class="dp-muted">Clone needs a promotion store and an AdminApiClient (call AddEggIdentityPromotion and register AdminApiClient).</p>
+    @if (_cache is null || _client is null) {
+        <p class="dp-muted">Clone needs a SettingsCache and an AdminApiClient.</p>
     } else {
         <div class="panel-head dp-head">
             <span class="dp-app">Clone</span>
@@ -22,7 +22,7 @@
         }
 
         <WorkbenchLoad T="CloneRow" Items="@_rows" LoadingText="Loading apps..."
-                       EmptyText="No admin.targets row has a sub-prod row in deploy.apps.">
+                       EmptyText="No enabled sub-prod app in suite.apps.">
             <div class="dp-table-wrap">
                 <table class="data-table">
                     <thead>

@@ -1,0 +1,64 @@
+<div class="suite-editor">
+    @if (Problems.Count > 0) {
+        <ul class="suite-problems">
+            @foreach (var problem in Problems) {
+                <li class="wb-notice">@problem</li>
+            }
+        </ul>
+    }
+
+    @foreach (var group in Groups) {
+        <fieldset class="suite-group">
+            <legend class="suite-group-title">@group.Key</legend>
+            @foreach (var field in group) {
+                var f = field;
+                <div class="suite-field">
+                    <label class="suite-label" for="@FieldId(f)">
+                        @f.Label
+                        @if (f.Required) {
+                            <span class="badge badge-muted">required</span>
+                        }
+                    </label>
+                    @if (f.Kind == SettingKind.Bool) {
+                        <select id="@FieldId(f)" class="form-select" disabled="@Locked(f)" value="@Value(f)" @onchange="e => Set(f, e.Value?.ToString())">
+                            <option value="true">true</option>
+                            <option value="false">false</option>
+                        </select>
+                    } else if (f.Kind == SettingKind.Enum) {
+                        <select id="@FieldId(f)" class="form-select" disabled="@Locked(f)" value="@Value(f)" @onchange="e => Set(f, e.Value?.ToString())">
+                            @foreach (var option in f.EnumValues) {
+                                <option value="@option">@option</option>
+                            }
+                        </select>
+                    } else {
+                        <input id="@FieldId(f)" class="form-input" type="@InputType(f)" autocomplete="off" disabled="@Locked(f)"
+                               value="@(f.IsSecret && Value(f) == "********" ? "" : Value(f))" placeholder="@Placeholder(f)"
+                               @oninput="e => Set(f, e.Value?.ToString())"/>
+                    }
+                    @if (f.Description is { Length: > 0 } description) {
+                        <p class="suite-desc">@description</p>
+                    }
+                </div>
+            }
+        </fieldset>
+    }
+
+    @if (_error is not null) {
+        <p class="suite-error">@_error</p>
+    }
+    @if (_note is not null) {
+        <p class="wb-note">@_note</p>
+    }
+
+    <div class="suite-actions">
+        @if (!IsNew) {
+            <button type="button" class="btn-mini btn-danger" disabled="@_busy" @onclick="DeleteAsync">
+                @(_confirmDelete ? "Confirm delete" : "Delete app")
+            </button>
+        }
+        <span class="suite-spacer"></span>
+        <button type="button" class="btn-primary" disabled="@(_busy || (!IsNew && _dirty.Count == 0))" @onclick="SaveAsync">
+            @(IsNew ? "Add app" : "Save")
+        </button>
+    </div>
+</div>

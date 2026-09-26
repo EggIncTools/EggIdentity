@@ -14,7 +14,7 @@ public static class AuthentikApps {
     public const string Key = "authentik.apps";
 
     public static CollectionDescriptor Descriptor { get; } = new(
-        Key, "Authentik app registrations", "Identity: SSO",
+        Key, "Authentik app registrations (legacy)", "Identity: SSO",
         [
             new FieldDescriptor("origin", "Origin", SettingKind.Url) {
                 Required = true,
@@ -31,7 +31,7 @@ public static class AuthentikApps {
             },
         ],
         "origin", "origin") {
-        Description = "One row per app that logs in through this host. Replaces AUTHENTIK_APPS_DIR.",
+        Description = "Read only while no suite.apps row has a client id. Move rows with eggidentity-tools import-suite-apps.",
     };
 
     public static ICollectionProvider Provider { get; } = new StaticCollectionProvider([Descriptor]);

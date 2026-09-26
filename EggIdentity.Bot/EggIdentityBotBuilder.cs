@@ -26,6 +26,7 @@ public sealed class EggIdentityBotBuilder {
     private Func<NewVersionEvent, Task>? _newVersionHandler;
     private string _eventSecret = "";
     private Func<CancellationToken, Task<DashboardSnapshot>>? _dashboardProvider;
+    private Func<CancellationToken, Task<IReadOnlyList<BotAppSnapshot>>>? _servedApps;
     private TimeSpan _dashboardRefreshInterval = TimeSpan.FromMinutes(5);
 
     public EggIdentityBotBuilder WithConfigFile(string path) { _configFilePath = path; return this; }
@@ -47,6 +48,7 @@ public sealed class EggIdentityBotBuilder {
     public EggIdentityBotBuilder WithMigrationsLocation(string dir, string tableName) { _migrationsDir = dir; _migrationsTableName = tableName; return this; }
     public EggIdentityBotBuilder WithNewVersionHandler(Func<NewVersionEvent, Task> handler, string eventSecret) { _newVersionHandler = handler; _eventSecret = eventSecret; return this; }
     public EggIdentityBotBuilder WithDashboardProvider(Func<CancellationToken, Task<DashboardSnapshot>> provider) { _dashboardProvider = provider; return this; }
+    public EggIdentityBotBuilder WithServedApps(Func<CancellationToken, Task<IReadOnlyList<BotAppSnapshot>>> served) { _servedApps = served; return this; }
     public EggIdentityBotBuilder WithDashboardRefreshInterval(TimeSpan interval) { _dashboardRefreshInterval = interval; return this; }
 
     public BotConfig BuildConfig() {
@@ -59,13 +61,14 @@ public sealed class EggIdentityBotBuilder {
             RepoUrl = values.RepoUrl ?? "",
             SharedRoleId = values.SharedRoleId ?? "",
             SupporterRoleId = values.SupporterRoleId ?? "",
-            DeployAgentUrl = values.DeployAgentUrl ?? "",
-            DeployAgentSecret = values.DeployAgentSecret ?? "",
+            DeployUrl = values.DeployUrl ?? "",
+            DeploySecret = values.DeploySecret ?? "",
             PostgresConnectionString = values.PostgresConnectionString ?? "",
             DashboardChannelId = values.DashboardChannelId ?? "",
             MigrationsDir = _migrationsDir,
             MigrationsTableName = _migrationsTableName,
             DashboardProvider = _dashboardProvider,
+            ServedApps = _servedApps,
             DashboardRefreshInterval = _dashboardRefreshInterval,
             Build = _build,
             GlobalCommands = _globalCommands,

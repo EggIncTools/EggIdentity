@@ -53,8 +53,8 @@ public class BotConfigLoaderTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".env");
         File.WriteAllText(path, string.Join('\n', new[] {
             "DISCORD_TOKEN=t", "DISCORD_APP_ID=a", "DISCORD_GUILD_ID=g", "REPO_URL=r",
-            "SHARED_ROLE_ID=sr", "SUPPORTER_ROLE_ID=pr", "DEPLOY_AGENT_URL=du",
-            "DEPLOY_AGENT_SECRET=ds", "POSTGRES_CONNECTION_STRING=pg", "DASHBOARD_CHANNEL_ID=dc",
+            "SHARED_ROLE_ID=sr", "SUPPORTER_ROLE_ID=pr", "DEPLOY_URL=du",
+            "DEPLOY_SECRET=ds", "POSTGRES_CONNECTION_STRING=pg", "DASHBOARD_CHANNEL_ID=dc",
         }));
         try {
             var cfg = BotConfigLoader.Load(path, _ => null);
@@ -64,8 +64,8 @@ public class BotConfigLoaderTests {
             Assert.Equal("r", cfg.RepoUrl);
             Assert.Equal("sr", cfg.SharedRoleId);
             Assert.Equal("pr", cfg.SupporterRoleId);
-            Assert.Equal("du", cfg.DeployAgentUrl);
-            Assert.Equal("ds", cfg.DeployAgentSecret);
+            Assert.Equal("du", cfg.DeployUrl);
+            Assert.Equal("ds", cfg.DeploySecret);
             Assert.Equal("pg", cfg.PostgresConnectionString);
             Assert.Equal("dc", cfg.DashboardChannelId);
         } finally { File.Delete(path); }

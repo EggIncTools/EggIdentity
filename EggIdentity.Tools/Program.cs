@@ -5,20 +5,14 @@ using Npgsql;
 namespace EggIdentity.Tools;
 
 internal static class Program {
-    private const string ImportAuthentikApps = "import-authentik-apps";
     private const string CloneSubProd = "clone-subprod";
 
     private static async Task<int> Main(string[] args) {
         if (args.Length > 0 && args[0] == CloneSubProd)
             return await CloneConsole.RunAsync(args[1..], SubProdClonePlan.Plan, Environment.GetEnvironmentVariable);
 
-        if (args.Length > 0 && args[0] == ImportAuthentikApps) {
-            if (args.Length < 2) {
-                Console.Error.WriteLine($"usage: eggidentity-tools {ImportAuthentikApps} <dir>");
-                return 1;
-            }
-            return await AuthentikAppImport.RunAsync(args[1], CancellationToken.None);
-        }
+        if (args.Length > 0 && args[0] == SuiteAppImport.Verb)
+            return await SuiteAppImport.RunAsync(args[1..], CancellationToken.None);
 
         var egiConn = RequireEnv("EGI_SOURCE_DB_CONNECTION");
         var ledgerConn = RequireEnv("LEDGER_SOURCE_DB_CONNECTION");

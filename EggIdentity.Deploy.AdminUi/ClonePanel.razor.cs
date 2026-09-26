@@ -1,6 +1,6 @@
 using EggIdentity.Contract;
-using EggIdentity.Settings;
 using EggIdentity.Settings.Api;
+using EggIdentity.Settings.Store;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,7 +19,7 @@ public sealed partial class ClonePanel : ComponentBase, IDisposable {
     private static readonly TimeSpan ConfirmWindow = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan PollPeriod = TimeSpan.FromSeconds(3);
 
-    private IPromotionStore? _store;
+    private SettingsCache? _cache;
     private AdminApiClient? _client;
     private List<CloneRow>? _rows;
     private string? _error;
@@ -30,13 +30,15 @@ public sealed partial class ClonePanel : ComponentBase, IDisposable {
     private CancellationTokenSource? _pollCts;
     private Task? _pollTask;
 
+    [Parameter] public string? App { get; set; }
+
     private bool AnyActive => _rows?.Exists(r => r.Active) == true;
 
-    protected override async Task OnInitializedAsync() {
-        _store = Services.GetService<IPromotionStore>();
-        _client = Services.GetService<AdminApiClient>();
-        if (_store is null || _client is null) return;
-        await LoadAsync(_store);
+    protected override async Task OnParametersSetAsync() {
+        _cache ??= Services.GetService<SettingsCache>();
+        _client ??= Services.GetService<AdminApiClient>();
+        if (_cache is null || _client is null) return;
+        await LoadAsync(_cache);
         if (AnyActive) EnsurePolling();
     }
 
@@ -90,20 +92,14 @@ public sealed partial class ClonePanel : ComponentBase, IDisposable {
         }
     }
 
-    private async Task LoadAsync(IPromotionStore store) {
+    private async Task LoadAsync(SettingsCache cache) {
         try {
-            var targets = await store.GetRowsAsync(AdminTargets.Key, CancellationToken.None);
-            var apps = await store.GetRowsAsync(DeployApps.Key, CancellationToken.None);
-            var subProd = new HashSet<string>(
-                apps.Select(r => CollectionBinder.Bind<DeployApp>(r.Values))
-                    .Where(a => a.TracksLatest)
-                    .Select(a => a.Name),
-                StringComparer.OrdinalIgnoreCase);
-            _rows = [.. targets
-                .Select(r => CollectionBinder.Bind<AdminTargetRow>(r.Values))
-                .Where(t => subProd.Contains(t.Name))
-                .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(t => new CloneRow(t.Name, AdminTargets.Describe(t, Environment.GetEnvironmentVariable)))];
+            var snapshot = await cache.GetAsync();
+            _rows = [.. snapshot.Collection<SuiteApp>(SuiteApps.Key)
+                .Where(a => a.Enabled && a.IsSubProd)
+                .Where(a => App is null || string.Equals(a.Name, App, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(a => new CloneRow(a.Name, SuiteAppTargets.Describe(a, Environment.GetEnvironmentVariable)))];
             foreach (var row in _rows) await RefreshAsync(row);
         } catch (Exception e) {
             _rows = [];

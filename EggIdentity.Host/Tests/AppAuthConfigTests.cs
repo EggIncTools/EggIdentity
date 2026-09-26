@@ -1,3 +1,4 @@
+using EggIdentity.Deploy;
 using EggIdentity.Settings;
 
 namespace EggIdentity.Host.Tests;
@@ -13,10 +14,49 @@ public class AppAuthConfigTests {
         return dir;
     }
 
-    private static SettingsSnapshot Snapshot(params CollectionRow[] rows) {
-        var registry = new SettingsRegistry([], [AuthentikApps.Provider]);
+    private static SettingsSnapshot Snapshot(params CollectionRow[] rows) => Snapshot(rows, []);
+
+    private static SettingsSnapshot Snapshot(CollectionRow[] legacy, CollectionRow[] suite) {
+        var registry = new SettingsRegistry([], [AuthentikApps.Provider, SuiteApps.Provider]);
         return new SettingsSnapshot(registry, new Dictionary<string, string?>(), null, _ => null,
-            new Dictionary<string, IReadOnlyList<CollectionRow>> { [AuthentikApps.Key] = rows });
+            new Dictionary<string, IReadOnlyList<CollectionRow>> { [AuthentikApps.Key] = legacy, [SuiteApps.Key] = suite });
+    }
+
+    private static CollectionRow Suite(string name, string? publicUrl, string? clientId = "suite-client", bool enabled = true) =>
+        new(SuiteApps.Key, name, new Dictionary<string, string?>(StringComparer.Ordinal) {
+            ["name"] = name,
+            ["public_url"] = publicUrl,
+            ["enabled"] = enabled ? "true" : "false",
+            ["auth_client_id"] = clientId,
+            ["auth_client_secret"] = "secret",
+            ["auth_callback_url"] = "https://identity.example.com/auth/callback",
+        }, DateTimeOffset.UnixEpoch, null);
+
+    [Fact]
+    public void FromSnapshot_SuiteRowsWin_KeyedByPublicUrlOrigin() {
+        var configs = AppAuthConfigs.FromSnapshot(
+            Snapshot([Row("https://legacy.example.com")], [Suite("eggledger", "https://ledger.example.com/app")]), Authority);
+
+        var only = Assert.Single(configs);
+        Assert.Equal("https://ledger.example.com", only.Key);
+        Assert.Equal("suite-client", only.Value.OAuth.ClientId);
+    }
+
+    [Fact]
+    public void FromSnapshot_SuiteRowWithoutPublicUrlOrDisabled_IsSkipped() {
+        var configs = AppAuthConfigs.FromSnapshot(
+            Snapshot([], [Suite("a", null), Suite("b", "https://b.example.com", enabled: false), Suite("c", "https://c.example.com", clientId: null)]),
+            Authority);
+
+        Assert.Empty(configs);
+    }
+
+    [Fact]
+    public void FromSnapshot_NoSuiteLogin_FallsBackToLegacyRows() {
+        var configs = AppAuthConfigs.FromSnapshot(
+            Snapshot([Row("https://legacy.example.com")], [Suite("eggledger", "https://ledger.example.com", clientId: null)]), Authority);
+
+        Assert.Equal(["https://legacy.example.com"], configs.Keys);
     }
 
     private static CollectionRow Row(string origin, string? endSession = null) =>

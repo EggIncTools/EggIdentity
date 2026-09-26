@@ -1,7 +1,9 @@
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using EggIdentity.Db;
 using EggIdentity.Fallback;
+using EggIdentity.Fleet;
 using EggIdentity.Settings.Api;
 using EggIdentity.Settings.Store;
 
@@ -35,9 +37,11 @@ public static class Program {
             await Migrator.MigrateAsync(conn, Path.Combine(AppContext.BaseDirectory, "Migrations"));
 
         await runtime.SettingsStore.MigrateAsync();
+        await runtime.SettingsCache.GetAsync();
 
         var stopping = app.Lifetime.ApplicationStopping;
         _ = new SettingsChangeListener(runtime.DataSource, runtime.SettingsCache).RunAsync(stopping);
+        _ = app.Services.GetRequiredService<FleetRuntime>().RunAsync(FleetRuntime.DefaultRefreshInterval, stopping);
         _ = new ExpiredRowSweeper(runtime.DataSource, TimeSpan.FromMinutes(config.SweepIntervalMinutes)).RunAsync(stopping);
         if (app.Services.GetService<IdentityReconcileService>() is { } reconcile) _ = reconcile.RunAsync(stopping);
     }
@@ -56,7 +60,14 @@ public static class Program {
         if (sponsorSync is not null) SponsorRoutes.Map(app, config, sponsorSync);
 
         IdentityApiRoutes.Map(app, config);
-        var adminApi = app.MapAdminApi(new AdminApiOptions("eggidentity", config.ApiSecret));
+        var build = BuildInfo.Build(Environment.GetEnvironmentVariable, Assembly.GetExecutingAssembly());
+        var fleet = app.Services.GetRequiredService<FleetRuntime>();
+        var adminApi = app.MapAdminApi(new AdminApiOptions(HostServices.AppName, config.ApiSecret) {
+            Version = build.Version,
+            Revision = build.Sha256,
+        });
+        adminApi.MapFleetAdminApi(fleet);
+        app.MapFleetHook(fleet);
         if (config.BotEnabled) BotAdminRoutes.Map(adminApi);
     }
 

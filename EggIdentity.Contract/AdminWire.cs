@@ -44,6 +44,8 @@ public sealed record AdminFieldWire {
     public bool Required { get; init; }
     public bool Secret { get; init; }
     public IReadOnlyList<string> EnumValues { get; init; } = [];
+    public string? Default { get; init; }
+    public string? Group { get; init; }
 }
 
 public sealed record AdminCollectionWire {
@@ -87,6 +89,28 @@ public sealed record AdminDriftResponse {
     public string? Unavailable { get; init; }
     public int ProblemCount { get; init; }
     public IReadOnlyList<AdminDriftEntryWire> Entries { get; init; } = [];
+}
+
+public sealed record AdminCapability(string Name);
+
+public static class AdminCapabilities {
+    public const string Settings = "settings";
+    public const string Collections = "collections";
+    public const string Drift = "drift";
+    public const string Restart = "restart";
+    public const string Bot = "bot";
+    public const string Clone = "clone";
+    public const string Visits = "visits";
+    public const string Fleet = "fleet";
+}
+
+public sealed record AdminManifest {
+    public string App { get; init; } = "";
+    public string? Version { get; init; }
+    public string? Revision { get; init; }
+    public IReadOnlyList<string> Capabilities { get; init; } = [];
+
+    public bool Has(string capability) => Capabilities.Contains(capability, StringComparer.Ordinal);
 }
 
 public sealed record AdminAppWire {

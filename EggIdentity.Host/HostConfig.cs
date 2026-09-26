@@ -1,6 +1,5 @@
 using EggIdentity.Auth;
 using EggIdentity.Bot;
-using EggIdentity.Deploy;
 using EggIdentity.Settings;
 
 namespace EggIdentity.Host;
@@ -30,7 +29,6 @@ internal sealed class HostConfig {
     public required string BotConfigFilePath { get; init; }
     public required IReadOnlyDictionary<string, string> SharedFileValues { get; init; }
     public bool BotEnabled { get; init; }
-    public string? DeployAgentUrl { get; init; }
 
     public string? SharedFileLookup(string key) => SharedFileValues.GetValueOrDefault(key);
 
@@ -85,7 +83,6 @@ internal sealed class HostConfig {
             BotConfigFilePath = botConfigFilePath,
             SharedFileValues = BotConfigLoader.ParseFile(botConfigFilePath),
             BotEnabled = botEnabled,
-            DeployAgentUrl = Environment.GetEnvironmentVariable(DeployOptions.AgentUrlEnv),
         };
     }
 }

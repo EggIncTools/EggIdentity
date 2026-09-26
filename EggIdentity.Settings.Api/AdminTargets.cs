@@ -19,31 +19,8 @@ public sealed record AdminTargetRow {
 }
 
 public static class AdminTargets {
-    public const string Key = "admin.targets";
+    public const string LegacyKey = "admin.targets";
     public const string SecretEnvPrefix = "ADMIN_SECRET_";
-
-    public static CollectionDescriptor Descriptor { get; } = new(
-        Key, "Admin targets", "Deploy",
-        [
-            new FieldDescriptor("name", "App name", SettingKind.Text) {
-                Required = true,
-                Description = "Joins to the app's deploy.apps row and names its secret environment variable.",
-            },
-            new FieldDescriptor("admin_base_url", "Admin base URL", SettingKind.Url) {
-                Required = true,
-                Description = "Internal address serving /admin/api, for example http://eggledger:5015. Not the public URL.",
-            },
-            new FieldDescriptor("enabled", "Enabled", SettingKind.Bool) {
-                Default = "true",
-                Description = "Off hides the app from the admin pane without losing its address.",
-            },
-        ],
-        "name", "name") {
-        Description = "One row per app administrable from the hub. Each secret is read from "
-            + SecretEnvPrefix + "<NAME> in the hub's environment, never stored here.",
-    };
-
-    public static ICollectionProvider Provider { get; } = new StaticCollectionProvider([Descriptor]);
 
     public static string SecretEnvKey(string app) {
         ArgumentException.ThrowIfNullOrWhiteSpace(app);
@@ -62,7 +39,9 @@ public static class AdminTargets {
         if (string.IsNullOrWhiteSpace(row.Name))
             return new AdminTargetStatus(row.Name, envKey, false, "this row has no app name");
         if (!row.Enabled)
-            return new AdminTargetStatus(row.Name, envKey, false, "disabled in admin.targets");
+            return new AdminTargetStatus(row.Name, envKey, false, "disabled");
+        if (string.IsNullOrWhiteSpace(row.AdminBaseUrl))
+            return new AdminTargetStatus(row.Name, envKey, false, "no admin base URL");
         if (!AdminTargetRow.TryUrl(row.AdminBaseUrl, out var url))
             return new AdminTargetStatus(row.Name, envKey, false, "admin base URL is not an absolute URL");
 

@@ -1,0 +1,65 @@
+.suite-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 48rem;
+}
+
+.suite-problems {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.suite-group {
+    border: 1px solid var(--color-border, #262c3a);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem 0.75rem;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    gap: 0.75rem;
+}
+
+.suite-group-title {
+    font-weight: 600;
+    padding: 0 0.25rem;
+}
+
+.suite-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.suite-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 500;
+}
+
+.suite-desc {
+    margin: 0;
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.suite-error {
+    color: var(--color-err, #f85149);
+    margin: 0;
+}
+
+.suite-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.suite-spacer {
+    flex: 1;
+}

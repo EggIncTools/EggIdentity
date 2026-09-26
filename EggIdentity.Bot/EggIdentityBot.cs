@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Discord;
 using Discord.WebSocket;
 using EggIdentity.Contract;
@@ -6,6 +7,8 @@ using Npgsql;
 
 namespace EggIdentity.Bot;
 
+public sealed record BotAppSnapshot(string App, DashboardSnapshot Snapshot);
+
 public sealed class EggIdentityBot : IAsyncDisposable {
     public static readonly string[] BuiltinCommandNames = ["verify", "updateserver"];
 
@@ -13,14 +16,17 @@ public sealed class EggIdentityBot : IAsyncDisposable {
     private readonly Dictionary<string, Func<SocketSlashCommandContext, Task>> _extra;
     private readonly Dictionary<string, Func<SocketAutocompleteContext, Task>> _autocomplete;
     private readonly EggIdentityBotBuilder? _builder;
-    private ChannelHub? _channelHub;
+    private readonly ConcurrentDictionary<string, ChannelHub> _hubs = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, BotConfigService> _configServices = new(StringComparer.OrdinalIgnoreCase);
+    private SocketGuild? _guild;
     private ChannelConfigStore? _configStore;
     private ChannelStateStore? _stateStore;
+    private DeployStateStore? _deployStore;
     private CancellationTokenSource? _dashboardCts;
 
     public Discord.WebSocket.DiscordSocketClient Client { get; }
 
-    public BotConfigService? ConfigService { get; private set; }
+    public BotConfigService? ConfigService => ConfigServiceFor(_cfg.Name);
 
     private EggIdentityBot(BotConfig cfg, DiscordSocketClient client, EggIdentityBotBuilder? builder) {
         _cfg = cfg;
@@ -32,15 +38,43 @@ public sealed class EggIdentityBot : IAsyncDisposable {
             .ToDictionary(c => c.Name, c => c.AutocompleteHandler!);
     }
 
+    public BotConfigService? ConfigServiceFor(string app) {
+        if (string.IsNullOrWhiteSpace(app) || _configStore is not { } configStore || _stateStore is not { } stateStore) return null;
+        if (Hub(app) is not { } hub) return null;
+        return _configServices.GetOrAdd(app, name => new BotConfigService(_cfg.GuildId, name, configStore, stateStore,
+            hub.EnsureWebhookForThreadAsync, hub.TeardownWebhookForThreadAsync));
+    }
+
     public async Task UpdateDashboardAsync(DashboardSnapshot snapshot, CancellationToken ct = default) {
-        if (_channelHub is not null) await _channelHub.UpdateDashboardAsync(snapshot, ct);
+        if (Hub(_cfg.Name) is { } hub) await hub.UpdateDashboardAsync(snapshot, ct);
+    }
+
+    public async Task UpdateDashboardAsync(string app, DashboardSnapshot snapshot, CancellationToken ct = default) {
+        if (Hub(app) is { } hub) await hub.UpdateDashboardAsync(snapshot, ct);
     }
 
     public async Task<string?> EnsureWebhookForThreadAsync(ThreadKind kind, ulong threadId, CancellationToken ct = default) =>
-        _channelHub is null ? null : await _channelHub.EnsureWebhookForThreadAsync(kind, threadId, ct);
+        Hub(_cfg.Name) is { } hub ? await hub.EnsureWebhookForThreadAsync(kind, threadId, ct) : null;
 
     public async Task TeardownWebhookForThreadAsync(ThreadKind kind, CancellationToken ct = default) {
-        if (_channelHub is not null) await _channelHub.TeardownWebhookForThreadAsync(kind, ct);
+        if (Hub(_cfg.Name) is { } hub) await hub.TeardownWebhookForThreadAsync(kind, ct);
+    }
+
+    public async Task NotifyDeployAsync(string app, DeployResponse response, CancellationToken ct = default) {
+        if (_configStore is null || _guild is null) return;
+        await new DeployNotifier(_configStore, Client, _guild.Id, app).NotifyAsync(response, ct);
+    }
+
+    public async Task TrackDeployAsync(string app, string revision, string version, CancellationToken ct = default) {
+        if (_configStore is null || _deployStore is null || _guild is null) return;
+        var notifier = new DeployNotifier(_configStore, Client, _guild.Id, app);
+        await new DeployVersionTracker(_deployStore, notifier).CheckAndNotifyAsync(app, revision, version, ct);
+    }
+
+    private ChannelHub? Hub(string app) {
+        if (_guild is not { } guild || _configStore is not { } configStore || _stateStore is not { } stateStore) return null;
+        var fallback = string.Equals(app, _cfg.Name, StringComparison.OrdinalIgnoreCase) ? _cfg.DashboardChannelId : null;
+        return _hubs.GetOrAdd(app, name => new ChannelHub(guild, name, stateStore, configStore, fallback));
     }
 
     public static async Task<EggIdentityBot?> StartAsync(BotConfig cfg, EggIdentityBotBuilder? builder = null) {
@@ -113,55 +147,50 @@ public sealed class EggIdentityBot : IAsyncDisposable {
         await using (var conn = await dataSource.OpenConnectionAsync())
             await Migrator.MigrateAsync(conn, Path.Combine(AppContext.BaseDirectory, _cfg.MigrationsDir), _cfg.MigrationsTableName);
 
-        var configStore = new ChannelConfigStore(dataSource);
-        _configStore = configStore;
-        var configOverride = await configStore.GetAsync(_cfg.GuildId, _cfg.Name, CancellationToken.None);
-        var dashboardChannelIdStr = configOverride?.DashboardChannelId ?? _cfg.DashboardChannelId;
-
-        if (string.IsNullOrEmpty(dashboardChannelIdStr)) return;
-        if (!TryParseSnowflake(dashboardChannelIdStr, "dashboard channel id", out var channelId)) return;
         var guild = Client.GetGuild(guildId);
         if (guild is null) return;
 
-        var store = new ChannelStateStore(dataSource);
-        _stateStore = store;
-        _channelHub = new ChannelHub(guild, channelId, _cfg.Name, store, configStore);
+        _configStore = new ChannelConfigStore(dataSource);
+        _stateStore = new ChannelStateStore(dataSource);
+        _deployStore = new DeployStateStore(dataSource);
+        _guild = guild;
 
-        if (!string.IsNullOrEmpty(configOverride?.GithubFeedThreadId) &&
-            ulong.TryParse(configOverride.GithubFeedThreadId, out var githubFeedThreadId)) {
-            await _channelHub.EnsureWebhookForThreadAsync(ThreadKind.GithubFeed, githubFeedThreadId, CancellationToken.None);
-        }
+        var own = await _configStore.GetAsync(_cfg.GuildId, _cfg.Name, CancellationToken.None);
+        if (ulong.TryParse(own?.GithubFeedThreadId, out var githubFeedThreadId))
+            await EnsureWebhookForThreadAsync(ThreadKind.GithubFeed, githubFeedThreadId, CancellationToken.None);
 
-        ConfigService = new BotConfigService(_cfg.GuildId, _cfg.Name, _configStore, _stateStore,
-            EnsureWebhookForThreadAsync, TeardownWebhookForThreadAsync);
-
-        if (_cfg.DashboardProvider is { } dashboardProvider) {
-            var interval = _cfg.DashboardRefreshInterval < TimeSpan.FromSeconds(60)
-                ? TimeSpan.FromSeconds(60) : _cfg.DashboardRefreshInterval;
-            _dashboardCts = new CancellationTokenSource();
-            _ = RunDashboardLoopAsync(dashboardProvider, interval, _dashboardCts.Token);
-        }
+        if (_cfg.DashboardProvider is null && _cfg.ServedApps is null) return;
+        var interval = _cfg.DashboardRefreshInterval < TimeSpan.FromSeconds(60)
+            ? TimeSpan.FromSeconds(60) : _cfg.DashboardRefreshInterval;
+        _dashboardCts = new CancellationTokenSource();
+        _ = RunDashboardLoopAsync(interval, _dashboardCts.Token);
     }
 
-    private async Task RunDashboardLoopAsync(
-        Func<CancellationToken, Task<DashboardSnapshot>> provider, TimeSpan interval, CancellationToken ct) {
+    private async Task RunDashboardLoopAsync(TimeSpan interval, CancellationToken ct) {
         try {
-            await RefreshDashboardOnceAsync(provider, ct);
+            await RefreshDashboardsOnceAsync(ct);
             using var timer = new PeriodicTimer(interval);
             while (await timer.WaitForNextTickAsync(ct))
-                await RefreshDashboardOnceAsync(provider, ct);
+                await RefreshDashboardsOnceAsync(ct);
         } catch (OperationCanceledException) { /* shutdown */ }
     }
 
-    private async Task RefreshDashboardOnceAsync(
-        Func<CancellationToken, Task<DashboardSnapshot>> provider, CancellationToken ct) {
+    private async Task RefreshDashboardsOnceAsync(CancellationToken ct) {
+        if (_cfg.DashboardProvider is { } provider)
+            await GuardAsync(_cfg.Name, async () => await UpdateDashboardAsync(await provider(ct), ct));
+        if (_cfg.ServedApps is not { } served) return;
+
+        IReadOnlyList<BotAppSnapshot> apps = [];
+        await GuardAsync("served apps", async () => apps = await served(ct));
+        foreach (var app in apps.Where(a => !string.Equals(a.App, _cfg.Name, StringComparison.OrdinalIgnoreCase)))
+            await GuardAsync(app.App, () => UpdateDashboardAsync(app.App, app.Snapshot, ct));
+    }
+
+    private static async Task GuardAsync(string label, Func<Task> work) {
         try {
-            var snapshot = await provider(ct);
-            if (_channelHub is not null) await _channelHub.UpdateDashboardAsync(snapshot, ct);
-        } catch (OperationCanceledException) {
-            throw;
-        } catch (Exception ex) {
-            Console.Error.WriteLine($"bot: dashboard refresh: {ex.Message}");
+            await work();
+        } catch (Exception ex) when (ex is not OperationCanceledException) {
+            Console.Error.WriteLine($"bot: dashboard refresh for {label}: {ex.Message}");
         }
     }
 
@@ -291,12 +320,12 @@ public sealed class EggIdentityBot : IAsyncDisposable {
             await cmd.RespondAsync("Not authorized.", ephemeral: true);
             return;
         }
-        if (string.IsNullOrEmpty(_cfg.DeployAgentUrl) || string.IsNullOrEmpty(_cfg.DeployAgentSecret)) {
-            await cmd.RespondAsync("Deploy agent not configured.", ephemeral: true);
+        if (string.IsNullOrEmpty(_cfg.DeployUrl) || string.IsNullOrEmpty(_cfg.DeploySecret)) {
+            await cmd.RespondAsync("Deploys are not configured (set DEPLOY_URL and DEPLOY_SECRET).", ephemeral: true);
             return;
         }
         await cmd.DeferAsync();
-        var res = await DeployAgentClient.CallAsync(_cfg.DeployAgentUrl, _cfg.DeployAgentSecret);
+        var res = await DeployClient.CallAsync(_cfg.DeployUrl, _cfg.DeploySecret);
         var embed = res.AlreadyUpToDate
             ? _builder?.ResolveAlreadyUpToDateEmbed(_cfg, res.FromHash ?? "") ?? DefaultEmbeds.AlreadyUpToDate(_cfg, res.FromHash ?? "")
             : res.Ok

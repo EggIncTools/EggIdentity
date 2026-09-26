@@ -10,7 +10,7 @@ public sealed partial class DeployPanel : ComponentBase, IDisposable {
     private static readonly TimeSpan ConfirmWindow = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan RefreshPeriod = TimeSpan.FromSeconds(30);
 
-    private AgentClient? _client;
+    private FleetClient? _client;
     private IDeployEvents? _events;
     private DeployOptions? _options;
     private DeployStatus? _status;
@@ -41,9 +41,15 @@ public sealed partial class DeployPanel : ComponentBase, IDisposable {
     private string LatestText => DeployPanelFormat.VersionLine(_status?.LatestVersion, _status?.LatestRevision, _status?.LatestDigest);
     private string CheckedText => DeployPanelFormat.Relative(_status?.LastCheckedAt, Now);
     private string? CheckedTitle => _status?.LastCheckedAt is { } at ? DeployPanelFormat.Timestamp(at) : null;
+    private string StartedText => DeployPanelFormat.Relative(_status?.StartedAt, Now);
+    private string StateText => _status?.Running switch {
+        true => "running",
+        false => "stopped",
+        null => "unknown",
+    };
 
     protected override async Task OnInitializedAsync() {
-        _client = Services.GetService<AgentClient>();
+        _client = Services.GetService<FleetClient>();
         _events = Services.GetService<IDeployEvents>();
         _options = Services.GetService<DeployOptions>();
         if (_client is null || _events is null || _options is null) return;
@@ -77,7 +83,7 @@ public sealed partial class DeployPanel : ComponentBase, IDisposable {
         if (_client is null) return;
         try {
             _status = await _client.GetStatusAsync(AppName, CancellationToken.None);
-            _error = _status is null ? $"Agent does not know an app named '{AppName}'." : null;
+            _error = _status is null ? $"suite.apps has no enabled row named '{AppName}'." : _status.Problem;
         } catch (Exception e) when (e is HttpRequestException or TimeoutException or OperationCanceledException) {
             _error = e.Message;
         }
@@ -94,12 +100,12 @@ public sealed partial class DeployPanel : ComponentBase, IDisposable {
     }
 
     private Task CheckNowAsync() =>
-        RunAsync(async client => _status = await client.CheckAsync(AppName, CancellationToken.None));
+        RunAsync(async client => _status = await client.CheckAsync(AppName, CancellationToken.None) ?? _status);
 
     private Task UpdateNowAsync() =>
         !Confirmed("update")
             ? Task.CompletedTask
-            : RunAsync(async client => _status = await client.DeployAsync(AppName, CancellationToken.None));
+            : RunAsync(async client => _status = await client.DeployAsync(AppName, CancellationToken.None) ?? _status);
 
     private Task RestartNowAsync() =>
         !Confirmed("restart")
@@ -133,7 +139,7 @@ public sealed partial class DeployPanel : ComponentBase, IDisposable {
         }
     }
 
-    private async Task RunAsync(Func<AgentClient, Task> work) {
+    private async Task RunAsync(Func<FleetClient, Task> work) {
         if (_working || _client is not { } client) return;
         _working = true;
         _error = null;

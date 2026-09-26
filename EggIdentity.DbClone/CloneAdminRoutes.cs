@@ -24,7 +24,8 @@ public static class CloneAdminRoutes {
                     statusCode: StatusCodes.Status409Conflict);
         });
 
-        group.MapGet("/clone", async (CancellationToken ct) => Results.Ok(await run.StatusAsync(ct)));
+        group.MapGet("/clone", async (CancellationToken ct) => Results.Ok(await run.StatusAsync(ct)))
+            .WithMetadata(new AdminCapability(AdminCapabilities.Clone));
 
         return group;
     }

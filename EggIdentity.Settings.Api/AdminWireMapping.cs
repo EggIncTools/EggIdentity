@@ -49,6 +49,8 @@ public static class AdminWireMapping {
             Required = field.Required,
             Secret = field.IsSecret,
             EnumValues = field.EnumValues,
+            Default = field.Default,
+            Group = field.Group,
         };
     }
 
@@ -123,6 +125,8 @@ public static class AdminWireMapping {
             Description = wire.Description,
             Required = wire.Required,
             EnumValues = wire.EnumValues,
+            Default = wire.Default,
+            Group = wire.Group,
         };
     }
 

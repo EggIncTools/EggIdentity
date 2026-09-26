@@ -5,19 +5,22 @@ using EggIdentity.Contract;
 namespace EggIdentity.Bot;
 
 public sealed class ChannelHub(
-    SocketGuild guild, ulong dashboardChannelId, string appName,
-    ChannelStateStore store, ChannelConfigStore configStore) {
+    SocketGuild guild, string appName, ChannelStateStore store, ChannelConfigStore configStore, string? fallbackDashboardChannelId = null) {
     private const string DashboardKind = "dashboard";
     private static string ThreadStateKind(ThreadKind kind) => $"thread:{ThreadKinds.ToName(kind)}";
 
     private string? _lastSignature;
 
+    public string AppName => appName;
+
     public async Task UpdateDashboardAsync(DashboardSnapshot snapshot, CancellationToken ct) {
+        var config = await configStore.GetAsync(guild.Id.ToString(), appName, ct);
+        var channelId = string.IsNullOrEmpty(config?.DashboardChannelId) ? fallbackDashboardChannelId : config.DashboardChannelId;
+        if (!ulong.TryParse(channelId, out var dashboardChannelId)) return;
         if (guild.GetChannel(dashboardChannelId) is not ITextChannel channel) return;
 
-        var config = await configStore.GetAsync(guild.Id.ToString(), appName, ct);
         var spec = MessageSpecs.ParseEmbed(config?.DashboardEmbedJson) ?? DashboardEmbedDefaults.Default;
-        var signature = DashboardSignature.Of(snapshot) + "|spec|" + (config?.DashboardEmbedJson ?? "");
+        var signature = DashboardSignature.Of(snapshot) + "|spec|" + (config?.DashboardEmbedJson ?? "") + "|channel|" + channelId;
 
         var existing = await store.GetAsync(guild.Id.ToString(), appName, DashboardKind, ct);
         var hasMessage = existing is not null && ulong.TryParse(existing.DiscordId, out _);

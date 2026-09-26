@@ -10,6 +10,8 @@ namespace EggIdentity.Settings.Api;
 
 public sealed record AdminApiOptions(string AppName, string Secret) {
     public string Prefix { get; init; } = "/admin/api";
+    public string? Version { get; init; }
+    public string? Revision { get; init; }
 }
 
 public static class AdminApiRoutes {
@@ -19,6 +21,15 @@ public static class AdminApiRoutes {
         ArgumentException.ThrowIfNullOrWhiteSpace(options.Secret);
 
         var group = routes.MapGroup(options.Prefix).AddEndpointFilter(new BearerFilter(options.Secret));
+        var prefix = options.Prefix.TrimEnd('/');
+
+        group.MapGet("/manifest", ([FromServices] IServiceProvider services, [FromServices] EndpointDataSource endpoints) =>
+            Results.Ok(new AdminManifest {
+                App = options.AppName,
+                Version = options.Version,
+                Revision = options.Revision,
+                Capabilities = Capabilities(endpoints, prefix, services.GetService<IRestartTrigger>() is not null),
+            }));
 
         group.MapGet("/settings", async ([FromServices] IServiceProvider services, CancellationToken ct) => {
             if (Admin(services) is not { } admin) return Unconfigured();
@@ -28,7 +39,7 @@ public static class AdminApiRoutes {
                 Settings = [.. rows.Select(AdminWireMapping.ToWire)],
                 PendingRestartKeys = admin.PendingRestartKeys,
             });
-        });
+        }).WithMetadata(new AdminCapability(AdminCapabilities.Settings));
 
         group.MapPut("/settings/{key}", async (
             string key, AdminSaveRequest body, [FromServices] IServiceProvider services, CancellationToken ct) => {
@@ -40,7 +51,8 @@ public static class AdminApiRoutes {
         group.MapGet("/collections", ([FromServices] IServiceProvider services) =>
             Admin(services) is not { } admin
                 ? Unconfigured()
-                : Results.Ok(admin.Collections.Select(AdminWireMapping.ToWire)));
+                : Results.Ok(admin.Collections.Select(AdminWireMapping.ToWire)))
+            .WithMetadata(new AdminCapability(AdminCapabilities.Collections));
 
         group.MapGet("/collections/{key}", async (string key, [FromServices] IServiceProvider services, CancellationToken ct) => {
             if (Admin(services) is not { } admin) return Unconfigured();
@@ -81,7 +93,7 @@ public static class AdminApiRoutes {
                     ?? new ProcessEnvSource(services.GetRequiredService<SettingsRegistry>());
                 var env = await source.GetAsync(ct);
                 return Results.Ok(AdminWireMapping.ToWire(options.AppName, await admin.DriftAsync(env, ct)));
-            });
+            }).WithMetadata(new AdminCapability(AdminCapabilities.Drift));
 
         group.MapPost("/restart", async ([FromServices] IServiceProvider services, CancellationToken ct) => {
             if (services.GetService<IRestartTrigger>() is not { } restart)
@@ -91,6 +103,17 @@ public static class AdminApiRoutes {
         });
 
         return group;
+    }
+
+    internal static IReadOnlyList<string> Capabilities(EndpointDataSource endpoints, string prefix, bool canRestart) {
+        var names = endpoints.Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(e => ("/" + (e.RoutePattern.RawText ?? "").TrimStart('/')).StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase))
+            .SelectMany(e => e.Metadata.GetOrderedMetadata<AdminCapability>())
+            .Select(c => c.Name)
+            .ToHashSet(StringComparer.Ordinal);
+        if (canRestart) names.Add(AdminCapabilities.Restart);
+        return [.. names.Order(StringComparer.Ordinal)];
     }
 
     private static SettingsAdminService? Admin(IServiceProvider services) =>

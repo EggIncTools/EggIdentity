@@ -24,14 +24,6 @@ jobs:
       dockerfile: EggIdentity.Host/Dockerfile
       cache-scope: identity-host
 
-  docker-agent:
-    uses: ./.github/workflows/docker-publish.yml
-    with:
-      image-suffix: "-agent"
-      context: .
-      dockerfile: EggIdentity.Agent/Dockerfile
-      cache-scope: agent
-
   notify-identity:
     needs: docker-identity-host
     uses: ./.github/workflows/notify-agent.yml
@@ -39,18 +31,6 @@ jobs:
       app: eggidentity
       agent-url: https://egghook.egginc.tools/agent
       digest: ${{ needs.docker-identity-host.outputs.digest }}
-      revision: ${{ github.sha }}
-      version: ${{ github.ref_name }}
-    secrets:
-      hook-secret: ${{ secrets.DEPLOY_HOOK_SECRET }}
-
-  notify-agent:
-    needs: docker-agent
-    uses: ./.github/workflows/notify-agent.yml
-    with:
-      app: eggidentity-agent
-      agent-url: https://egghook.egginc.tools/agent
-      digest: ${{ needs.docker-agent.outputs.digest }}
       revision: ${{ github.sha }}
       version: ${{ github.ref_name }}
     secrets:

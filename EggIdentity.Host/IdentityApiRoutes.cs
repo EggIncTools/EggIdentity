@@ -5,7 +5,7 @@ namespace EggIdentity.Host;
 
 internal static class IdentityApiRoutes {
     private static readonly string[] PublicSegments = [
-        "/auth", "/eggidentity-login.js", "/profile", "/avatars", "/webhooks", "/admin/api",
+        "/auth", "/eggidentity-login.js", "/profile", "/avatars", "/webhooks", "/hooks", "/admin/api",
         "/privacy", "/terms",
     ];
 

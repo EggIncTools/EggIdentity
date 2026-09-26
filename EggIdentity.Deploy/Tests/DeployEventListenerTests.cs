@@ -9,13 +9,13 @@ public class DeployEventListenerTests {
         var firstStream = new Pipe();
         var idleStream = new Pipe();
         var thirdCall = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var handler = new FakeAgentHandler((req, call) => call switch {
+        var handler = new FakeFleetHandler((req, call) => call switch {
             1 => throw new HttpRequestException("connection refused"),
-            2 => FakeAgentHandler.Stream(firstStream),
+            2 => FakeFleetHandler.Stream(firstStream),
             _ => Record(req, thirdCall, idleStream),
         });
-        await FakeAgentHandler.WriteAsync(firstStream, FakeAgentHandler.Frame(TestFixtures.Event(1, phase: DeployPhase.Pulling)));
-        await FakeAgentHandler.WriteAsync(firstStream, FakeAgentHandler.Frame(TestFixtures.Event(2, phase: DeployPhase.Deployed)));
+        await FakeFleetHandler.WriteAsync(firstStream, FakeFleetHandler.Frame(TestFixtures.Event(1, phase: DeployPhase.Pulling)));
+        await FakeFleetHandler.WriteAsync(firstStream, FakeFleetHandler.Frame(TestFixtures.Event(2, phase: DeployPhase.Deployed)));
         await firstStream.Writer.CompleteAsync();
 
         var hub = new DeployEventHub();
@@ -37,9 +37,9 @@ public class DeployEventListenerTests {
     public async Task Listener_StopsCleanly_WhileStreamIsOpen() {
         var open = new Pipe();
         var connected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var handler = new FakeAgentHandler((_, _) => {
+        var handler = new FakeFleetHandler((_, _) => {
             connected.TrySetResult();
-            return FakeAgentHandler.Stream(open);
+            return FakeFleetHandler.Stream(open);
         });
         var listener = new DeployEventListener(TestFixtures.Client(handler), new DeployEventHub(), TestFixtures.Options());
 
@@ -47,12 +47,12 @@ public class DeployEventListenerTests {
         await connected.Task.WaitAsync(TimeSpan.FromSeconds(10));
         await listener.StopAsync(CancellationToken.None);
 
-        Assert.True(listener.ExecuteTask!.IsCompletedSuccessfully);
+        Assert.True(listener.ExecuteTask?.IsCompletedSuccessfully);
     }
 
     private static HttpResponseMessage Record(HttpRequestMessage req, TaskCompletionSource<string?> signal, Pipe stream) {
         var header = req.Headers.TryGetValues("Last-Event-ID", out var values) ? values.FirstOrDefault() : null;
         signal.TrySetResult(header);
-        return FakeAgentHandler.Stream(stream);
+        return FakeFleetHandler.Stream(stream);
     }
 }

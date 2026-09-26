@@ -1,4 +1,5 @@
 using EggIdentity.Auth;
+using EggIdentity.Deploy;
 using EggIdentity.Settings;
 using EggIdentity.Settings.Store;
 
@@ -25,7 +26,22 @@ public sealed class AppAuthConfigs(SettingsCache cache, string authority, string
     public static Dictionary<string, AppAuthConfig> FromSnapshot(
         SettingsSnapshot snapshot, string authority, string? tokenDecryptionKeyPem = null) {
         ArgumentNullException.ThrowIfNull(snapshot);
-        return FromRows(snapshot.Collection<AuthentikApp>(AuthentikApps.Key), authority, tokenDecryptionKeyPem);
+        var suite = FromApps(snapshot.Collection<SuiteApp>(SuiteApps.Key), authority, tokenDecryptionKeyPem);
+        return suite.Count > 0 ? suite : FromRows(snapshot.Collection<AuthentikApp>(AuthentikApps.Key), authority, tokenDecryptionKeyPem);
+    }
+
+    public static Dictionary<string, AppAuthConfig> FromApps(
+        IEnumerable<SuiteApp> apps, string authority, string? tokenDecryptionKeyPem = null) {
+        ArgumentNullException.ThrowIfNull(apps);
+        return FromRows(
+            apps.Where(a => a.Enabled && a.HasLogin).Select(a => new AuthentikApp {
+                Origin = a.AuthOrigin ?? "",
+                ClientId = a.AuthClientId ?? "",
+                ClientSecret = a.AuthClientSecret ?? "",
+                CallbackUrl = a.AuthCallbackUrl ?? "",
+                EndSessionUrl = a.AuthEndSessionUrl,
+            }),
+            authority, tokenDecryptionKeyPem);
     }
 
     public static Dictionary<string, AppAuthConfig> FromRows(

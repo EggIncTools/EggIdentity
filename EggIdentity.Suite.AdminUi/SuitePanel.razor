@@ -1,0 +1,88 @@
+@inject IServiceProvider Services
+
+<section class="suite">
+    @if (_admin is null) {
+        <p class="wb-note">Suite admin not configured (call AddEggIdentitySuiteAdmin).</p>
+    } else {
+        <div class="suite-body">
+            <WorkbenchRail Class="suite-rail">
+                @if (_error is not null) {
+                    <p class="suite-error">@_error</p>
+                }
+                @if (_views is null) {
+                    <p class="wb-note">Loading apps...</p>
+                }
+                @foreach (var group in Groups) {
+                    <WorkbenchSection Label="@group.Key">
+                        @foreach (var view in group) {
+                            var name = view.App.Name;
+                            <WorkbenchEntry Selected="@(_selected == name)" Tone="@Tone(view)" OnClick="@(() => Select(name))">
+                                <Name>@view.App.Label</Name>
+                                <MetaLine>@StatusText(view)</MetaLine>
+                            </WorkbenchEntry>
+                        }
+                    </WorkbenchSection>
+                }
+                <WorkbenchSection Label="Suite">
+                    @if (_hasFleet) {
+                        <WorkbenchEntry Selected="@(_selected == StacksKey)" OnClick="@(() => Select(StacksKey))">
+                            <Name>Stacks</Name>
+                        </WorkbenchEntry>
+                    }
+                    <WorkbenchEntry Selected="@(_selected == NewKey)" OnClick="@(() => Select(NewKey))">
+                        <Name>Add app</Name>
+                    </WorkbenchEntry>
+                </WorkbenchSection>
+            </WorkbenchRail>
+
+            <div class="suite-main">
+                @if (_selected == StacksKey) {
+                    <h3 class="suite-title">Stacks</h3>
+                    <FleetPanel ShowApps="false"/>
+                } else if (_selected == NewKey) {
+                    <h3 class="suite-title">Add app</h3>
+                    <SuiteAppEditor Admin="_admin" UpdatedBy="@UpdatedBy" OnSaved="OnSavedAsync"/>
+                } else if (Current is { } view) {
+                    <div class="suite-head">
+                        <h3 class="suite-title">@view.App.Label</h3>
+                        <span class="badge badge-muted">@view.App.Environment</span>
+                        @if (view.App.PublicUrl is { Length: > 0 } url) {
+                            <a class="suite-link" href="@url" target="_blank" rel="noopener">@url</a>
+                        }
+                        <span class="suite-spacer"></span>
+                        <WorkbenchModes Modes="@Tabs(view)" Current="@_tab" CurrentChanged="t => _tab = t" Label="App view"/>
+                    </div>
+
+                    @switch (_tab) {
+                        case "deploy":
+                            <DeployPanel @key="view.App.Name" App="@view.App.Name"/>
+                            break;
+                        case "settings":
+                            @if (view.IsLocal) {
+                                <SettingsPanel UpdatedBy="@UpdatedBy"/>
+                            } else if (SettingsAdmin(view) is { } remote) {
+                                <SettingsPanel @key="view.App.Name" Admin="remote" UpdatedBy="@UpdatedBy"/>
+                            }
+                            break;
+                        case "bot":
+                            @if (BotAdmin(view) is { } bot) {
+                                <MessageConfigEditor @key="view.App.Name" Admin="bot"/>
+                            }
+                            break;
+                        case "clone":
+                            <ClonePanel App="@view.App.Name"/>
+                            break;
+                        default:
+                            @if (!view.IsLocal && view.Manifest is null && !string.IsNullOrWhiteSpace(view.App.AdminBaseUrl)) {
+                                <p class="wb-notice">Not administrable: @view.ManifestError</p>
+                            }
+                            <SuiteAppEditor Admin="_admin" Name="@view.App.Name" UpdatedBy="@UpdatedBy" OnSaved="OnSavedAsync" OnDeleted="OnDeletedAsync"/>
+                            break;
+                    }
+                } else {
+                    <p class="wb-note">Select an app.</p>
+                }
+            </div>
+        </div>
+    }
+</section>

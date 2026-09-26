@@ -1,0 +1,64 @@
+.suite {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    font-size: 0.875rem;
+}
+
+.suite-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.suite ::deep .suite-rail {
+    --wb-rail-w: 15rem;
+}
+
+.suite-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    overflow: auto;
+}
+
+.suite-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.suite-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.suite-link {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.suite-spacer {
+    flex: 1;
+}
+
+.suite-error {
+    color: var(--color-err, #f85149);
+    margin: 0;
+}
+
+@media (max-width: 720px) {
+    .suite-body {
+        flex-direction: column;
+    }
+}

@@ -1,6 +1,7 @@
 using EggIdentity.Auth;
 using EggIdentity.Deploy;
 using EggIdentity.Fallback;
+using EggIdentity.Fleet;
 using EggIdentity.Settings;
 using EggIdentity.Settings.Store;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -16,6 +17,8 @@ internal sealed record HostRuntime(
     SettingsCache SettingsCache);
 
 internal static class HostServices {
+    public const string AppName = "eggidentity";
+
     public static HostRuntime Register(WebApplicationBuilder builder, HostConfig config) {
         builder.WebHost.UseUrls($"http://*:{config.Port}");
 
@@ -37,7 +40,7 @@ internal static class HostServices {
         RegisterLoginWidget(builder, config);
         RegisterBot(builder, config);
         var runtime = RegisterSettings(builder, config, dataSource);
-        RegisterDeploy(builder, config);
+        RegisterFleet(builder);
 
         return runtime;
     }
@@ -77,14 +80,16 @@ internal static class HostServices {
     private static void RegisterBot(WebApplicationBuilder builder, HostConfig config) {
         if (!config.BotEnabled) return;
 
-        builder.Services.AddSingleton(new BotHostedService(config.BotConfigFilePath, config.ConnString));
+        builder.Services.AddSingleton<SuiteBotApps>();
+        builder.Services.AddSingleton(sp => new BotHostedService(
+            config.BotConfigFilePath, config.ConnString, sp.GetRequiredService<SuiteBotApps>(), sp.GetRequiredService<DeployService>()));
         builder.Services.AddHostedService(sp => sp.GetRequiredService<BotHostedService>());
     }
 
     private static HostRuntime RegisterSettings(
         WebApplicationBuilder builder, HostConfig config, NpgsqlDataSource dataSource) {
         var registry = SettingsRegistry.Compose(
-            [HostSettings.Provider, SessionSettings.Provider], [DeployApps.Provider, DeployStacks.Provider, AuthentikApps.Provider]);
+            [HostSettings.Provider, SessionSettings.Provider, FleetSettings.Provider], [SuiteApps.Provider, AuthentikApps.Provider]);
         var store = new SettingsStore(dataSource, SecretProtector.FromEnvironment());
         var cache = new SettingsCache(registry, store, config.SharedFileLookup);
 
@@ -96,10 +101,11 @@ internal static class HostServices {
         return new HostRuntime(dataSource, store, cache);
     }
 
-    private static void RegisterDeploy(WebApplicationBuilder builder, HostConfig config) {
-        if (string.IsNullOrWhiteSpace(config.DeployAgentUrl) || config.SessionOptions is null) return;
-        builder.Services.AddEggIdentityDeploy(
-            new DeployOptions(config.DeployAgentUrl, "eggidentity") { CallerName = "eggidentity-host" },
-            config.SessionOptions);
+    private static void RegisterFleet(WebApplicationBuilder builder) {
+        builder.Services.AddSingleton(sp => FleetRuntime.Create(sp.GetRequiredService<SettingsCache>()));
+        builder.Services.AddSingleton(sp => sp.GetRequiredService<FleetRuntime>().Service);
+        builder.Services.AddTransient<IEnvSource>(sp => new FleetEnvSource(sp.GetRequiredService<DeployService>(), AppName));
+        builder.Services.AddTransient<IRestartTrigger>(sp => new FleetRestartTrigger(sp.GetRequiredService<DeployService>(), AppName));
+        builder.Services.AddTransient<IStackEnvEditor>(sp => new FleetStackEnvEditor(sp.GetRequiredService<DeployService>(), AppName));
     }
 }

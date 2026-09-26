@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <Description>One hub panel for the whole suite: a rail of every suite.apps instance and a per-app pane with its registry row, deploy, settings, Discord bot and clone tabs, each shown only when that app's admin manifest says it serves it.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EggIdentity.Bot\EggIdentity.Bot.csproj" />
+    <ProjectReference Include="..\EggIdentity.Deploy.AdminUi\EggIdentity.Deploy.AdminUi.csproj" />
+    <ProjectReference Include="..\EggIdentity.Settings.AdminUi\EggIdentity.Settings.AdminUi.csproj" />
+    <ProjectReference Include="..\EggIdentity.Settings.Api\EggIdentity.Settings.Api.csproj" />
+  </ItemGroup>
+
+</Project>

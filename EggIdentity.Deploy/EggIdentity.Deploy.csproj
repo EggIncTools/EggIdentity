@@ -4,7 +4,7 @@
     <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Description>Consumer-side client for eggidentity-agent: typed agent calls, SSE deploy-event listener, agent-backed env source and restart trigger, plus the deploy.apps settings collection shared by the agent and the admin UI.</Description>
+    <Description>App-side client for the suite fleet API on the identity host: typed deploy, restart, logs and env calls, SSE deploy-event listener, fleet-backed env source, restart trigger and stack env editor, plus the suite.apps registry every suite app shares.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,7 +13,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EggIdentity.Contract\EggIdentity.Contract.csproj" />
-    <ProjectReference Include="..\EggIdentity.Auth\EggIdentity.Auth.csproj" />
     <ProjectReference Include="..\EggIdentity.Settings\EggIdentity.Settings.csproj" />
     <ProjectReference Include="..\EggIdentity.Resilience\EggIdentity.Resilience.csproj" />
   </ItemGroup>

@@ -2,8 +2,6 @@
   <Project Path="EggIdentity/EggIdentity.csproj" />
   <Project Path="EggIdentity/Tests/EggIdentity.Tests.csproj" />
   <Project Path="EggIdentity.AdminUi/EggIdentity.AdminUi.csproj" />
-  <Project Path="EggIdentity.Agent/EggIdentity.Agent.csproj" />
-  <Project Path="EggIdentity.Agent/Tests/EggIdentity.Agent.Tests.csproj" />
   <Project Path="EggIdentity.Auth/EggIdentity.Auth.csproj" />
   <Project Path="EggIdentity.Auth/Tests/EggIdentity.Auth.Tests.csproj" />
   <Project Path="EggIdentity.Bot/EggIdentity.Bot.csproj" />
@@ -25,6 +23,8 @@
   <Project Path="EggIdentity.Deploy.AdminUi/EggIdentity.Deploy.AdminUi.csproj" />
   <Project Path="EggIdentity.Fallback/EggIdentity.Fallback.csproj" />
   <Project Path="EggIdentity.Fallback/Tests/EggIdentity.Fallback.Tests.csproj" />
+  <Project Path="EggIdentity.Fleet/EggIdentity.Fleet.csproj" />
+  <Project Path="EggIdentity.Fleet/Tests/EggIdentity.Fleet.Tests.csproj" />
   <Project Path="EggIdentity.Filtering/EggIdentity.Filtering.csproj" />
   <Project Path="EggIdentity.Filtering/Tests/EggIdentity.Filtering.Tests.csproj" />
   <Project Path="EggIdentity.Host/EggIdentity.Host.csproj" />
@@ -44,6 +44,7 @@
   <Project Path="EggIdentity.Settings.Store/Tests/EggIdentity.Settings.Store.Tests.csproj" />
   <Project Path="EggIdentity.Styles/EggIdentity.Styles.csproj" />
   <Project Path="EggIdentity.Styles/Tests/EggIdentity.Styles.Tests.csproj" />
+  <Project Path="EggIdentity.Suite.AdminUi/EggIdentity.Suite.AdminUi.csproj" />
   <Project Path="EggIdentity.Tools/EggIdentity.Tools.csproj" />
   <Project Path="EggIdentity.Tools/Tests/EggIdentity.Tools.Tests.csproj" />
   <Project Path="EggIdentity.UI/EggIdentity.UI.csproj" />

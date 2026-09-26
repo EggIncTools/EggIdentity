@@ -10,7 +10,6 @@ public static class HostSettings {
     private const string Sponsors = "Sponsors";
     private const string Storage = "Storage";
     private const string Build = "Build";
-    private const string Deploy = "Deploy";
 
     public const string LoginSweepIntervalMinutes = "identity.login_sweep_interval_minutes";
     public const string ReconcileIntervalMinutes = "identity.reconcile_interval_minutes";
@@ -98,11 +97,6 @@ public static class HostSettings {
             "build.git_sha", "GIT_SHA", "Build commit", Build,
             SettingKind.ReadOnly, ApplyTier.Bootstrap, Sensitivity.Plain) {
             Description = "Stamped into the image at build time.",
-        },
-        new SettingDescriptor(
-            "deploy.agent_url", "DEPLOY_AGENT_URL", "Deploy agent URL", Deploy,
-            SettingKind.Url, ApplyTier.Bootstrap, Sensitivity.Plain) {
-            Description = "Base URL of eggidentity-agent. Enables the Fleet page, drift and restart.",
         },
     ]);
 }

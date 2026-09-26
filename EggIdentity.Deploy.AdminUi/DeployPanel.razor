@@ -3,7 +3,7 @@
 
 <section class="@RootClass">
     @if (_client is null || _events is null || _options is null) {
-        <p class="dp-muted">Deploy agent not configured (call AddEggIdentityDeploy).</p>
+        <p class="dp-muted">Fleet not configured (call AddEggIdentityDeploy).</p>
     } else {
         <div class="panel-head dp-head">
             <span class="dp-app">@AppName</span>
@@ -28,6 +28,10 @@
         }
 
         <dl class="dp-facts">
+            <dt>State</dt>
+            <dd>@StateText, started @StartedText</dd>
+            <dt>Image</dt>
+            <dd title="@(_status?.Image)">@(_status?.Image ?? "unknown")</dd>
             <dt>Running</dt>
             <dd title="@(_status?.RunningDigest)">@RunningText</dd>
             <dt>Latest</dt>

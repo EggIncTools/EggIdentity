@@ -59,7 +59,8 @@ public class AdminTargetsTests {
 
     [Fact]
     public void EachUnusableReason_IsDistinguishable() {
-        Assert.Equal("disabled in admin.targets", Unavailable(Row(enabled: false)));
+        Assert.Equal("disabled", Unavailable(Row(enabled: false)));
+        Assert.Equal("no admin base URL", Unavailable(Row(url: "")));
         Assert.Equal("admin base URL is not an absolute URL", Unavailable(Row(url: "eggledger:5015")));
         Assert.Equal("this row has no app name", Unavailable(Row(name: "")));
 
@@ -91,8 +92,7 @@ public class AdminTargetsTests {
             .GetProperties()
             .Where(p => p.PropertyType == typeof(string))
             .Select(p => p.GetValue(status) as string)
-            .Where(value => value is not null)
-            .Select(value => value!);
+            .OfType<string>();
 
     [Fact]
     public void AnAvailableTarget_ReportsNoProblem() {
@@ -101,12 +101,5 @@ public class AdminTargetsTests {
         Assert.True(status.Administrable);
         Assert.True(status.SecretPresent);
         Assert.Null(status.Unavailable);
-    }
-
-    [Fact]
-    public void TheDescriptorStoresNoSecretField() {
-        Assert.DoesNotContain(AdminTargets.Descriptor.Fields, f => f.IsSecret);
-        Assert.False(AdminTargets.Descriptor.HasSecrets);
-        Assert.Equal(["name", "admin_base_url", "enabled"], AdminTargets.Descriptor.Fields.Select(f => f.Name));
     }
 }

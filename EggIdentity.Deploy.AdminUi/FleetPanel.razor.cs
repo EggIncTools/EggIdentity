@@ -10,60 +10,65 @@ public sealed partial class FleetPanel : ComponentBase {
     private static readonly TimeSpan ConfirmWindow = TimeSpan.FromSeconds(5);
 
     private SettingsCache? _cache;
-    private AgentClient? _client;
+    private FleetClient? _client;
     private ToastService? _toasts;
 
-    [Parameter] public EventCallback OnOpenDeployApps { get; set; }
+    [Parameter] public EventCallback OnOpenApps { get; set; }
+    [Parameter] public bool ShowApps { get; set; } = true;
 
-    private IReadOnlyList<DeployApp> _apps = [];
+    private IReadOnlyList<SuiteApp> _apps = [];
     private IReadOnlyList<DeployStatus>? _statuses;
     private IReadOnlyList<StackInfo> _stacks = [];
-    private string? _agentError;
+    private string? _fleetError;
     private string? _stacksError;
     private bool _loaded;
     private bool _busy;
     private string? _armedStack;
     private DateTimeOffset _armedAt;
 
-    private string AgentCss => _agentError is null ? "fleet-agent" : "fleet-agent fleet-agent-down";
+    private string FleetCss => _fleetError is null ? "fleet-agent" : "fleet-agent fleet-agent-down";
 
-    private string AgentSummary {
+    private string FleetSummary {
         get {
-            if (_agentError is not null) return $"Agent unreachable: {_agentError}";
-            if (_statuses is null) return "Agent: connecting";
+            if (_fleetError is not null) return $"Fleet unreachable: {_fleetError}";
+            if (_statuses is null) return "Fleet: connecting";
             var updates = _statuses.Count(s => s.UpdateAvailable);
-            return $"Agent tracks {_statuses.Count} app(s), {updates} update(s) available";
+            var problems = _statuses.Count(s => s.Problem is not null);
+            return $"{_statuses.Count} app(s), {updates} update(s) available, {problems} with a problem";
         }
     }
 
     private bool IsArmed(string stack) => _armedStack == stack && DateTimeOffset.UtcNow - _armedAt <= ConfirmWindow;
     private string RedeployLabel(string stack) => IsArmed(stack) ? "Confirm redeploy" : "Redeploy";
 
+    private IEnumerable<string> AppsOn(string stack) =>
+        _apps.Where(a => string.Equals(a.Stack?.Trim(), stack, StringComparison.OrdinalIgnoreCase)).Select(a => a.Name);
+
     protected override async Task OnInitializedAsync() {
         _cache = Services.GetService<SettingsCache>();
-        _client = Services.GetService<AgentClient>();
+        _client = Services.GetService<FleetClient>();
         _toasts = Services.GetService<ToastService>();
         if (_cache is null || _client is null) return;
 
         var snapshot = await _cache.GetAsync();
-        _apps = [.. snapshot.Collection<DeployApp>(DeployApps.Key).Where(a => a.Enabled)];
+        _apps = [.. snapshot.Collection<SuiteApp>(SuiteApps.Key).Where(a => a.Enabled).OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase)];
         _loaded = true;
-        await LoadAgentAsync(_client);
+        await LoadFleetAsync(_client);
     }
 
-    private async Task LoadAgentAsync(AgentClient client) {
+    private async Task LoadFleetAsync(FleetClient client) {
         try {
             _statuses = await client.GetAllStatusAsync(CancellationToken.None);
-            _agentError = null;
-        } catch (Exception e) when (IsAgentFailure(e)) {
-            _agentError = e.Message;
+            _fleetError = null;
+        } catch (Exception e) when (IsFleetFailure(e)) {
+            _fleetError = e.Message;
             return;
         }
 
         try {
             _stacks = await client.GetStacksAsync(CancellationToken.None);
             _stacksError = null;
-        } catch (Exception e) when (IsAgentFailure(e)) {
+        } catch (Exception e) when (IsFleetFailure(e)) {
             _stacksError = e.Message;
         }
     }
@@ -76,7 +81,7 @@ public sealed partial class FleetPanel : ComponentBase {
             foreach (var app in _apps) {
                 if (await TryCheckAsync(client, app.Name) is { } failure) failures.Add(failure);
             }
-            await LoadAgentAsync(client);
+            await LoadFleetAsync(client);
         } finally {
             _busy = false;
         }
@@ -85,11 +90,11 @@ public sealed partial class FleetPanel : ComponentBase {
         else _toasts?.Push(StatusNoteKind.Error, string.Join("; ", failures));
     }
 
-    private static async Task<string?> TryCheckAsync(AgentClient client, string app) {
+    private static async Task<string?> TryCheckAsync(FleetClient client, string app) {
         try {
             await client.CheckAsync(app, CancellationToken.None);
             return null;
-        } catch (Exception e) when (IsAgentFailure(e)) {
+        } catch (Exception e) when (IsFleetFailure(e)) {
             return $"{app}: {e.Message}";
         }
     }
@@ -108,14 +113,14 @@ public sealed partial class FleetPanel : ComponentBase {
             var failure = await _client.RedeployStackAsync(stack, CancellationToken.None);
             if (failure is null) _toasts?.Push(StatusNoteKind.Ok, $"Redeploy of {stack} requested.");
             else _toasts?.Push(StatusNoteKind.Error, failure);
-            await LoadAgentAsync(_client);
-        } catch (Exception e) when (IsAgentFailure(e)) {
+            await LoadFleetAsync(_client);
+        } catch (Exception e) when (IsFleetFailure(e)) {
             _toasts?.Push(StatusNoteKind.Error, e.Message);
         } finally {
             _busy = false;
         }
     }
 
-    private static bool IsAgentFailure(Exception e) =>
+    private static bool IsFleetFailure(Exception e) =>
         e is HttpRequestException or TimeoutException or OperationCanceledException;
 }

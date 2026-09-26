@@ -12,6 +12,9 @@ public sealed record AdminTarget(string App, Uri BaseUrl, string Secret) {
 public sealed class AdminApiClient(HttpClient http) {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
+    public Task<AdminManifest> GetManifestAsync(AdminTarget target, CancellationToken ct = default) =>
+        SendAsync<AdminManifest>(target, HttpMethod.Get, "manifest", null, ct);
+
     public Task<AdminSettingsResponse> GetSettingsAsync(AdminTarget target, CancellationToken ct = default) =>
         SendAsync<AdminSettingsResponse>(target, HttpMethod.Get, "settings", null, ct);
 
