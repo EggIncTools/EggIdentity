@@ -119,7 +119,7 @@ internal static class LoginRoutes {
         var (targetUserId, requestedProvider) = Program.ParseLinkMode(saved.Mode);
         var linkOutcome = await resolver.TryLinkAsync(
             targetUserId, "authentik", token.Sub, token.DiscordId, token.Username, token.Avatar, ctx.RequestAborted);
-        var sourceOutcomes = await resolver.SyncSourceIdentitiesAsync(targetUserId, token.PerSourceIds, ctx.RequestAborted);
+        var sourceOutcomes = await SyncSourcesAsync(ctx, resolver, targetUserId, token);
         var linkFlag = Program.ComputeLinkFlag(requestedProvider, linkOutcome, sourceOutcomes);
 
         if (sponsorSync is not null && requestedProvider == "github" && linkFlag == "linked=ok") {
@@ -138,7 +138,11 @@ internal static class LoginRoutes {
         AuthentikTokenResult token, HostConfig config, SponsorSyncService? sponsorSync) {
         var resolved = await resolver.ResolveAsync(
             "authentik", token.Sub, token.DiscordId, token.Username, token.Avatar, ctx.RequestAborted);
-        await Program.TrySyncSourceIdentitiesAsync(resolver, resolved.UserId, token, ctx.RequestAborted);
+        try {
+            await SyncSourcesAsync(ctx, resolver, resolved.UserId, token);
+        } catch (Exception exc) when (exc is not OperationCanceledException) {
+            Console.Error.WriteLine($"source identity sync failed for {resolved.UserId}: {exc.Message}");
+        }
         var loginCode = await codes.IssueAsync(resolved.UserId, resolved.IsNew, ctx.RequestAborted);
 
         if (sponsorSync is not null) {
@@ -153,6 +157,18 @@ internal static class LoginRoutes {
             await IssueSessionAsync(ctx, users, resolved, token, sessionOptions, time.GetUtcNow());
 
         return loginCode;
+    }
+
+    private static async Task<IReadOnlyList<(string Provider, LinkOutcome Outcome)>> SyncSourcesAsync(
+        HttpContext ctx, IdentityResolver resolver, Guid userId, AuthentikTokenResult token) {
+        var reconciler = ctx.RequestServices.GetService<IdentityReconciler>();
+        if (reconciler is null || string.IsNullOrEmpty(token.Username))
+            return await resolver.SyncSourceIdentitiesAsync(userId, token.PerSourceIds, ctx.RequestAborted);
+
+        var result = await reconciler.ReconcileAsync(userId, token.Username, token.Sub, ctx.RequestAborted);
+        return result.Applied
+            ? result.Outcomes
+            : await resolver.SyncSourceIdentitiesAsync(userId, token.PerSourceIds, ctx.RequestAborted);
     }
 
     private static async Task IssueSessionAsync(

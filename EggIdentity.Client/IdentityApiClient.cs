@@ -105,6 +105,13 @@ public sealed class IdentityApiClient(HttpClient http) {
         return resp.IsSuccessStatusCode;
     }
 
+    public async Task<bool> SyncIdentitiesAsync(string sessionToken, CancellationToken ct) {
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/profile/identities/sync");
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
+        var resp = await http.SendAsync(req, ct);
+        return resp.IsSuccessStatusCode;
+    }
+
     public async Task<bool> UploadAvatarAsync(string sessionToken, Stream content, string fileName, string contentType, CancellationToken ct) {
         using var form = new MultipartFormDataContent();
         using var fileContent = new StreamContent(content);

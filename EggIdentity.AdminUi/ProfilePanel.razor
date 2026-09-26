@@ -47,6 +47,12 @@
         await LoadAsync();
     }
 
+    private async Task SyncAsync() {
+        var ok = await Identity.SyncIdentitiesAsync(SessionToken, CancellationToken.None);
+        _banner = ok ? "Synced with the identity provider." : "Could not sync linked accounts.";
+        await LoadAsync();
+    }
+
     private async Task SelectAvatarAsync(ProfileIdentityResponse identity) {
         var ok = await Identity.SelectAvatarAsync(SessionToken, identity.Provider, identity.Subject, CancellationToken.None);
         _avatarError = ok ? null : "Could not use that picture.";
@@ -74,7 +80,7 @@
             EventCallback.Factory.Create(this, () => SelectAvatarAsync(identity)),
             EventCallback.Factory.Create(this, () => UnlinkAsync(identity))
         )).ToList();
-        return new ProfileIdentitiesContext(items, _banner);
+        return new ProfileIdentitiesContext(items, _banner, EventCallback.Factory.Create(this, SyncAsync));
     }
 
     private ProfileProvidersContext BuildProvidersContext() {
@@ -92,7 +98,7 @@
                 identity is not null ? EventCallback.Factory.Create(this, () => UnlinkAsync(identity)) : default
             );
         }).ToList();
-        return new ProfileProvidersContext(items, _banner);
+        return new ProfileProvidersContext(items, _banner, EventCallback.Factory.Create(this, SyncAsync));
     }
 
     private ProfileLinkRowContext BuildLinkRowContext() {
@@ -148,9 +154,19 @@
             builder.CloseElement();
         }
 
-        builder.OpenElement(3, "ul");
-        builder.AddAttribute(4, "class", "skp-identity-list");
-        var seq = 5;
+        if (ctx.OnSync.HasDelegate) {
+            builder.OpenElement(3, "button");
+            builder.AddAttribute(4, "type", "button");
+            builder.AddAttribute(5, "class", "skp-sync-btn");
+            builder.AddAttribute(6, "title", "Pull linked accounts from the identity provider");
+            builder.AddAttribute(7, "onclick", ctx.OnSync);
+            builder.AddContent(8, "Sync linked accounts");
+            builder.CloseElement();
+        }
+
+        builder.OpenElement(9, "ul");
+        builder.AddAttribute(10, "class", "skp-identity-list");
+        var seq = 100;
         foreach (var item in ctx.Items) {
             builder.OpenElement(seq++, "li");
             builder.AddAttribute(seq++, "class", "skp-identity-row");

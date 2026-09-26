@@ -50,6 +50,16 @@ public sealed class ProfileService(NpgsqlDataSource dataSource) {
         return affected > 0 ? UnlinkResult.Unlinked : UnlinkResult.NotFound;
     }
 
+    public async Task<bool> DeleteIdentityAsync(Guid userId, string provider, string subject, CancellationToken ct) {
+        await using var conn = await dataSource.OpenConnectionAsync(ct);
+        await using var cmd = new NpgsqlCommand(
+            "DELETE FROM identities WHERE user_id = $1 AND provider = $2 AND subject = $3", conn);
+        cmd.Parameters.AddWithValue(userId);
+        cmd.Parameters.AddWithValue(provider);
+        cmd.Parameters.AddWithValue(subject);
+        return await cmd.ExecuteNonQueryAsync(ct) > 0;
+    }
+
     public async Task SetPreferencesAsync(Guid userId, string? timezone, string? language, string? theme, CancellationToken ct) {
         await using var conn = await dataSource.OpenConnectionAsync(ct);
         await using var cmd = new NpgsqlCommand(

@@ -13,7 +13,8 @@ internal static class ProfileLinkRoutes {
 
         ProfileRoutes.Map(app, sessionOptions, avatarDir, revocations,
             app.Services.GetRequiredService<ProfileService>(),
-            app.Services.GetRequiredService<UserQueries>());
+            app.Services.GetRequiredService<UserQueries>(),
+            app.Services.GetService<IdentityReconciler>());
         ConsentRoutes.Map(app, sessionOptions, revocations, app.Services.GetRequiredService<ConsentService>());
 
         var deps = new LinkDeps(apps, sessionOptions, revocations);

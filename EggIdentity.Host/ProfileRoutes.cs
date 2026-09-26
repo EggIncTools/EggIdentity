@@ -6,7 +6,7 @@ namespace EggIdentity.Host;
 public static class ProfileRoutes {
     public static void Map(
         WebApplication app, SessionCookieOptions sessionOptions, string avatarStorageDir,
-        RevocationStore revocations, ProfileService profiles, UserQueries users) {
+        RevocationStore revocations, ProfileService profiles, UserQueries users, IdentityReconciler? reconciler = null) {
         Func<string, CancellationToken, Task<bool>> isRevoked = revocations.IsRevokedAsync;
 
         var profileRoutes = app.MapGroup("/profile");
@@ -51,11 +51,27 @@ public static class ProfileRoutes {
             if (userId is null) return Results.Unauthorized();
 
             var result = await profiles.UnlinkAsync(userId.Value, provider, subject, ctx.RequestAborted);
+            if (result == UnlinkResult.Unlinked && reconciler is not null) {
+                try {
+                    await reconciler.UnlinkAsync(userId.Value, provider, subject, ctx.RequestAborted);
+                } catch (Exception exc) when (exc is not OperationCanceledException) {
+                    Console.Error.WriteLine($"authentik disconnect failed for {userId.Value} {provider}: {exc.Message}");
+                }
+            }
             return result switch {
                 UnlinkResult.Unlinked => Results.NoContent(),
                 UnlinkResult.LastIdentity => Results.BadRequest("cannot unlink the last identity on an account"),
                 _ => Results.NotFound(),
             };
+        });
+
+        profileRoutes.MapPost("/identities/sync", async (HttpContext ctx) => {
+            var userId = await ProfileAuth.TryGetUserIdAsync(ctx, sessionOptions, isRevoked, ctx.RequestAborted);
+            if (userId is null) return Results.Unauthorized();
+            if (reconciler is null) return Results.NotFound();
+
+            var result = await reconciler.ReconcileAsync(userId.Value, ctx.RequestAborted);
+            return result.Applied ? Results.NoContent() : Results.Conflict("authentik user not found for this account");
         });
 
         profileRoutes.MapPost("/avatar", async (HttpContext ctx) => {

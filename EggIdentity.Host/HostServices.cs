@@ -64,6 +64,11 @@ internal static class HostServices {
         builder.Services.AddSingleton(new ConfigurationManager<OpenIdConnectConfiguration>(
             $"{authority.TrimEnd('/')}/.well-known/openid-configuration",
             new OpenIdConnectConfigurationRetriever()));
+
+        if (string.IsNullOrWhiteSpace(config.AuthentikApiToken)) return;
+        builder.Services.AddSingleton<IAuthentikAdminClient>(sp =>
+            new AuthentikAdminClient(sp.GetRequiredService<IHttpClientFactory>(), authority, config.AuthentikApiToken));
+        builder.Services.AddSingleton<IdentityReconciler>();
     }
 
     private static void RegisterBot(WebApplicationBuilder builder, HostConfig config) {

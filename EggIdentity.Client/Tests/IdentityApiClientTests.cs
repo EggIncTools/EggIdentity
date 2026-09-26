@@ -211,6 +211,16 @@ public class IdentityApiClientTests {
     }
 
     [Fact]
+    public async Task SyncIdentitiesAsync_PostsToSyncRoute() {
+        var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var result = await client.SyncIdentitiesAsync("tok-1", CancellationToken.None);
+
+        Assert.True(result);
+        Assert.Equal("/profile/identities/sync", handler.LastRequest!.RequestUri!.AbsolutePath);
+    }
+
+    [Fact]
     public async Task SelectAvatarAsync_PostsProviderAndSubject() {
         var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.NoContent));
 
@@ -228,7 +238,7 @@ public class IdentityApiClientTests {
             "MergeAsync", "SetRoleAsync", "RedeemAsync", "GetLoginSourcesAsync", "GetProfileAsync",
             "StartLinkUrl", "StartRelinkUrl", "IconUrl", "UnlinkIdentityAsync", "UploadAvatarAsync",
             "SelectAvatarAsync", "GetSponsorStatusAsync", "GetSupporterStatusAsync", "RefreshSupporterStatusAsync",
-            "SetPreferencesAsync", "GetConsentAsync", "SetConsentAsync",
+            "SetPreferencesAsync", "GetConsentAsync", "SetConsentAsync", "SyncIdentitiesAsync",
         };
         var actual = typeof(IdentityApiClient)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)

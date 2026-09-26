@@ -52,6 +52,11 @@ public static class HostSettings {
             Description = "RSA private key, needed only when the Authentik provider has an encryption key set. PEM text or a path to a PEM file, read from the environment at startup only. Without it an encrypted id_token yields no session id and revocation stops working.",
         },
         new SettingDescriptor(
+            "authentik.api_token", "AUTHENTIK_API_TOKEN", "Authentik API token", Identity,
+            SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
+            Description = "Service-account token with read access to users and read/delete on user source connections. Set to make Authentik's connected services the source of truth for linked identities: every login and link reconciles against it, and unlinking here also disconnects in Authentik. Unset, linked identities come only from token claims.",
+        },
+        new SettingDescriptor(
             "authentik.apps_dir", "AUTHENTIK_APPS_DIR", "Authentik app config directory", Login,
             SettingKind.Path, ApplyTier.Bootstrap, Sensitivity.Plain) {
             Description = "Deprecated. Read only while authentik.apps is empty. Import with eggidentity-tools import-authentik-apps, then unset.",

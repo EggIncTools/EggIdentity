@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using EggIdentity.Auth;
 using EggIdentity.Db;
 using EggIdentity.Fallback;
 using EggIdentity.Settings.Api;
@@ -71,15 +70,6 @@ public static class Program {
 
     public static bool ShouldThrottleSponsorRefresh(DateTimeOffset? lastSyncedAt, DateTimeOffset now) =>
         lastSyncedAt is { } last && now - last < TimeSpan.FromSeconds(30);
-
-    public static async Task TrySyncSourceIdentitiesAsync(
-        IdentityResolver resolver, Guid userId, AuthentikTokenResult token, CancellationToken ct) {
-        try {
-            await resolver.SyncSourceIdentitiesAsync(userId, token.PerSourceIds, ct);
-        } catch (Exception exc) when (exc is not OperationCanceledException) {
-            Console.Error.WriteLine($"source identity sync failed for {userId}: {exc.Message}");
-        }
-    }
 
     public static (Guid UserId, string? Provider) ParseLinkMode(string mode) {
         var body = mode["link:".Length..];

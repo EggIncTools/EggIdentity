@@ -16,6 +16,7 @@ internal sealed class HostConfig {
     public string? AuthentikAuthority { get; init; }
     public string? AuthentikAppsDir { get; init; }
     public string? AuthentikTokenDecryptionKey { get; init; }
+    public string? AuthentikApiToken { get; init; }
     public bool LoginWidgetEnabled { get; init; }
 
     public SessionCookieOptions? SessionOptions { get; init; }
@@ -71,6 +72,7 @@ internal sealed class HostConfig {
             AuthentikAuthority = authentikAuthority,
             AuthentikAppsDir = authentikAppsDir,
             AuthentikTokenDecryptionKey = authentikTokenDecryptionKey,
+            AuthentikApiToken = Environment.GetEnvironmentVariable("AUTHENTIK_API_TOKEN"),
             LoginWidgetEnabled = loginWidgetEnabled,
             SessionOptions = sessionOptions,
             AvatarStorageDir = avatarStorageDir,
