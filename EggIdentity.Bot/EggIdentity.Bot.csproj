@@ -4,7 +4,7 @@
     <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Description>Discord bot spine for eggidentity: verify, updateserver, embeds.</Description>
+    <Description>Discord bot spine for eggidentity: verify, dashboards, deploy notices, embeds.</Description>
   </PropertyGroup>
 
   <ItemGroup>

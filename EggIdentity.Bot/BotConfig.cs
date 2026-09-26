@@ -10,20 +10,12 @@ public sealed class BotConfig {
     public string GuildId { get; init; } = "";
     public string RepoUrl { get; init; } = "";
     public VerifyInfo Build { get; init; } = new();
-    public string DeployUrl { get; init; } = "";
-    public string DeploySecret { get; init; } = "";
     public string SharedRoleId { get; init; } = "";
     public string SupporterRoleId { get; init; } = "";
     public IReadOnlyList<BotCommand> Extra { get; init; } = Array.Empty<BotCommand>();
 
     public EmbedOptions? VerifyEmbedOptions { get; init; }
-    public EmbedOptions? SuccessEmbedOptions { get; init; }
-    public EmbedOptions? FailureEmbedOptions { get; init; }
-    public EmbedOptions? AlreadyUpToDateEmbedOptions { get; init; }
     public Func<BotConfig, Embed>? VerifyEmbedBuilder { get; init; }
-    public Func<BotConfig, string, Embed>? AlreadyUpToDateEmbedBuilder { get; init; }
-    public Func<BotConfig, string, string, Embed>? SuccessEmbedBuilder { get; init; }
-    public Func<string, Embed>? FailureEmbedBuilder { get; init; }
 
     public bool GlobalCommands { get; init; }
     public bool GuildCommandMirror { get; init; }

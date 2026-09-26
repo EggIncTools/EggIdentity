@@ -4,15 +4,14 @@ namespace EggIdentity.Bot.Tests;
 
 public class CommandRegistrationTests {
     [Fact]
-    public void BuiltinCommandNames_AreVerifyAndUpdateserver() =>
-        Assert.Equal(new[] { "verify", "updateserver" }, EggIdentityBot.BuiltinCommandNames);
+    public void BuiltinCommandNames_IsVerifyOnly() =>
+        Assert.Equal(new[] { "verify" }, EggIdentityBot.BuiltinCommandNames);
 
     [Fact]
     public void FilterExtras_DropsBuiltinCollisions() {
         var extras = new[] {
             MakeCmd("verify"), // collides, dropped
             MakeCmd("mystats"), // kept
-            MakeCmd("updateserver"), // collides, dropped
         };
         var kept = EggIdentityBot.FilterExtras(extras).Select(c => c.Name).ToArray();
         Assert.Equal(new[] { "mystats" }, kept);

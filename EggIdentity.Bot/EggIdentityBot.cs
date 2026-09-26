@@ -10,7 +10,7 @@ namespace EggIdentity.Bot;
 public sealed record BotAppSnapshot(string App, DashboardSnapshot Snapshot);
 
 public sealed class EggIdentityBot : IAsyncDisposable {
-    public static readonly string[] BuiltinCommandNames = ["verify", "updateserver"];
+    public static readonly string[] BuiltinCommandNames = ["verify"];
 
     private readonly BotConfig _cfg;
     private readonly Dictionary<string, Func<SocketSlashCommandContext, Task>> _extra;
@@ -215,11 +215,6 @@ public sealed class EggIdentityBot : IAsyncDisposable {
     private List<ApplicationCommandProperties> BuildBuiltinCommands() {
         var verifyBuilder = new SlashCommandBuilder()
             .WithName("verify").WithDescription("Show the running server's build identity.");
-        var updateBuilder = new SlashCommandBuilder()
-            .WithName("updateserver").WithDescription("Pull latest and redeploy (admin only).")
-            .WithDefaultMemberPermissions(GuildPermission.Administrator)
-            .WithIntegrationTypes(ApplicationIntegrationType.GuildInstall)
-            .WithContextTypes(InteractionContextType.Guild);
 
         if (_cfg.GlobalCommands) {
             verifyBuilder
@@ -227,7 +222,7 @@ public sealed class EggIdentityBot : IAsyncDisposable {
                 .WithContextTypes(InteractionContextType.Guild, InteractionContextType.BotDm, InteractionContextType.PrivateChannel);
         }
 
-        return [verifyBuilder.Build(), updateBuilder.Build()];
+        return [verifyBuilder.Build()];
     }
 
     private async Task RegisterGlobalAsync(List<ApplicationCommandProperties> desired) {
@@ -293,9 +288,6 @@ public sealed class EggIdentityBot : IAsyncDisposable {
             case "verify":
                 await cmd.RespondAsync(embed: _builder?.ResolveVerifyEmbed(_cfg) ?? DefaultEmbeds.Verify(_cfg), ephemeral: true);
                 break;
-            case "updateserver":
-                await HandleUpdateServerAsync(cmd);
-                break;
             default:
                 if (_extra.TryGetValue(cmd.Data.Name, out var h))
                     await h(new SocketSlashCommandContext(Client, cmd));
@@ -312,31 +304,6 @@ public sealed class EggIdentityBot : IAsyncDisposable {
         } else {
             try { await ac.RespondAsync(Array.Empty<AutocompleteResult>()); } catch { /* interaction already acked/expired */ }
         }
-    }
-
-    private async Task HandleUpdateServerAsync(SocketSlashCommand cmd) {
-        var isAdmin = cmd.User is SocketGuildUser gu && gu.GuildPermissions.Administrator;
-        if (!isAdmin) {
-            await cmd.RespondAsync("Not authorized.", ephemeral: true);
-            return;
-        }
-        if (string.IsNullOrEmpty(_cfg.DeployUrl) || string.IsNullOrEmpty(_cfg.DeploySecret)) {
-            await cmd.RespondAsync("Deploys are not configured (set DEPLOY_URL and DEPLOY_SECRET).", ephemeral: true);
-            return;
-        }
-        await cmd.DeferAsync();
-        var res = await DeployClient.CallAsync(_cfg.DeployUrl, _cfg.DeploySecret);
-        var embed = res.AlreadyUpToDate
-            ? _builder?.ResolveAlreadyUpToDateEmbed(_cfg, res.FromHash ?? "") ?? DefaultEmbeds.AlreadyUpToDate(_cfg, res.FromHash ?? "")
-            : res.Ok
-                ? _builder?.ResolveSuccessEmbed(_cfg, res.FromHash ?? "", res.ToHash ?? "") ?? DefaultEmbeds.Success(_cfg, res.FromHash ?? "", res.ToHash ?? "")
-                : null;
-        if (embed is not null) {
-            await cmd.ModifyOriginalResponseAsync(m => m.Embed = embed);
-            return;
-        }
-        await cmd.DeleteOriginalResponseAsync();
-        await cmd.FollowupAsync(embed: _builder?.ResolveFailureEmbed(_cfg, res.Tail ?? "") ?? DefaultEmbeds.Failure(res.Tail ?? ""), ephemeral: true);
     }
 
     public async ValueTask DisposeAsync() {

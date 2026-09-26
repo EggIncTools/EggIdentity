@@ -14,11 +14,8 @@ public sealed class EggIdentityBotBuilder {
     private bool _globalCommands;
     private bool _guildCommandMirror;
     private readonly List<BotCommand> _commands = [];
-    private EmbedOptions? _verifyOptions, _successOptions, _failureOptions, _alreadyUpToDateOptions;
+    private EmbedOptions? _verifyOptions;
     private Func<BotConfig, Embed>? _verifyBuilder;
-    private Func<BotConfig, string, Embed>? _alreadyUpToDateBuilder;
-    private Func<BotConfig, string, string, Embed>? _successBuilder;
-    private Func<string, Embed>? _failureBuilder;
     private string? _dbConnStr;
     private string? _dbMigrationsDir;
     private string _migrationsDir = "Migrations";
@@ -37,13 +34,7 @@ public sealed class EggIdentityBotBuilder {
     public EggIdentityBotBuilder WithGuildCommandMirror(bool enabled = true) { _guildCommandMirror = enabled; return this; }
     public EggIdentityBotBuilder WithCommand(BotCommand command) { _commands.Add(command); return this; }
     public EggIdentityBotBuilder WithVerifyEmbed(EmbedOptions options) { _verifyOptions = options; return this; }
-    public EggIdentityBotBuilder WithSuccessEmbed(EmbedOptions options) { _successOptions = options; return this; }
-    public EggIdentityBotBuilder WithFailureEmbed(EmbedOptions options) { _failureOptions = options; return this; }
-    public EggIdentityBotBuilder WithAlreadyUpToDateEmbed(EmbedOptions options) { _alreadyUpToDateOptions = options; return this; }
     public EggIdentityBotBuilder WithVerifyEmbedBuilder(Func<BotConfig, Embed> build) { _verifyBuilder = build; return this; }
-    public EggIdentityBotBuilder WithAlreadyUpToDateEmbedBuilder(Func<BotConfig, string, Embed> build) { _alreadyUpToDateBuilder = build; return this; }
-    public EggIdentityBotBuilder WithSuccessEmbedBuilder(Func<BotConfig, string, string, Embed> build) { _successBuilder = build; return this; }
-    public EggIdentityBotBuilder WithFailureEmbedBuilder(Func<string, Embed> build) { _failureBuilder = build; return this; }
     public EggIdentityBotBuilder WithDb(string connStr, string migrationsDir) { _dbConnStr = connStr; _dbMigrationsDir = migrationsDir; return this; }
     public EggIdentityBotBuilder WithMigrationsLocation(string dir, string tableName) { _migrationsDir = dir; _migrationsTableName = tableName; return this; }
     public EggIdentityBotBuilder WithNewVersionHandler(Func<NewVersionEvent, Task> handler, string eventSecret) { _newVersionHandler = handler; _eventSecret = eventSecret; return this; }
@@ -61,8 +52,6 @@ public sealed class EggIdentityBotBuilder {
             RepoUrl = values.RepoUrl ?? "",
             SharedRoleId = values.SharedRoleId ?? "",
             SupporterRoleId = values.SupporterRoleId ?? "",
-            DeployUrl = values.DeployUrl ?? "",
-            DeploySecret = values.DeploySecret ?? "",
             PostgresConnectionString = values.PostgresConnectionString ?? "",
             DashboardChannelId = values.DashboardChannelId ?? "",
             MigrationsDir = _migrationsDir,
@@ -75,13 +64,7 @@ public sealed class EggIdentityBotBuilder {
             GuildCommandMirror = _guildCommandMirror,
             Extra = _commands,
             VerifyEmbedOptions = _verifyOptions,
-            SuccessEmbedOptions = _successOptions,
-            FailureEmbedOptions = _failureOptions,
-            AlreadyUpToDateEmbedOptions = _alreadyUpToDateOptions,
             VerifyEmbedBuilder = _verifyBuilder,
-            AlreadyUpToDateEmbedBuilder = _alreadyUpToDateBuilder,
-            SuccessEmbedBuilder = _successBuilder,
-            FailureEmbedBuilder = _failureBuilder,
         };
     }
 
@@ -89,21 +72,6 @@ public sealed class EggIdentityBotBuilder {
         cfg.VerifyEmbedBuilder is not null ? cfg.VerifyEmbedBuilder(cfg)
         : cfg.VerifyEmbedOptions is not null ? cfg.VerifyEmbedOptions.Apply(DefaultEmbeds.Verify(cfg))
         : DefaultEmbeds.Verify(cfg);
-
-    public Embed ResolveAlreadyUpToDateEmbed(BotConfig cfg, string hash) =>
-        cfg.AlreadyUpToDateEmbedBuilder is not null ? cfg.AlreadyUpToDateEmbedBuilder(cfg, hash)
-        : cfg.AlreadyUpToDateEmbedOptions is not null ? cfg.AlreadyUpToDateEmbedOptions.Apply(DefaultEmbeds.AlreadyUpToDate(cfg, hash))
-        : DefaultEmbeds.AlreadyUpToDate(cfg, hash);
-
-    public Embed ResolveSuccessEmbed(BotConfig cfg, string fromHash, string toHash) =>
-        cfg.SuccessEmbedBuilder is not null ? cfg.SuccessEmbedBuilder(cfg, fromHash, toHash)
-        : cfg.SuccessEmbedOptions is not null ? cfg.SuccessEmbedOptions.Apply(DefaultEmbeds.Success(cfg, fromHash, toHash))
-        : DefaultEmbeds.Success(cfg, fromHash, toHash);
-
-    public Embed ResolveFailureEmbed(BotConfig cfg, string tail) =>
-        cfg.FailureEmbedBuilder is not null ? cfg.FailureEmbedBuilder(tail)
-        : cfg.FailureEmbedOptions is not null ? cfg.FailureEmbedOptions.Apply(DefaultEmbeds.Failure(tail))
-        : DefaultEmbeds.Failure(tail);
 
     public async Task RunAsync(Action<WebApplication>? configureRoutes = null) {
         var cfg = BuildConfig();

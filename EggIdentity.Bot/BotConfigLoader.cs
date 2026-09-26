@@ -7,8 +7,6 @@ public sealed record BotConfigValues(
     string? RepoUrl,
     string? SharedRoleId,
     string? SupporterRoleId,
-    string? DeployUrl,
-    string? DeploySecret,
     string? PostgresConnectionString,
     string? DashboardChannelId);
 
@@ -30,8 +28,6 @@ public static class BotConfigLoader {
             Get("REPO_URL"),
             Get("SHARED_ROLE_ID"),
             Get("SUPPORTER_ROLE_ID"),
-            Get("DEPLOY_URL"),
-            Get("DEPLOY_SECRET"),
             Get("POSTGRES_CONNECTION_STRING"),
             Get("DASHBOARD_CHANNEL_ID"));
     }
