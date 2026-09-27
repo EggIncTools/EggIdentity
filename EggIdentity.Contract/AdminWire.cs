@@ -46,6 +46,8 @@ public sealed record AdminFieldWire {
     public IReadOnlyList<string> EnumValues { get; init; } = [];
     public string? Default { get; init; }
     public string? Group { get; init; }
+    public string? VisibleWhenField { get; init; }
+    public string? VisibleWhenValue { get; init; }
 }
 
 public sealed record AdminCollectionWire {

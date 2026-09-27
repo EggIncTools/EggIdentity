@@ -27,9 +27,18 @@ public sealed record FieldDescriptor(
     public string? Description { get; init; }
     public bool Legacy { get; init; }
     public string? Group { get; init; }
+    public FieldCondition? VisibleWhen { get; init; }
 
     public bool IsSecret => Sensitivity == Sensitivity.Secret;
+
+    public bool IsVisible(IReadOnlyDictionary<string, string?> values) {
+        ArgumentNullException.ThrowIfNull(values);
+        return VisibleWhen is not { } when
+            || string.Equals(values.GetValueOrDefault(when.Field), when.Value, StringComparison.OrdinalIgnoreCase);
+    }
 }
+
+public sealed record FieldCondition(string Field, string Value);
 
 public interface ICollectionProvider {
     IReadOnlyList<CollectionDescriptor> Describe();

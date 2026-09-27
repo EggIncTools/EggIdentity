@@ -26,6 +26,10 @@ public sealed record SuiteApp {
     public string? AuthCallbackUrl { get; init; }
     public string? AuthEndSessionUrl { get; init; }
     public string DiscordBot { get; init; } = DiscordBotNone;
+    public string? DiscordToken { get; init; }
+    public string? DiscordAppId { get; init; }
+    public string? DiscordGuildId { get; init; }
+    public string? DiscordDashboardChannelId { get; init; }
 
     public string ContainerName => string.IsNullOrWhiteSpace(Container) ? Name : Container.Trim();
 
@@ -41,6 +45,8 @@ public sealed record SuiteApp {
     public bool HasLogin => !string.IsNullOrWhiteSpace(AuthClientId) && AuthOrigin is not null;
 
     public bool ServedBySuiteBot => string.Equals(DiscordBot, DiscordBotSuite, StringComparison.OrdinalIgnoreCase);
+
+    public bool RunsOwnBot => string.Equals(DiscordBot, DiscordBotOwn, StringComparison.OrdinalIgnoreCase);
 }
 
 public static class SuiteApps {
@@ -50,6 +56,8 @@ public static class SuiteApps {
     public const string AdminGroup = "Admin";
     public const string LoginGroup = "Login";
     public const string DiscordGroup = "Discord";
+
+    private static readonly FieldCondition OwnBot = new("discord_bot", SuiteApp.DiscordBotOwn);
 
     public static CollectionDescriptor Descriptor { get; } = new(
         Key, "Suite apps", "Suite",
@@ -121,7 +129,19 @@ public static class SuiteApps {
                 Default = SuiteApp.DiscordBotNone,
                 EnumValues = [SuiteApp.DiscordBotNone, SuiteApp.DiscordBotOwn, SuiteApp.DiscordBotSuite],
                 Group = DiscordGroup,
-                Description = "own: the app runs its own bot. suite: the identity host's bot posts its dashboard, GitHub feed and deploy notices.",
+                Description = "own: the app runs its own bot from the registration below. suite: the identity host's bot posts its dashboard, GitHub feed and deploy notices.",
+            },
+            new FieldDescriptor("discord_token", "Bot token", SettingKind.Secret, Sensitivity.Secret) {
+                Group = DiscordGroup,
+                VisibleWhen = OwnBot,
+                Description = "The app's own Discord application bot token. The app fetches it from the identity host at startup.",
+            },
+            new FieldDescriptor("discord_app_id", "Application id", SettingKind.Snowflake) { Group = DiscordGroup, VisibleWhen = OwnBot },
+            new FieldDescriptor("discord_guild_id", "Guild id", SettingKind.Snowflake) { Group = DiscordGroup, VisibleWhen = OwnBot },
+            new FieldDescriptor("discord_dashboard_channel_id", "Dashboard channel id", SettingKind.Snowflake) {
+                Group = DiscordGroup,
+                VisibleWhen = OwnBot,
+                Description = "Fallback dashboard channel until one is set in the bot config.",
             },
         ],
         "name", "display_name") {
@@ -138,6 +158,8 @@ public static class SuiteApps {
         if (loginSet is > 0 and < 3) problems.Add("Login needs a client id, a client secret and a callback URL together.");
         if (loginSet > 0 && app.AuthOrigin is null) problems.Add("Login needs an absolute public URL; its origin is the login origin.");
         if (app.Enabled && string.IsNullOrWhiteSpace(app.Stack)) problems.Add("No Portainer stack, so the fleet cannot deploy or restart it.");
+        if (app.RunsOwnBot && (string.IsNullOrWhiteSpace(app.DiscordToken) || string.IsNullOrWhiteSpace(app.DiscordGuildId)))
+            problems.Add("Its own Discord bot needs a bot token and a guild id.");
         return problems;
     }
 }

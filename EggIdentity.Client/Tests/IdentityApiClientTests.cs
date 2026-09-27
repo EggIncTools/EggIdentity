@@ -37,6 +37,25 @@ public class IdentityApiClientTests {
     }
 
     [Fact]
+    public async Task GetDiscordRegistrationAsync_ParsesResponse() {
+        var expected = new DiscordRegistrationResponse { Token = "t", AppId = "1", GuildId = "2", DashboardChannelId = "3" };
+        var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(expected) });
+
+        var result = await client.GetDiscordRegistrationAsync("egg incs", CancellationToken.None);
+
+        Assert.Equal("t", result?.Token);
+        Assert.Equal("2", result?.GuildId);
+        Assert.Equal("/identity/apps/egg%20incs/discord", handler.LastRequest!.RequestUri!.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task GetDiscordRegistrationAsync_NotFound_ReturnsNull() {
+        var (client, _) = MakeClient(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        Assert.Null(await client.GetDiscordRegistrationAsync("egginctools", CancellationToken.None));
+    }
+
+    [Fact]
     public async Task GetSponsorStatusAsync_ParsesResponse() {
         var userId = Guid.NewGuid();
         var expected = new SponsorStatusResponse { IsSponsor = true, LastSyncedAt = DateTimeOffset.UtcNow };
@@ -275,6 +294,7 @@ public class IdentityApiClientTests {
             "StartLinkUrl", "StartRelinkUrl", "IconUrl", "UnlinkIdentityAsync", "UploadAvatarAsync",
             "SelectAvatarAsync", "GetSponsorStatusAsync", "GetSupporterStatusAsync", "RefreshSupporterStatusAsync",
             "SetPreferencesAsync", "GetConsentAsync", "SetConsentAsync", "SyncIdentitiesAsync", "ListMergesAsync",
+            "GetDiscordRegistrationAsync",
         };
         var actual = typeof(IdentityApiClient)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)

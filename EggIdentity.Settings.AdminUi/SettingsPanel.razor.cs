@@ -271,7 +271,7 @@ public sealed partial class SettingsPanel : IDisposable {
     }
 
     private static IReadOnlyList<FieldDescriptor> EditableFields(RowEdit edit) =>
-        [.. edit.Descriptor.Fields.Where(f => !f.Legacy || !string.IsNullOrEmpty(edit.Values.GetValueOrDefault(f.Name)))];
+        [.. edit.Descriptor.Fields.Where(f => (!f.Legacy || !string.IsNullOrEmpty(edit.Values.GetValueOrDefault(f.Name))) && f.IsVisible(edit.Values))];
 
     private bool IsCarryingValue(CollectionDescriptor descriptor, FieldDescriptor field) =>
         CollectionRows(descriptor.Key)?.Any(r => !string.IsNullOrEmpty(r.Get(field.Name))) == true;

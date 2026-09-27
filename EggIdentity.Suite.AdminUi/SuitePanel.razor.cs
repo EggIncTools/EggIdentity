@@ -17,6 +17,8 @@ public sealed partial class SuitePanel : ComponentBase {
     private const string CloneTab = "clone";
     private const string FleetKey = "\u0000fleet";
     private const string NewKey = "\u0000new";
+    private const string ImportKey = "\u0000import";
+    private const string UnassignedGroup = "Unassigned";
     private const string ExtraPrefix = "\u0000extra:";
 
     private SuiteAdmin? _admin;
@@ -35,8 +37,28 @@ public sealed partial class SuitePanel : ComponentBase {
 
     private SuiteExtraView? SelectedExtra => Extras.FirstOrDefault(e => ExtraKey(e.Key) == _selected);
 
-    private IEnumerable<IGrouping<string, SuiteAppView>> Groups =>
-        (_views ?? []).GroupBy(v => v.App.IsSubProd ? "Sub-prod" : "Production");
+    private IEnumerable<IGrouping<string, SuiteAppView>> Groups {
+        get {
+            var views = _views ?? [];
+            var mixed = views
+                .Select(v => (Stack: v.App.Stack?.Trim() ?? "", v.App.IsSubProd))
+                .Where(s => s.Stack.Length > 0)
+                .GroupBy(s => s.Stack, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Any(s => s.IsSubProd) && g.Any(s => !s.IsSubProd))
+                .Select(g => g.Key)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return views
+                .GroupBy(v => GroupLabel(v.App, mixed), StringComparer.OrdinalIgnoreCase)
+                .OrderBy(g => g.Key == UnassignedGroup)
+                .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    private static string GroupLabel(SuiteApp app, HashSet<string> mixed) {
+        var stack = app.Stack?.Trim();
+        if (string.IsNullOrEmpty(stack)) return UnassignedGroup;
+        return app.IsSubProd && mixed.Contains(stack) ? $"{stack} (sub-prod)" : stack;
+    }
 
     private static string ExtraKey(string key) => ExtraPrefix + key;
 
@@ -80,6 +102,11 @@ public sealed partial class SuitePanel : ComponentBase {
     private async Task OnSavedAsync(string name) {
         await LoadAsync();
         _selected = name;
+    }
+
+    private async Task OnImportedAsync(string? first) {
+        await LoadAsync();
+        if (first is not null) _selected = first;
     }
 
     private async Task OnDeletedAsync() {

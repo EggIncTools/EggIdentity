@@ -78,6 +78,16 @@ public sealed class FleetClient {
         return await ReadAsync<List<StackInfo>>(response, ct);
     }
 
+    public async Task<IReadOnlyList<StackInfo>> GetPortainerStacksAsync(CancellationToken ct) {
+        using var response = await SendAsync(HttpMethod.Get, "portainer/stacks", null, ct);
+        return await ReadAsync<List<StackInfo>>(response, ct);
+    }
+
+    public async Task<IReadOnlyList<StackService>> GetStackServicesAsync(string stack, CancellationToken ct) {
+        using var response = await SendAsync(HttpMethod.Get, $"portainer/stacks/{Uri.EscapeDataString(stack)}/services", null, ct);
+        return await ReadAsync<List<StackService>>(response, ct);
+    }
+
     public async Task<string?> RedeployStackAsync(string stack, CancellationToken ct) {
         using var response = await SendAsync(HttpMethod.Post, $"stacks/{Uri.EscapeDataString(stack)}/redeploy", null, ct);
         return await OutcomeAsync(response, ct);

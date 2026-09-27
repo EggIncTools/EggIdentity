@@ -54,25 +54,17 @@ public static class FleetRoutes {
             await ServerSentEvents.StreamAsync(ctx.Response, service.Events, after, ServerSentEvents.KeepaliveInterval, ctx.RequestAborted);
         });
 
-        fleet.MapGet("/stacks", async (CancellationToken ct) => {
-            try {
-                return Results.Ok(await service.StacksAsync(ct));
-            } catch (Exception e) when (e is not OperationCanceledException) {
-                return Results.Problem(e.Message, statusCode: StatusCodes.Status502BadGateway);
-            }
-        });
+        fleet.MapGet("/stacks", (CancellationToken ct) => Lookup(async () => (await service.StacksAsync(ct), (string?)null)));
 
         fleet.MapPost("/stacks/{name}/redeploy", async (string name, CancellationToken ct) =>
             Results.Ok(await Guard(() => service.RedeployStackAsync(name, ct))));
 
-        fleet.MapGet("/env/{app}", async (string app, CancellationToken ct) => {
-            try {
-                var (env, refusal) = await service.EnvAsync(app, ct);
-                return env is not null ? Results.Ok(env) : Results.Problem(refusal, statusCode: StatusCodes.Status409Conflict);
-            } catch (Exception e) when (e is not OperationCanceledException) {
-                return Results.Problem(e.Message, statusCode: StatusCodes.Status502BadGateway);
-            }
-        });
+        fleet.MapGet("/portainer/stacks", (CancellationToken ct) => Lookup(() => service.PortainerStacksAsync(ct)));
+
+        fleet.MapGet("/portainer/stacks/{name}/services", (string name, CancellationToken ct) =>
+            Lookup(() => service.StackServicesAsync(name, ct)));
+
+        fleet.MapGet("/env/{app}", (string app, CancellationToken ct) => Lookup(() => service.EnvAsync(app, ct)));
 
         fleet.MapPatch("/env/{app}", async (string app, Dictionary<string, string?> changes, CancellationToken ct) =>
             Results.Ok(await Guard(() => service.PatchEnvAsync(app, changes, ct))));
@@ -98,6 +90,15 @@ public static class FleetRoutes {
             });
             return Results.Json(await service.StatusAsync(app.Name, ctx.RequestAborted), statusCode: StatusCodes.Status202Accepted);
         });
+    }
+
+    private static async Task<IResult> Lookup<T>(Func<Task<(T? Value, string? Refusal)>> work) where T : class {
+        try {
+            var (value, refusal) = await work();
+            return value is not null ? Results.Ok(value) : Results.Problem(refusal, statusCode: StatusCodes.Status409Conflict);
+        } catch (Exception e) when (e is not OperationCanceledException) {
+            return Results.Problem(e.Message, statusCode: StatusCodes.Status502BadGateway);
+        }
     }
 
     private static async Task<AdminSaveResponse> Guard(Func<Task<string?>> work) {

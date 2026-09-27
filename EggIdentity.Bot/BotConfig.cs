@@ -30,6 +30,32 @@ public sealed class BotConfig {
     public TimeSpan DashboardRefreshInterval { get; init; } = TimeSpan.FromMinutes(5);
 
     public string CommitUrl(string version) => $"{RepoUrl}/commit/{version}";
+
+    public BotConfig WithRegistration(DiscordRegistrationResponse registration) {
+        ArgumentNullException.ThrowIfNull(registration);
+        return new BotConfig {
+            Name = Name,
+            Token = registration.Token,
+            AppId = registration.AppId ?? AppId,
+            GuildId = registration.GuildId,
+            RepoUrl = RepoUrl,
+            Build = Build,
+            SharedRoleId = SharedRoleId,
+            SupporterRoleId = SupporterRoleId,
+            Extra = Extra,
+            VerifyEmbedOptions = VerifyEmbedOptions,
+            VerifyEmbedBuilder = VerifyEmbedBuilder,
+            GlobalCommands = GlobalCommands,
+            GuildCommandMirror = GuildCommandMirror,
+            DashboardChannelId = registration.DashboardChannelId ?? DashboardChannelId,
+            PostgresConnectionString = PostgresConnectionString,
+            MigrationsDir = MigrationsDir,
+            MigrationsTableName = MigrationsTableName,
+            DashboardProvider = DashboardProvider,
+            ServedApps = ServedApps,
+            DashboardRefreshInterval = DashboardRefreshInterval,
+        };
+    }
 }
 
 public sealed record BotCommand(

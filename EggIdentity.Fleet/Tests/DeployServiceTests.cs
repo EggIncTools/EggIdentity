@@ -261,6 +261,38 @@ public class DeployServiceTests {
     }
 
     [Fact]
+    public async Task PortainerStacks_ListsUnreferencedStacksToo() {
+        var rig = Build(stacks: [PortainerFakes.Parse(PortainerFakes.GitStack), PortainerFakes.Parse(PortainerFakes.WebEditorStack())]);
+
+        var (stacks, refusal) = await rig.Service.PortainerStacksAsync(CancellationToken.None);
+
+        Assert.Null(refusal);
+        Assert.Equal(["db", StackName], stacks!.Select(s => s.Name));
+    }
+
+    [Fact]
+    public async Task StackServices_ParsesTheStackFile_AndRefusesUnknownStacks() {
+        var rig = Build();
+        rig.Portainer.ComposeFile = "services:\n  eggledger:\n    image: ghcr.io/x/eggledger:latest\n";
+
+        var (services, _) = await rig.Service.StackServicesAsync(StackName, CancellationToken.None);
+        var (missing, refusal) = await rig.Service.StackServicesAsync("nope", CancellationToken.None);
+
+        Assert.Equal(["eggledger"], services!.Select(s => s.Service));
+        Assert.Null(missing);
+        Assert.Contains("no stack named", refusal, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task StackServices_WithoutPortainer_Refuses() {
+        var rig = Build(portainer: false);
+
+        var (_, refusal) = await rig.Service.StackServicesAsync(StackName, CancellationToken.None);
+
+        Assert.Equal(DeployService.PortainerMissing, refusal);
+    }
+
+    [Fact]
     public async Task RedeployStack_UnreferencedStack_Refuses() {
         var rig = Build();
 

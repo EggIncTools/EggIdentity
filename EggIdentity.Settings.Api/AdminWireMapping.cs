@@ -51,6 +51,8 @@ public static class AdminWireMapping {
             EnumValues = field.EnumValues,
             Default = field.Default,
             Group = field.Group,
+            VisibleWhenField = field.VisibleWhen?.Field,
+            VisibleWhenValue = field.VisibleWhen?.Value,
         };
     }
 
@@ -127,6 +129,7 @@ public static class AdminWireMapping {
             EnumValues = wire.EnumValues,
             Default = wire.Default,
             Group = wire.Group,
+            VisibleWhen = wire.VisibleWhenField is { Length: > 0 } field ? new FieldCondition(field, wire.VisibleWhenValue ?? "") : null,
         };
     }
 

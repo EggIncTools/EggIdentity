@@ -211,6 +211,19 @@ public sealed class DeployService(
         })];
     }
 
+    public async Task<(IReadOnlyList<StackInfo>? Stacks, string? Refusal)> PortainerStacksAsync(CancellationToken ct) {
+        if (portainer is null) return (null, PortainerMissing);
+        var stacks = await portainer.ListStacksAsync(ct);
+        return ([.. stacks.Select(StackLookup.Describe).OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)], null);
+    }
+
+    public async Task<(IReadOnlyList<StackService>? Services, string? Refusal)> StackServicesAsync(string stackName, CancellationToken ct) {
+        if (portainer is null) return (null, PortainerMissing);
+        var (stack, refusal) = StackLookup.Find(await portainer.ListStacksAsync(ct), stackName);
+        if (stack is null) return (null, refusal);
+        return (ComposeServices.List(await portainer.GetStackFileAsync(stack, ct)), null);
+    }
+
     public async Task<string?> RedeployStackAsync(string stackName, CancellationToken ct) {
         if (portainer is null) return PortainerMissing;
         var referenced = (await AppsAsync(ct)).Any(a => string.Equals(a.Stack?.Trim(), stackName, StringComparison.OrdinalIgnoreCase));

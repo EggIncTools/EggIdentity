@@ -60,6 +60,7 @@ public static class Program {
         if (sponsorSync is not null) SponsorRoutes.Map(app, config, sponsorSync);
 
         IdentityApiRoutes.Map(app, config);
+        DiscordRegistrationRoutes.Map(app);
         FallbackRoutes.Map(app, config);
         var build = BuildInfo.Build(Environment.GetEnvironmentVariable, Assembly.GetExecutingAssembly());
         var fleet = app.Services.GetRequiredService<FleetRuntime>();

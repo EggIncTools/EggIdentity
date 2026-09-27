@@ -1,22 +1,30 @@
 using EggIdentity.Client;
 using EggIdentity.Contract;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 
 namespace EggIdentity.Consent;
 
-public sealed partial class CookieBanner {
+public sealed partial class CookieBanner : IDisposable {
+    private const string PrerenderKey = "eggidentity-consent";
+
     private enum Phase { Unknown, Hidden, Prompt, Configure }
+
+    private sealed record PrerenderDecision(ConsentState? Winner);
 
     private Phase _phase = Phase.Unknown;
     private bool _functional = true;
     private bool _analytics;
+    private bool _userDecided;
+    private PersistingComponentStateSubscription _persisting;
 
     [Inject] private IJSRuntime Js { get; set; } = default!;
     [Inject] private ConsentOptions Config { get; set; } = default!;
     [Inject] private ConsentReader Reader { get; set; } = default!;
     [Inject] private IServiceProvider Services { get; set; } = default!;
+    [Inject] private PersistentComponentState PersistentState { get; set; } = default!;
 
     [Parameter] public string? SessionToken { get; set; }
     [Parameter] public int PolicyVersion { get; set; } = 1;
@@ -34,6 +42,24 @@ public sealed partial class CookieBanner {
         AcceptAllAsync, NecessaryOnlyAsync, Configure, SaveAsync,
         v => _functional = v, v => _analytics = v);
 
+    protected override async Task OnInitializedAsync() {
+        if (PersistentState.TryTakeFromJson<PrerenderDecision>(PrerenderKey, out var restored) && restored is not null) {
+            Decide(restored.Winner);
+            return;
+        }
+        if (RendererInfo.IsInteractive || Services.GetService<IHttpContextAccessor>()?.HttpContext is not { } http) return;
+
+        var winner = ConsentCookie.Parse(http.Request.Cookies[ConsentCookie.Name], EffectiveVersion);
+        if (winner is null && SessionToken is { } token && Services.GetService<IdentityApiClient>() is { } api)
+            winner = await FetchServerAsync(api, token);
+
+        Decide(winner);
+        _persisting = PersistentState.RegisterOnPersisting(() => {
+            PersistentState.PersistAsJson(PrerenderKey, new PrerenderDecision(winner));
+            return Task.CompletedTask;
+        });
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (!firstRender) return;
 
@@ -47,10 +73,23 @@ public sealed partial class CookieBanner {
         var winner = cookie;
         if (SessionToken is { } token && Services.GetService<IdentityApiClient>() is { } api)
             winner = await ReconcileAsync(api, token, cookie);
+        if (_userDecided) return;
 
+        Decide(winner);
+        StateHasChanged();
+    }
+
+    private void Decide(ConsentState? winner) {
         Reader.Set(winner);
         _phase = winner is null ? Phase.Prompt : Phase.Hidden;
-        StateHasChanged();
+    }
+
+    private async Task<ConsentState?> FetchServerAsync(IdentityApiClient api, string token) {
+        try {
+            return ToState(await api.GetConsentAsync(token, CancellationToken.None));
+        } catch (HttpRequestException) {
+            return null;
+        }
     }
 
     private async Task<ConsentState?> ReconcileAsync(IdentityApiClient api, string token, ConsentState? cookie) {
@@ -77,6 +116,7 @@ public sealed partial class CookieBanner {
     private void Configure() => _phase = Phase.Configure;
 
     private async Task DecideAsync(bool functional, bool analytics) {
+        _userDecided = true;
         var now = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
         var state = new ConsentState(functional, analytics, EffectiveVersion, now);
         await WriteCookieAsync(state);
@@ -105,4 +145,6 @@ public sealed partial class CookieBanner {
         PolicyVersion = state.PolicyVersion,
         DecidedAt = state.DecidedAt,
     };
+
+    public void Dispose() => _persisting.Dispose();
 }

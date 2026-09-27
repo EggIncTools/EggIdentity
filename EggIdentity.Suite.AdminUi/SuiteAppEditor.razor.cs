@@ -30,8 +30,9 @@ public sealed partial class SuiteAppEditor : ComponentBase {
 
     private IReadOnlyList<string> Problems => SuiteApps.Problems(Bound);
 
-    private static IEnumerable<IGrouping<string, FieldDescriptor>> Groups =>
+    private IEnumerable<IGrouping<string, FieldDescriptor>> Groups =>
         SuiteApps.Descriptor.Fields
+            .Where(f => f.IsVisible(_values))
             .GroupBy(f => f.Group ?? SuiteApps.IdentityGroup)
             .OrderBy(g => Array.IndexOf(GroupOrder, g.Key));
 

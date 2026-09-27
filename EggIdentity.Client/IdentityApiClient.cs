@@ -37,6 +37,13 @@ public sealed class IdentityApiClient(HttpClient http) {
         return await resp.Content.ReadFromJsonAsync<IdentityUserResponse>(cancellationToken: ct);
     }
 
+    public async Task<DiscordRegistrationResponse?> GetDiscordRegistrationAsync(string appName, CancellationToken ct) {
+        var resp = await http.GetAsync($"/identity/apps/{Uri.EscapeDataString(appName)}/discord", ct);
+        if (resp.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<DiscordRegistrationResponse>(cancellationToken: ct);
+    }
+
     public async Task<SponsorStatusResponse> GetSponsorStatusAsync(Guid userId, CancellationToken ct) {
         var resp = await http.GetAsync($"/identity/{userId}/sponsor", ct);
         resp.EnsureSuccessStatusCode();

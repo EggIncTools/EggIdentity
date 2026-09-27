@@ -38,6 +38,11 @@
                     <WorkbenchEntry Selected="@(_selected == NewKey)" OnClick="@(() => Select(NewKey))">
                         <Name>Add app</Name>
                     </WorkbenchEntry>
+                    @if (_hasFleet) {
+                        <WorkbenchEntry Selected="@(_selected == ImportKey)" OnClick="@(() => Select(ImportKey))">
+                            <Name>Import stack</Name>
+                        </WorkbenchEntry>
+                    }
                 </WorkbenchSection>
             </WorkbenchRail>
 
@@ -51,6 +56,9 @@
                 } else if (_selected == NewKey) {
                     <h3 class="suite-title">Add app</h3>
                     <SuiteAppEditor Admin="_admin" UpdatedBy="@UpdatedBy" OnSaved="OnSavedAsync"/>
+                } else if (_selected == ImportKey) {
+                    <h3 class="suite-title">Import stack</h3>
+                    <SuiteStackImport Admin="_admin" UpdatedBy="@UpdatedBy" OnImported="OnImportedAsync"/>
                 } else if (Current is { } view) {
                     <div class="suite-head">
                         <div class="suite-head-row">

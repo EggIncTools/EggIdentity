@@ -50,6 +50,14 @@ public class WireRoundTripTests {
     }
 
     [Fact]
+    public void FieldVisibilityConditionSurvives() {
+        var field = new FieldDescriptor("token", "Token", SettingKind.Secret) { VisibleWhen = new FieldCondition("mode", "own") };
+
+        Assert.Equal(field.VisibleWhen, AdminWireMapping.FromWire(AdminWireMapping.ToWire(field)).VisibleWhen);
+        Assert.Null(AdminWireMapping.FromWire(AdminWireMapping.ToWire(field with { VisibleWhen = null })).VisibleWhen);
+    }
+
+    [Fact]
     public void DefaultSurvives() =>
         Assert.Equal(
             "8090",

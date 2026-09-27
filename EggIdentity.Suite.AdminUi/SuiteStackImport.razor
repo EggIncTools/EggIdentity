@@ -1,0 +1,78 @@
+<div class="suite-import">
+    @if (_client is null) {
+        <p class="wb-note">Fleet not configured.</p>
+    } else {
+        <div class="suite-import-pick">
+            <label class="suite-label" for="suite-import-stack">Portainer stack</label>
+            <select id="suite-import-stack" class="form-select" disabled="@(_busy || _stacks is null)" value="@(_stack ?? "")"
+                    @onchange="e => PickStackAsync(e.Value?.ToString())">
+                <option value="">@(_stacks is null ? "Loading stacks..." : "Choose a stack")</option>
+                @foreach (var stack in _stacks ?? []) {
+                    <option value="@stack.Name">@stack.Name (@(stack.GitBacked ? "git" : "web editor"))</option>
+                }
+            </select>
+            <label class="suite-label" for="suite-import-env">Environment</label>
+            <select id="suite-import-env" class="form-select" disabled="@_busy" value="@_environment" @onchange="e => _environment = e.Value?.ToString() ?? SuiteApp.ProdEnvironment">
+                <option value="@SuiteApp.ProdEnvironment">@SuiteApp.ProdEnvironment</option>
+                <option value="@SuiteApp.SubProdEnvironment">@SuiteApp.SubProdEnvironment</option>
+            </select>
+        </div>
+
+        @if (_rows.Count > 0) {
+            <table class="suite-import-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Service</th>
+                        <th>App name</th>
+                        <th>Image</th>
+                        <th>State</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _rows) {
+                        var r = row;
+                        <tr class="@(r.Importable ? null : "suite-import-done")">
+                            <td>
+                                <input type="checkbox" aria-label="@($"Import {r.Candidate.Service.Service}")" disabled="@(!r.Importable || _busy)"
+                                       checked="@(r.Importable && r.Selected)" @onchange="e => r.Selected = e.Value is true"/>
+                            </td>
+                            <td>@r.Candidate.Service.Service</td>
+                            <td>
+                                @if (r.Importable) {
+                                    <input class="form-input" type="text" autocomplete="off" disabled="@_busy" value="@r.Name"
+                                           aria-label="@($"App name for {r.Candidate.Service.Service}")" @oninput="e => r.Name = e.Value?.ToString() ?? string.Empty"/>
+                                } else {
+                                    @r.Candidate.ExistingApp
+                                }
+                            </td>
+                            <td class="suite-import-image">@(r.Candidate.Service.Image ?? "no image")</td>
+                            <td>
+                                <span class="badge @StateBadge(r)">@StateText(r)</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        @if (_error is not null) {
+            <p class="suite-error">@_error</p>
+        }
+        @foreach (var failure in _failures) {
+            <p class="suite-error">@failure</p>
+        }
+        @if (_note is not null) {
+            <p class="wb-note">@_note</p>
+        }
+
+        @if (_rows.Count > 0) {
+            <div class="suite-actions">
+                <span class="suite-spacer"></span>
+                <button type="button" class="btn-primary" disabled="@(_busy || SelectedCount == 0)" @onclick="ImportAsync">
+                    Import @SelectedCount
+                </button>
+            </div>
+        }
+    }
+</div>

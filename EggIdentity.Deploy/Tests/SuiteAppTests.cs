@@ -83,6 +83,28 @@ public class SuiteAppTests {
     }
 
     [Fact]
+    public void Problems_FlagOwnBotWithoutTokenOrGuild() {
+        var bare = new SuiteApp { Name = "a", Stack = "s", DiscordBot = SuiteApp.DiscordBotOwn };
+        Assert.Contains(SuiteApps.Problems(bare), p => p.Contains("Discord", StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            SuiteApps.Problems(bare with { DiscordToken = "t", DiscordGuildId = "1" }),
+            p => p.Contains("Discord", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(SuiteApp.DiscordBotNone, false)]
+    [InlineData(SuiteApp.DiscordBotSuite, false)]
+    [InlineData(SuiteApp.DiscordBotOwn, true)]
+    public void RegistrationFields_ShowOnlyForOwn(string mode, bool visible) {
+        var values = new Dictionary<string, string?> { ["discord_bot"] = mode };
+        var registration = SuiteApps.Descriptor.Fields.Where(f => f.Name.StartsWith("discord_", StringComparison.Ordinal) && f.Name != "discord_bot").ToList();
+
+        Assert.Equal(4, registration.Count);
+        Assert.All(registration, f => Assert.Equal(visible, f.IsVisible(values)));
+        Assert.True(SuiteApps.Descriptor.FindField("discord_bot")?.IsVisible(values));
+    }
+
+    [Fact]
     public void Descriptor_EveryFieldHasAGroup() =>
         Assert.All(SuiteApps.Descriptor.Fields, f => Assert.False(string.IsNullOrEmpty(f.Group)));
 }

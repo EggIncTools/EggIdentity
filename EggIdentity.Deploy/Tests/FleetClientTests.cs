@@ -124,6 +124,30 @@ public class FleetClientTests {
     }
 
     [Fact]
+    public async Task GetStackServicesAsync_EscapesStackAndParsesServices() {
+        var handler = new FakeFleetHandler((req, _) => {
+            Assert.Equal(FleetRoot + "portainer/stacks/ei%20servers/services", req.RequestUri!.AbsolutePath);
+            return FakeFleetHandler.Json("""[{"service":"db","containerName":"egg-postgres","image":"postgres:17"},{"service":"x"}]""");
+        });
+
+        var services = await TestFixtures.Client(handler).GetStackServicesAsync("ei servers", CancellationToken.None);
+
+        Assert.Equal([new StackService("db", "egg-postgres", "postgres:17"), new StackService("x", null, null)], services);
+    }
+
+    [Fact]
+    public async Task GetPortainerStacksAsync_RefusalSurfacesAsHttpError() {
+        var handler = new FakeFleetHandler((req, _) => {
+            Assert.Equal(FleetRoot + "portainer/stacks", req.RequestUri!.AbsolutePath);
+            return FakeFleetHandler.Text("portainer.api_url is not set", HttpStatusCode.Conflict);
+        });
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => TestFixtures.Client(handler).GetPortainerStacksAsync(CancellationToken.None));
+
+        Assert.Contains("portainer.api_url", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task StreamEventsAsync_SendsReplayHeader_AndYieldsEvents() {
         var pipe = new Pipe();
         var handler = new FakeFleetHandler((req, _) => {
