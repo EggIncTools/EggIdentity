@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace EggIdentity.Settings.Tests;
 
 public class CollectionBinderTests {
-    private sealed record DeployApp(string Name, string Image, bool AutoDeploy, int Replicas, string? RepoUrl, bool? Enabled);
+    private sealed record TestApp(string Name, string Image, bool AutoDeploy, int Replicas, string? RepoUrl, bool? Enabled);
 
     private sealed class Renamed {
         [JsonPropertyName("client_id")] public string ClientId { get; init; } = "";
@@ -16,7 +16,7 @@ public class CollectionBinderTests {
 
     [Fact]
     public void Bind_MapsSnakeCaseFieldsToPascalCaseProperties() {
-        var app = CollectionBinder.Bind<DeployApp>(Values(
+        var app = CollectionBinder.Bind<TestApp>(Values(
             ("name", "eggledger"), ("image", "ghcr.io/x/y"), ("auto_deploy", "true"), ("replicas", "3"), ("repo_url", "https://x")));
 
         Assert.Equal("eggledger", app.Name);
@@ -33,7 +33,7 @@ public class CollectionBinderTests {
     [InlineData("false", false)]
     [InlineData("0", false)]
     public void Bind_ReadsBoolsFromStrings(string raw, bool expected) {
-        var app = CollectionBinder.Bind<DeployApp>(Values(("name", "a"), ("image", "b"), ("auto_deploy", raw), ("enabled", raw)));
+        var app = CollectionBinder.Bind<TestApp>(Values(("name", "a"), ("image", "b"), ("auto_deploy", raw), ("enabled", raw)));
 
         Assert.Equal(expected, app.AutoDeploy);
         Assert.Equal(expected, app.Enabled);
@@ -41,11 +41,11 @@ public class CollectionBinderTests {
 
     [Fact]
     public void Bind_RejectsNonBoolStrings() =>
-        Assert.Throws<JsonException>(() => CollectionBinder.Bind<DeployApp>(Values(("name", "a"), ("image", "b"), ("auto_deploy", "maybe"))));
+        Assert.Throws<JsonException>(() => CollectionBinder.Bind<TestApp>(Values(("name", "a"), ("image", "b"), ("auto_deploy", "maybe"))));
 
     [Fact]
     public void Bind_TreatsBlankAndNullAsAbsent() {
-        var app = CollectionBinder.Bind<DeployApp>(Values(("name", "a"), ("image", "b"), ("replicas", ""), ("repo_url", null), ("enabled", "")));
+        var app = CollectionBinder.Bind<TestApp>(Values(("name", "a"), ("image", "b"), ("replicas", ""), ("repo_url", null), ("enabled", "")));
 
         Assert.Equal(0, app.Replicas);
         Assert.Null(app.RepoUrl);

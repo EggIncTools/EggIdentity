@@ -8,7 +8,7 @@ public class SettingsSnapshotTests {
         new(key, envKey, key, "Core", SettingKind.Text, tier, Sensitivity.Plain) { Default = @default };
 
     private static readonly CollectionDescriptor Apps = new(
-        "deploy.apps", "Apps", "Deploy",
+        "suite.apps", "Apps", "Suite",
         [
             new FieldDescriptor("name", "Name", SettingKind.Text) { Required = true },
             new FieldDescriptor("image", "Image", SettingKind.Text) { Required = true },
@@ -16,10 +16,10 @@ public class SettingsSnapshotTests {
         ],
         "name");
 
-    private sealed record DeployApp(string Name, string Image, bool AutoDeploy);
+    private sealed record TestApp(string Name, string Image, bool AutoDeploy);
 
     private static CollectionRow Row(string id, params (string Field, string? Value)[] pairs) =>
-        new("deploy.apps", id, pairs.ToDictionary(p => p.Field, p => p.Value, StringComparer.Ordinal), DateTimeOffset.UnixEpoch, null);
+        new("suite.apps", id, pairs.ToDictionary(p => p.Field, p => p.Value, StringComparer.Ordinal), DateTimeOffset.UnixEpoch, null);
 
     [Fact]
     public void Database_WinsOverFileEnvAndDefault() {
@@ -104,13 +104,13 @@ public class SettingsSnapshotTests {
         var registry = new SettingsRegistry([], [new StaticCollectionProvider([Apps])]);
         var snapshot = new SettingsSnapshot(registry, new Dictionary<string, string?>(), null, _ => null,
             new Dictionary<string, IReadOnlyList<CollectionRow>> {
-                ["deploy.apps"] = [
+                ["suite.apps"] = [
                     Row("eggledger", ("name", "eggledger"), ("image", "ghcr.io/x/ledger"), ("auto_deploy", "false")),
                     Row("eggincognito", ("name", "eggincognito"), ("image", "ghcr.io/x/incognito")),
                 ],
             });
 
-        var apps = snapshot.Collection<DeployApp>("deploy.apps");
+        var apps = snapshot.Collection<TestApp>("suite.apps");
 
         Assert.Equal(2, apps.Count);
         Assert.False(apps[0].AutoDeploy);
@@ -123,10 +123,10 @@ public class SettingsSnapshotTests {
         var registry = new SettingsRegistry([], [new StaticCollectionProvider([Apps])]);
         var snapshot = new SettingsSnapshot(registry, new Dictionary<string, string?>(), null, _ => null,
             new Dictionary<string, IReadOnlyList<CollectionRow>> {
-                ["deploy.apps"] = [Row("a", ("name", "a"), ("image", "b"), ("stale", "x"))],
+                ["suite.apps"] = [Row("a", ("name", "a"), ("image", "b"), ("stale", "x"))],
             });
 
-        var row = Assert.Single(snapshot.Rows("deploy.apps"));
+        var row = Assert.Single(snapshot.Rows("suite.apps"));
         Assert.Equal("true", row.Get("auto_deploy"));
         Assert.False(row.Values.ContainsKey("stale"));
     }
@@ -136,8 +136,8 @@ public class SettingsSnapshotTests {
         var registry = new SettingsRegistry([], [new StaticCollectionProvider([Apps])]);
         var snapshot = new SettingsSnapshot(registry, new Dictionary<string, string?>(), null, _ => null);
 
-        Assert.Empty(snapshot.Rows("deploy.apps"));
-        Assert.Empty(snapshot.Collection<DeployApp>("deploy.apps"));
+        Assert.Empty(snapshot.Rows("suite.apps"));
+        Assert.Empty(snapshot.Collection<TestApp>("suite.apps"));
     }
 
     [Fact]

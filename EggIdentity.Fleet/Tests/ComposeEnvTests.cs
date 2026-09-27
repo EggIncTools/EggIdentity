@@ -18,8 +18,8 @@ public class ComposeEnvTests {
               CAPTURE_IFACE: eth0
               PRICE: "$$NOT_A_VAR"
               PORT: $APP_PORT
-          agent:
-            image: ghcr.io/x/agent:latest
+          worker:
+            image: ghcr.io/x/worker:latest
         """;
 
     [Fact]
@@ -50,7 +50,7 @@ public class ComposeEnvTests {
 
     [Fact]
     public void Parse_ServiceWithoutEnvironment_IsFoundWithNoKeys() {
-        var info = ComposeEnv.Parse(Compose, "agent");
+        var info = ComposeEnv.Parse(Compose, "worker");
 
         Assert.True(info.Found);
         Assert.Empty(info.EnvironmentKeys);

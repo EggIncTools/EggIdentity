@@ -52,10 +52,10 @@ public class AdminApiClientTests {
     public async Task KeysAndIdsAreEscaped() {
         var (client, handler) = Make(_ => FakeHandler.Json("""{"ok":true}"""));
 
-        await client.DeleteRowAsync(Target, "deploy.apps", "app/with space");
+        await client.DeleteRowAsync(Target, "suite.apps", "app/with space");
 
         Assert.Equal(
-            "http://eggledger.test/admin/api/collections/deploy.apps/app%2Fwith%20space",
+            "http://eggledger.test/admin/api/collections/suite.apps/app%2Fwith%20space",
             handler.Requests[0].RequestUri?.AbsoluteUri);
     }
 

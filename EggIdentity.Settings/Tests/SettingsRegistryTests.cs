@@ -43,11 +43,11 @@ public class SettingsRegistryTests {
     public void Collections_ComposeAlongsideScalars() {
         var registry = new SettingsRegistry(
             [new StaticSettingsProvider([Descriptor("a.one", "A_ONE")])],
-            [new StaticCollectionProvider([Collection("deploy.apps", displayField: "image")])]);
+            [new StaticCollectionProvider([Collection("suite.apps", displayField: "image")])]);
 
         var only = Assert.Single(registry.Collections);
-        Assert.Equal("deploy.apps", only.Key);
-        Assert.Same(only, registry.FindCollection("deploy.apps"));
+        Assert.Equal("suite.apps", only.Key);
+        Assert.Same(only, registry.FindCollection("suite.apps"));
         Assert.Null(registry.FindCollection("nope"));
         Assert.Throws<KeyNotFoundException>(() => registry.RequireCollection("nope"));
     }
@@ -55,11 +55,11 @@ public class SettingsRegistryTests {
     [Fact]
     public void DuplicateCollectionKey_Throws() {
         var ex = Assert.Throws<InvalidOperationException>(() => new SettingsRegistry([], [
-            new StaticCollectionProvider([Collection("deploy.apps")]),
-            new StaticCollectionProvider([Collection("deploy.apps")]),
+            new StaticCollectionProvider([Collection("suite.apps")]),
+            new StaticCollectionProvider([Collection("suite.apps")]),
         ]));
 
-        Assert.Contains("deploy.apps", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("suite.apps", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -14,7 +14,6 @@ internal sealed class HostConfig {
 
     public string? LocalLoginKey { get; init; }
     public string? AuthentikAuthority { get; init; }
-    public string? AuthentikAppsDir { get; init; }
     public string? AuthentikTokenDecryptionKey { get; init; }
     public string? AuthentikApiToken { get; init; }
     public bool LoginWidgetEnabled { get; init; }
@@ -47,7 +46,6 @@ internal sealed class HostConfig {
             ?? throw new InvalidOperationException("IDENTITY_API_SECRET is required");
 
         var authentikAuthority = Environment.GetEnvironmentVariable("AUTHENTIK_AUTHORITY");
-        var authentikAppsDir = Environment.GetEnvironmentVariable("AUTHENTIK_APPS_DIR");
         var authentikTokenDecryptionKey = ReadPemOrFile(
             "AUTHENTIK_TOKEN_DECRYPTION_KEY", Environment.GetEnvironmentVariable("AUTHENTIK_TOKEN_DECRYPTION_KEY"));
         var loginWidgetEnabled = !string.IsNullOrEmpty(authentikAuthority);
@@ -71,7 +69,6 @@ internal sealed class HostConfig {
                 int.TryParse(Environment.GetEnvironmentVariable("IDENTITY_RECONCILE_INTERVAL_MINUTES"), out var r) && r > 0 ? r : 30,
             LocalLoginKey = Environment.GetEnvironmentVariable("EGGIDENTITY_LOCAL_KEY"),
             AuthentikAuthority = authentikAuthority,
-            AuthentikAppsDir = authentikAppsDir,
             AuthentikTokenDecryptionKey = authentikTokenDecryptionKey,
             AuthentikApiToken = Environment.GetEnvironmentVariable("AUTHENTIK_API_TOKEN"),
             LoginWidgetEnabled = loginWidgetEnabled,

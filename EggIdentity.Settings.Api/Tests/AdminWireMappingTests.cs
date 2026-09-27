@@ -51,7 +51,7 @@ public class AdminWireMappingTests {
     [Fact]
     public void CollectionDescriptor_RoundTripsFieldsAndIdField() {
         var descriptor = new CollectionDescriptor(
-            "deploy.apps", "Deployed apps", "Deploy",
+            "suite.apps", "Suite apps", "Suite",
             [
                 new FieldDescriptor("name", "App name", SettingKind.Text) { Required = true },
                 new FieldDescriptor("secret", "Secret", SettingKind.Secret, Sensitivity.Secret),
@@ -60,7 +60,7 @@ public class AdminWireMappingTests {
 
         var wire = AdminWireMapping.ToWire(descriptor);
 
-        Assert.Equal("deploy.apps", wire.Key);
+        Assert.Equal("suite.apps", wire.Key);
         Assert.Equal("name", wire.IdField);
         Assert.Equal(["name", "secret"], wire.Fields.Select(f => f.Name));
         Assert.True(wire.Fields[0].Required);

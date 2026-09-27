@@ -19,7 +19,6 @@ public sealed record AdminTargetRow {
 }
 
 public static class AdminTargets {
-    public const string LegacyKey = "admin.targets";
     public const string SecretEnvPrefix = "ADMIN_SECRET_";
 
     public static string SecretEnvKey(string app) {

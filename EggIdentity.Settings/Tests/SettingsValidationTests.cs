@@ -8,12 +8,12 @@ public class SettingsValidationTests {
         };
 
     private static readonly CollectionDescriptor Apps = new(
-        "deploy.apps", "Apps", "Deploy",
+        "suite.apps", "Apps", "Suite",
         [
             new FieldDescriptor("name", "Name", SettingKind.Text) { Required = true },
             new FieldDescriptor("image", "Image", SettingKind.Text) { Required = true },
             new FieldDescriptor("repo_url", "Repository", SettingKind.Url),
-            new FieldDescriptor("deploy_secret", "Deploy secret", SettingKind.Secret, Sensitivity.Secret),
+            new FieldDescriptor("auth_client_secret", "Client secret", SettingKind.Secret, Sensitivity.Secret),
             new FieldDescriptor("auto_deploy", "Auto deploy", SettingKind.Bool) { Default = "true" },
         ],
         "name");
@@ -152,5 +152,5 @@ public class SettingsValidationTests {
 
     [Fact]
     public void Row_OptionalBlankFieldsAreFine() =>
-        Assert.Null(SettingsValidation.ValidateRow(Apps, Row(("name", "a"), ("image", "b"), ("deploy_secret", ""), ("auto_deploy", null))));
+        Assert.Null(SettingsValidation.ValidateRow(Apps, Row(("name", "a"), ("image", "b"), ("auth_client_secret", ""), ("auto_deploy", null))));
 }

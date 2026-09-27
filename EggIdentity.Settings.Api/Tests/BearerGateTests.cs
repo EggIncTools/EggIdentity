@@ -63,8 +63,8 @@ public class BearerGateTests {
         var client = host.GetTestClient();
 
         var save = await client.PutAsJsonAsync("/admin/api/settings/a.one", new AdminSaveRequest { Value = "x" });
-        var create = await client.PostAsJsonAsync("/admin/api/collections/deploy.apps", new AdminRowRequest { Id = "x" });
-        var delete = await client.DeleteAsync("/admin/api/collections/deploy.apps/x");
+        var create = await client.PostAsJsonAsync("/admin/api/collections/suite.apps", new AdminRowRequest { Id = "x" });
+        var delete = await client.DeleteAsync("/admin/api/collections/suite.apps/x");
         var restart = await client.PostAsync("/admin/api/restart", null);
 
         Assert.Equal(HttpStatusCode.Unauthorized, save.StatusCode);

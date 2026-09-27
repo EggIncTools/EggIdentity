@@ -3,7 +3,7 @@ using EggIdentity.Contract;
 
 namespace EggIdentity.Deploy.AdminUi;
 
-internal static class DeployPanelFormat {
+public static class DeployPanelFormat {
     public static string Relative(DateTimeOffset? at, DateTimeOffset now) {
         if (at is not { } when) return "never";
         var age = now - when;
@@ -26,6 +26,15 @@ internal static class DeployPanelFormat {
         var colon = trimmed.IndexOf(':', StringComparison.Ordinal);
         var hex = colon >= 0 ? trimmed[(colon + 1)..] : trimmed;
         return hex.Length > 12 ? hex[..12] : hex;
+    }
+
+    public static string ShortVersion(string? version) {
+        if (string.IsNullOrWhiteSpace(version)) return "";
+        var trimmed = version.Trim();
+        var plus = trimmed.IndexOf('+', StringComparison.Ordinal);
+        if (plus < 0) return trimmed;
+        var metadata = trimmed[(plus + 1)..];
+        return metadata.Length > 7 ? $"{trimmed[..plus]}+{metadata[..7]}" : trimmed;
     }
 
     public static string VersionLine(string? version, string? revision, string? digest) {

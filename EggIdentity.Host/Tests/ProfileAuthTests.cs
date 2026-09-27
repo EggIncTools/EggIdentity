@@ -29,6 +29,30 @@ public class ProfileAuthTests {
     }
 
     [Fact]
+    public async Task TryGetPrincipalAsync_CookieToken_CarriesRole() {
+        var token = SessionToken.Issue(Cookie, new SessionUser(UserId: Guid.NewGuid().ToString(), Sid: "sid-2", Role: "admin"), DateTimeOffset.UtcNow);
+        var ctx = new DefaultHttpContext();
+        ctx.Request.Headers.Cookie = $"{Cookie.CookieName}={token}";
+
+        var principal = await ProfileAuth.TryGetPrincipalAsync(ctx, Cookie, (_, _) => Task.FromResult(false), CancellationToken.None);
+
+        Assert.NotNull(principal);
+        Assert.True(principal.IsAtLeast(UserRole.Admin));
+    }
+
+    [Fact]
+    public async Task TryGetPrincipalAsync_ViewerRole_IsNotAdmin() {
+        var token = SessionToken.Issue(Cookie, new SessionUser(UserId: Guid.NewGuid().ToString(), Sid: "sid-3", Role: "viewer"), DateTimeOffset.UtcNow);
+        var ctx = new DefaultHttpContext();
+        ctx.Request.Headers[IdentityWire.SessionHeader] = token;
+
+        var principal = await ProfileAuth.TryGetPrincipalAsync(ctx, Cookie, (_, _) => Task.FromResult(false), CancellationToken.None);
+
+        Assert.NotNull(principal);
+        Assert.False(principal.IsAtLeast(UserRole.Admin));
+    }
+
+    [Fact]
     public async Task TryGetUserIdAsync_RevokedSid_ReturnsNull() {
         var userId = Guid.NewGuid();
         var token = SessionToken.Issue(Cookie, new SessionUser(UserId: userId.ToString(), Sid: "sid-revoked", Role: "viewer", Name: "alice", Avatar: null, DiscordId: null), DateTimeOffset.UtcNow);

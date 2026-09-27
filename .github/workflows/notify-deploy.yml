@@ -1,4 +1,4 @@
-name: notify-agent
+name: notify-deploy
 
 on:
   workflow_call:
@@ -6,7 +6,8 @@ on:
       app:
         type: string
         required: true
-      agent-url:
+      hook-url:
+        description: Public URL of the identity host. The job posts to <hook-url>/hooks/image-pushed.
         type: string
         required: true
       digest:
@@ -26,10 +27,10 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Notify deploy agent
+      - name: Notify identity host
         env:
           APP: ${{ inputs.app }}
-          AGENT_URL: ${{ inputs.agent-url }}
+          HOOK_URL: ${{ inputs.hook-url }}
           DIGEST: ${{ inputs.digest }}
           REVISION: ${{ inputs.revision }}
           VERSION: ${{ inputs.version }}
@@ -37,25 +38,25 @@ jobs:
         run: |
           set -euo pipefail
           BODY=$(printf '{"app":"%s","digest":"%s","revision":"%s","version":"%s"}' "$APP" "$DIGEST" "$REVISION" "$VERSION")
-          STATUS=$(curl -sS --max-time 30 -o /tmp/notify-agent.out -w '%{http_code}' -X POST "$AGENT_URL/hooks/image-pushed" \
+          STATUS=$(curl -sS --max-time 30 -o /tmp/notify-deploy.out -w '%{http_code}' -X POST "${HOOK_URL%/}/hooks/image-pushed" \
             -H "Authorization: Bearer $HOOK_SECRET" \
             -H "Content-Type: application/json" \
             --data "$BODY") || STATUS="000"
-          echo "agent responded $STATUS"
-          cat /tmp/notify-agent.out || true
+          echo "identity host responded $STATUS"
+          cat /tmp/notify-deploy.out || true
           case "$STATUS" in
             2*)
               echo "notified $APP at $VERSION" >> "$GITHUB_STEP_SUMMARY"
               ;;
             *)
-              echo "::warning title=Deploy agent not notified::$APP $VERSION - agent responded $STATUS. The image is published; the agent did not pick it up. Deploy it from the admin panel or re-run this job."
+              echo "::warning title=Deploy hook not delivered::$APP $VERSION - identity host responded $STATUS. The image is published; deploy it from the hub or re-run this job."
               {
-                echo "### Deploy agent not notified"
+                echo "### Deploy hook not delivered"
                 echo ""
-                echo "\`$APP\` \`$VERSION\` - agent responded \`$STATUS\`."
+                echo "\`$APP\` \`$VERSION\` - identity host responded \`$STATUS\`."
                 echo ""
-                echo "The image published successfully. Only the notification failed, so the agent will"
-                echo "deploy on its next poll, or you can trigger it from the admin panel."
+                echo "The image published successfully. Only the notification failed. Deploy it from the hub's"
+                echo "fleet panel, or re-run this job."
               } >> "$GITHUB_STEP_SUMMARY"
               ;;
           esac

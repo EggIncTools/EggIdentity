@@ -2,7 +2,13 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    max-width: 48rem;
+    max-width: 64rem;
+}
+
+.suite-editor-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
 }
 
 .suite-problems {
@@ -41,6 +47,10 @@
     align-items: center;
     gap: 0.35rem;
     font-weight: 500;
+}
+
+.suite-check {
+    min-height: 1.75rem;
 }
 
 .suite-desc {

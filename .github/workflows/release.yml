@@ -26,10 +26,10 @@ jobs:
 
   notify-identity:
     needs: docker-identity-host
-    uses: ./.github/workflows/notify-agent.yml
+    uses: ./.github/workflows/notify-deploy.yml
     with:
       app: eggidentity
-      agent-url: https://egghook.egginc.tools/agent
+      hook-url: https://id.egginc.tools
       digest: ${{ needs.docker-identity-host.outputs.digest }}
       revision: ${{ github.sha }}
       version: ${{ github.ref_name }}

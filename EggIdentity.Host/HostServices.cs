@@ -63,7 +63,7 @@ internal static class HostServices {
 
         builder.Services.AddSingleton(sp => new IconCache(sp.GetRequiredService<IHttpClientFactory>(), authority));
         builder.Services.AddSingleton(sp => new AppAuthConfigs(
-            sp.GetRequiredService<SettingsCache>(), authority, config.AuthentikAppsDir, config.AuthentikTokenDecryptionKey));
+            sp.GetRequiredService<SettingsCache>(), authority, config.AuthentikTokenDecryptionKey));
         builder.Services.AddSingleton(new ConfigurationManager<OpenIdConnectConfiguration>(
             $"{authority.TrimEnd('/')}/.well-known/openid-configuration",
             new OpenIdConnectConfigurationRetriever()));
@@ -89,7 +89,7 @@ internal static class HostServices {
     private static HostRuntime RegisterSettings(
         WebApplicationBuilder builder, HostConfig config, NpgsqlDataSource dataSource) {
         var registry = SettingsRegistry.Compose(
-            [HostSettings.Provider, SessionSettings.Provider, FleetSettings.Provider], [SuiteApps.Provider, AuthentikApps.Provider]);
+            [HostSettings.Provider, SessionSettings.Provider, FleetSettings.Provider], [SuiteApps.Provider]);
         var store = new SettingsStore(dataSource, SecretProtector.FromEnvironment());
         var cache = new SettingsCache(registry, store, config.SharedFileLookup);
 

@@ -3,7 +3,7 @@ namespace EggIdentity.DbClone.Tests;
 public class SubProdFenceTests {
     private static readonly SubProdFence Fence = new([
         new FenceGate("discord", ["DISCORD_TOKEN"]),
-        new FenceGate("deploy", ["DEPLOY_AGENT_URL", "DEPLOY_SECRET"]),
+        new FenceGate("deploy", ["PORTAINER_API_KEY", "DEPLOY_SECRET"]),
     ]);
 
     private static Func<string, string?> Env(params (string Key, string Value)[] pairs) {

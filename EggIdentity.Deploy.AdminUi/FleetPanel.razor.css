@@ -11,14 +11,14 @@
     gap: 0.5rem;
 }
 
-.fleet-agent {
+.fleet-summary {
     flex: 1;
     min-width: 12rem;
     font-size: 0.85rem;
     opacity: 0.8;
 }
 
-.fleet-agent-down {
+.fleet-summary-down {
     color: var(--color-err, #f85149);
     opacity: 1;
 }

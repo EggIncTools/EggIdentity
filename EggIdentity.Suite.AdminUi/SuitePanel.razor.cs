@@ -1,6 +1,7 @@
 using EggIdentity.Bot;
 using EggIdentity.Contract;
 using EggIdentity.Deploy;
+using EggIdentity.Deploy.AdminUi;
 using EggIdentity.Settings.Store;
 using EggIdentity.UI;
 using Microsoft.AspNetCore.Components;
@@ -14,8 +15,9 @@ public sealed partial class SuitePanel : ComponentBase {
     private const string SettingsTab = "settings";
     private const string BotTab = "bot";
     private const string CloneTab = "clone";
-    private const string StacksKey = "\u0000stacks";
+    private const string FleetKey = "\u0000fleet";
     private const string NewKey = "\u0000new";
+    private const string ExtraPrefix = "\u0000extra:";
 
     private SuiteAdmin? _admin;
     private IReadOnlyList<SuiteAppView>? _views;
@@ -27,11 +29,16 @@ public sealed partial class SuitePanel : ComponentBase {
     [Parameter] public string? LocalApp { get; set; }
     [Parameter] public string IdentityHostApp { get; set; } = "eggidentity";
     [Parameter] public string? UpdatedBy { get; set; }
+    [Parameter] public IReadOnlyList<SuiteExtraView> Extras { get; set; } = [];
 
     private SuiteAppView? Current => _views?.FirstOrDefault(v => string.Equals(v.App.Name, _selected, StringComparison.OrdinalIgnoreCase));
 
+    private SuiteExtraView? SelectedExtra => Extras.FirstOrDefault(e => ExtraKey(e.Key) == _selected);
+
     private IEnumerable<IGrouping<string, SuiteAppView>> Groups =>
         (_views ?? []).GroupBy(v => v.App.IsSubProd ? "Sub-prod" : "Production");
+
+    private static string ExtraKey(string key) => ExtraPrefix + key;
 
     private List<(string Key, string Label, int? Count)> Tabs(SuiteAppView view) {
         var tabs = new List<(string Key, string Label, int? Count)> { (OverviewTab, "Overview", null) };
@@ -87,7 +94,7 @@ public sealed partial class SuitePanel : ComponentBase {
     private static string StatusText(SuiteAppView view) {
         if (!view.App.Enabled) return "disabled";
         if (view.IsLocal) return "this app";
-        if (view.Manifest is { } manifest) return string.IsNullOrEmpty(manifest.Version) ? "reachable" : manifest.Version;
+        if (view.Manifest is { } manifest) return string.IsNullOrEmpty(manifest.Version) ? "reachable" : DeployPanelFormat.ShortVersion(manifest.Version);
         return view.ManifestError ?? "not administrable";
     }
 

@@ -17,7 +17,7 @@ public class SettingsStoreTests {
         [
             new FieldDescriptor("name", "Name", SettingKind.Text) { Required = true },
             new FieldDescriptor("image", "Image", SettingKind.Text),
-            new FieldDescriptor("deploy_secret", "Deploy secret", SettingKind.Secret, Sensitivity.Secret),
+            new FieldDescriptor("api_secret", "API secret", SettingKind.Secret, Sensitivity.Secret),
         ],
         "name");
 
@@ -140,7 +140,7 @@ public class SettingsStoreTests {
         var ledger = new Dictionary<string, string?> {
             ["name"] = LedgerId,
             ["image"] = "ghcr.io/x/ledger:latest",
-            ["deploy_secret"] = "hunter2",
+            ["api_secret"] = "hunter2",
         };
         var incognito = new Dictionary<string, string?> { ["name"] = IncognitoId };
         await store.UpsertRowAsync(Apps, LedgerId, ledger, "tester", CancellationToken.None);
@@ -149,7 +149,7 @@ public class SettingsStoreTests {
         var row = await store.GetRowAsync(Apps.Key, LedgerId, CancellationToken.None);
         Assert.NotNull(row);
         Assert.Equal("ghcr.io/x/ledger:latest", row.Get("image"));
-        Assert.Equal("hunter2", row.Get("deploy_secret"));
+        Assert.Equal("hunter2", row.Get("api_secret"));
         Assert.Equal("tester", row.UpdatedBy);
 
         var listed = await store.ListRowsAsync(Apps.Key, CancellationToken.None);
@@ -160,7 +160,7 @@ public class SettingsStoreTests {
 
         await using (var raw = await dataSource.OpenConnectionAsync())
         await using (var cmd = new NpgsqlCommand(
-            "SELECT value->>'deploy_secret' FROM app_setting_collections WHERE collection = $1 AND id = $2", raw)) {
+            "SELECT value->>'api_secret' FROM app_setting_collections WHERE collection = $1 AND id = $2", raw)) {
             cmd.Parameters.AddWithValue(Apps.Key);
             cmd.Parameters.AddWithValue(LedgerId);
             var stored = (string?)await cmd.ExecuteScalarAsync();
@@ -207,20 +207,20 @@ public class SettingsStoreTests {
         await using var dataSource = NpgsqlDataSource.Create(conn);
         var writer = new SettingsStore(dataSource, SecretProtector.FromKey(RandomKey()));
         await writer.MigrateAsync(CancellationToken.None);
-        var values = new Dictionary<string, string?> { ["name"] = LedgerId, ["deploy_secret"] = "hunter2" };
+        var values = new Dictionary<string, string?> { ["name"] = LedgerId, ["api_secret"] = "hunter2" };
         await writer.UpsertRowAsync(Apps, LedgerId, values, "tester", CancellationToken.None);
 
         try {
             var blind = new SettingsStore(dataSource);
             var missing = await Assert.ThrowsAsync<InvalidOperationException>(() => blind.GetRowAsync(Apps.Key, LedgerId, CancellationToken.None));
-            Assert.Contains("deploy_secret", missing.Message, StringComparison.Ordinal);
+            Assert.Contains("api_secret", missing.Message, StringComparison.Ordinal);
             Assert.Contains("EGGIDENTITY_SETTINGS_KEY is not configured", missing.Message, StringComparison.Ordinal);
             await Assert.ThrowsAsync<InvalidOperationException>(() => blind.ListRowsAsync(Apps.Key, CancellationToken.None));
             await Assert.ThrowsAsync<InvalidOperationException>(() => blind.GetAllRowsAsync(CancellationToken.None));
 
             var rotated = new SettingsStore(dataSource, SecretProtector.FromKey(RandomKey()));
             var mismatch = await Assert.ThrowsAsync<InvalidOperationException>(() => rotated.GetRowAsync(Apps.Key, LedgerId, CancellationToken.None));
-            Assert.Contains("deploy_secret", mismatch.Message, StringComparison.Ordinal);
+            Assert.Contains("api_secret", mismatch.Message, StringComparison.Ordinal);
             Assert.Contains("does not match the key it was written with", mismatch.Message, StringComparison.Ordinal);
         } finally {
             await writer.DeleteRowAsync(Apps.Key, LedgerId, CancellationToken.None);
@@ -240,11 +240,11 @@ public class SettingsStoreTests {
         var admin = new SettingsAdminService(registry, store, cache);
 
         try {
-            var first = new Dictionary<string, string?> { ["image"] = "ghcr.io/x/ledger:1", ["deploy_secret"] = "hunter2" };
+            var first = new Dictionary<string, string?> { ["image"] = "ghcr.io/x/ledger:1", ["api_secret"] = "hunter2" };
             var created = await admin.CreateRowAsync(Apps.Key, LedgerId, first, "tester", CancellationToken.None);
             Assert.True(created.Ok);
 
-            var duplicate = new Dictionary<string, string?> { ["image"] = "ghcr.io/x/ledger:2", ["deploy_secret"] = "" };
+            var duplicate = new Dictionary<string, string?> { ["image"] = "ghcr.io/x/ledger:2", ["api_secret"] = "" };
             var rejected = await admin.CreateRowAsync(Apps.Key, LedgerId, duplicate, "tester", CancellationToken.None);
             Assert.False(rejected.Ok);
             Assert.Equal($"Apps \"{LedgerId}\" already exists", rejected.Error);
@@ -252,7 +252,7 @@ public class SettingsStoreTests {
             var row = await store.GetRowAsync(Apps.Key, LedgerId, CancellationToken.None);
             Assert.NotNull(row);
             Assert.Equal("ghcr.io/x/ledger:1", row.Get("image"));
-            Assert.Equal("hunter2", row.Get("deploy_secret"));
+            Assert.Equal("hunter2", row.Get("api_secret"));
         } finally {
             await store.DeleteRowAsync(Apps.Key, LedgerId, CancellationToken.None);
         }

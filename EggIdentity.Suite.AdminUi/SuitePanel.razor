@@ -25,8 +25,14 @@
                 }
                 <WorkbenchSection Label="Suite">
                     @if (_hasFleet) {
-                        <WorkbenchEntry Selected="@(_selected == StacksKey)" OnClick="@(() => Select(StacksKey))">
-                            <Name>Stacks</Name>
+                        <WorkbenchEntry Selected="@(_selected == FleetKey)" OnClick="@(() => Select(FleetKey))">
+                            <Name>Fleet</Name>
+                        </WorkbenchEntry>
+                    }
+                    @foreach (var extra in Extras) {
+                        var key = ExtraKey(extra.Key);
+                        <WorkbenchEntry Selected="@(_selected == key)" OnClick="@(() => Select(key))">
+                            <Name>@extra.Label</Name>
                         </WorkbenchEntry>
                     }
                     <WorkbenchEntry Selected="@(_selected == NewKey)" OnClick="@(() => Select(NewKey))">
@@ -36,20 +42,24 @@
             </WorkbenchRail>
 
             <div class="suite-main">
-                @if (_selected == StacksKey) {
-                    <h3 class="suite-title">Stacks</h3>
-                    <FleetPanel ShowApps="false"/>
+                @if (_selected == FleetKey) {
+                    <h3 class="suite-title">Fleet</h3>
+                    <FleetPanel OnOpenApps="@(() => Select(NewKey))"/>
+                } else if (SelectedExtra is { } extra) {
+                    <h3 class="suite-title">@extra.Label</h3>
+                    @extra.Content
                 } else if (_selected == NewKey) {
                     <h3 class="suite-title">Add app</h3>
                     <SuiteAppEditor Admin="_admin" UpdatedBy="@UpdatedBy" OnSaved="OnSavedAsync"/>
                 } else if (Current is { } view) {
                     <div class="suite-head">
-                        <h3 class="suite-title">@view.App.Label</h3>
-                        <span class="badge badge-muted">@view.App.Environment</span>
-                        @if (view.App.PublicUrl is { Length: > 0 } url) {
-                            <a class="suite-link" href="@url" target="_blank" rel="noopener">@url</a>
-                        }
-                        <span class="suite-spacer"></span>
+                        <div class="suite-head-row">
+                            <h3 class="suite-title">@view.App.Label</h3>
+                            <span class="badge badge-muted">@view.App.Environment</span>
+                            @if (view.App.PublicUrl is { Length: > 0 } url) {
+                                <a class="suite-link" href="@url" target="_blank" rel="noopener">@url</a>
+                            }
+                        </div>
                         <WorkbenchModes Modes="@Tabs(view)" Current="@_tab" CurrentChanged="t => _tab = t" Label="App view"/>
                     </div>
 

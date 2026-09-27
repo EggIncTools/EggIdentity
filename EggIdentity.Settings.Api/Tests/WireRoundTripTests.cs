@@ -69,15 +69,15 @@ public class WireRoundTripTests {
     public void ACollectionRowKeepsItsCollectionAndAudit() {
         var updated = new DateTimeOffset(2026, 9, 14, 12, 0, 0, TimeSpan.Zero);
         var before = new CollectionRow(
-            "deploy.apps", "eggledger",
-            new Dictionary<string, string?> { ["name"] = "eggledger", ["tag"] = "v2.5.0" },
+            "suite.apps", "eggledger",
+            new Dictionary<string, string?> { ["name"] = "eggledger", ["stack"] = "egg-apps" },
             updated, "david");
 
         var after = AdminWireMapping.FromWire(AdminWireMapping.ToWire(before));
 
-        Assert.Equal("deploy.apps", after.Collection);
+        Assert.Equal("suite.apps", after.Collection);
         Assert.Equal("eggledger", after.Id);
-        Assert.Equal("v2.5.0", after.Get("tag"));
+        Assert.Equal("egg-apps", after.Get("stack"));
         Assert.Equal(updated, after.UpdatedAt);
         Assert.Equal("david", after.UpdatedBy);
     }
@@ -85,17 +85,17 @@ public class WireRoundTripTests {
     [Fact]
     public void ACollectionDescriptorSurvives() {
         var before = new CollectionDescriptor(
-            "deploy.apps", "Deployed apps", "Deploy",
+            "suite.apps", "Suite apps", "Suite",
             [
                 new FieldDescriptor("name", "App name", SettingKind.Text) { Required = true },
-                new FieldDescriptor("tag", "Tag", SettingKind.Text) { Description = "tag this environment runs" },
-                new FieldDescriptor("deploy_secret", "Deploy secret", SettingKind.Secret, Sensitivity.Secret),
+                new FieldDescriptor("stack", "Stack", SettingKind.Text) { Description = "Portainer stack that runs it" },
+                new FieldDescriptor("auth_client_secret", "Client secret", SettingKind.Secret, Sensitivity.Secret),
                 new FieldDescriptor("environment", "Environment", SettingKind.Enum) {
                     EnumValues = ["prod", "subprod"],
                 },
             ],
             "name", "name") {
-            Description = "apps the agent watches",
+            Description = "one row per deployed app",
         };
 
         var after = AdminWireMapping.FromWire(AdminWireMapping.ToWire(before));
@@ -104,7 +104,7 @@ public class WireRoundTripTests {
         Assert.Equal(before.IdField, after.IdField);
         Assert.Equal(before.Description, after.Description);
         Assert.Equal(before.Fields.Select(f => f.Name), after.Fields.Select(f => f.Name));
-        Assert.True(after.Fields.Single(f => f.Name == "deploy_secret").IsSecret);
+        Assert.True(after.Fields.Single(f => f.Name == "auth_client_secret").IsSecret);
         Assert.True(after.Fields.Single(f => f.Name == "name").Required);
         Assert.Equal(["prod", "subprod"], after.Fields.Single(f => f.Name == "environment").EnumValues);
     }

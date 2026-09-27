@@ -1,11 +1,17 @@
 <div class="suite-editor">
-    @if (Problems.Count > 0) {
-        <ul class="suite-problems">
-            @foreach (var problem in Problems) {
-                <li class="wb-notice">@problem</li>
-            }
-        </ul>
-    }
+    <div class="suite-editor-head">
+        @if (Problems.Count > 0) {
+            <ul class="suite-problems">
+                @foreach (var problem in Problems) {
+                    <li class="wb-notice">@problem</li>
+                }
+            </ul>
+        }
+        <span class="suite-spacer"></span>
+        <button type="button" class="btn-mini" aria-pressed="@(_showHelp ? "true" : "false")" @onclick="() => _showHelp = !_showHelp">
+            @(_showHelp ? "Hide help" : "Show help")
+        </button>
+    </div>
 
     @foreach (var group in Groups) {
         <fieldset class="suite-group">
@@ -13,17 +19,17 @@
             @foreach (var field in group) {
                 var f = field;
                 <div class="suite-field">
-                    <label class="suite-label" for="@FieldId(f)">
+                    <label class="suite-label" for="@FieldId(f)" title="@f.Description">
                         @f.Label
                         @if (f.Required) {
                             <span class="badge badge-muted">required</span>
                         }
                     </label>
                     @if (f.Kind == SettingKind.Bool) {
-                        <select id="@FieldId(f)" class="form-select" disabled="@Locked(f)" value="@Value(f)" @onchange="e => Set(f, e.Value?.ToString())">
-                            <option value="true">true</option>
-                            <option value="false">false</option>
-                        </select>
+                        <label class="form-check suite-check">
+                            <input id="@FieldId(f)" type="checkbox" disabled="@Locked(f)" checked="@IsOn(f)" @onchange="e => SetBool(f, e.Value)"/>
+                            <span>@(IsOn(f) ? "on" : "off")</span>
+                        </label>
                     } else if (f.Kind == SettingKind.Enum) {
                         <select id="@FieldId(f)" class="form-select" disabled="@Locked(f)" value="@Value(f)" @onchange="e => Set(f, e.Value?.ToString())">
                             @foreach (var option in f.EnumValues) {
@@ -32,10 +38,10 @@
                         </select>
                     } else {
                         <input id="@FieldId(f)" class="form-input" type="@InputType(f)" autocomplete="off" disabled="@Locked(f)"
-                               value="@(f.IsSecret && Value(f) == "********" ? "" : Value(f))" placeholder="@Placeholder(f)"
+                               value="@(f.IsSecret && Value(f) == Mask ? "" : Value(f))" placeholder="@Placeholder(f)"
                                @oninput="e => Set(f, e.Value?.ToString())"/>
                     }
-                    @if (f.Description is { Length: > 0 } description) {
+                    @if (_showHelp && f.Description is { Length: > 0 } description) {
                         <p class="suite-desc">@description</p>
                     }
                 </div>

@@ -26,7 +26,7 @@ public sealed partial class FleetPanel : ComponentBase {
     private string? _armedStack;
     private DateTimeOffset _armedAt;
 
-    private string FleetCss => _fleetError is null ? "fleet-agent" : "fleet-agent fleet-agent-down";
+    private string FleetCss => _fleetError is null ? "fleet-summary" : "fleet-summary fleet-summary-down";
 
     private string FleetSummary {
         get {

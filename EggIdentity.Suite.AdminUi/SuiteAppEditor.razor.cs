@@ -15,6 +15,7 @@ public sealed partial class SuiteAppEditor : ComponentBase {
     private string? _note;
     private bool _busy;
     private bool _confirmDelete;
+    private bool _showHelp;
     private string? _loadedFor;
 
     [Parameter, EditorRequired] public SuiteAdmin Admin { get; set; } = null!;
@@ -49,6 +50,10 @@ public sealed partial class SuiteAppEditor : ComponentBase {
 
     private string Value(FieldDescriptor field) => _values.GetValueOrDefault(field.Name) ?? "";
 
+    private bool IsOn(FieldDescriptor field) => string.Equals(Value(field), "true", StringComparison.OrdinalIgnoreCase);
+
+    private void SetBool(FieldDescriptor field, object? state) => Set(field, state is true ? "true" : "false");
+
     private void Set(FieldDescriptor field, string? value) {
         _values[field.Name] = string.IsNullOrEmpty(value) ? null : value;
         _dirty.Add(field.Name);
@@ -62,7 +67,7 @@ public sealed partial class SuiteAppEditor : ComponentBase {
     private static string InputType(FieldDescriptor field) => field.IsSecret ? "password" : "text";
 
     private string Placeholder(FieldDescriptor field) =>
-        field.IsSecret && Value(field) == Mask ? "set, leave blank to keep" : field.Default ?? "";
+        field.IsSecret && Value(field) == Mask ? "set, leave blank to keep" : field.Default ?? "not set";
 
     private async Task SaveAsync() {
         if (_busy) return;

@@ -50,7 +50,7 @@ public static class HostSettings {
         new SettingDescriptor(
             "authentik.authority", "AUTHENTIK_AUTHORITY", "Authentik authority", Login,
             SettingKind.Url, ApplyTier.Bootstrap, Sensitivity.Plain) {
-            Description = "Gates the login widget. App registrations come from the authentik.apps collection.",
+            Description = "Gates the login widget. App registrations are the suite.apps rows that carry a client id.",
         },
         new SettingDescriptor(
             TokenDecryptionKey, "AUTHENTIK_TOKEN_DECRYPTION_KEY", "Authentik token decryption key", Identity,
@@ -61,11 +61,6 @@ public static class HostSettings {
             "authentik.api_token", "AUTHENTIK_API_TOKEN", "Authentik API token", Identity,
             SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
             Description = "Service-account token with read access to users and read/delete on user source connections. Set to make Authentik's connected services the source of truth for linked identities: every login and link reconciles against it, and unlinking here also disconnects in Authentik. Unset, linked identities come only from token claims.",
-        },
-        new SettingDescriptor(
-            "authentik.apps_dir", "AUTHENTIK_APPS_DIR", "Authentik app config directory", Login,
-            SettingKind.Path, ApplyTier.Bootstrap, Sensitivity.Plain) {
-            Description = "Deprecated. Read only while authentik.apps is empty. Import with eggidentity-tools import-authentik-apps, then unset.",
         },
         new SettingDescriptor(
             "discord.token", "DISCORD_TOKEN", "Bot token", Discord,
