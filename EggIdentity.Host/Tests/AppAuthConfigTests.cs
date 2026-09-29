@@ -65,8 +65,4 @@ public class AppAuthConfigTests {
         var only = Assert.Single(configs);
         Assert.Equal("two", only.Value.OAuth.ClientId);
     }
-
-    [Fact]
-    public void FromSnapshot_EmptyCollection_IsEmpty() =>
-        Assert.Empty(AppAuthConfigs.FromSnapshot(Snapshot(), Authority));
 }

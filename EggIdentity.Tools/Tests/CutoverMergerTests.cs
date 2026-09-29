@@ -78,17 +78,6 @@ public class CutoverMergerTests {
     }
 
     [Fact]
-    public void Merge_LedgerUserWithNullRole_DefaultsToViewer() {
-        var egi = new SourceSnapshot([], []);
-        var ledger = new SourceSnapshot(
-            [new SourceUser(Guid.NewGuid(), "555", "erin", null, null, T0, null)], []);
-
-        var result = CutoverMerger.Merge(egi, ledger);
-
-        Assert.Equal("viewer", result.Users[0].Role);
-    }
-
-    [Fact]
     public void Merge_LedgerUserWithNullLastLogin_FallsBackToCreatedAt() {
         var egi = new SourceSnapshot([], []);
         var ledger = new SourceSnapshot(

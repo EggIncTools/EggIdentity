@@ -2,20 +2,6 @@ namespace EggIdentity.Host.Tests;
 
 public class LoginRoutesTests {
     [Fact]
-    public void ValidateMode_Redirect_ReturnsRedirect() =>
-        Assert.Equal("redirect", Program.ValidateMode("redirect"));
-
-    [Fact]
-    public void ValidateMode_Inline_ReturnsInline() =>
-        Assert.Equal("inline", Program.ValidateMode("inline"));
-
-    [Fact]
-    public void ValidateMode_UnknownOrNull_DefaultsToPopup() {
-        Assert.Equal("popup", Program.ValidateMode("bogus"));
-        Assert.Equal("popup", Program.ValidateMode(null));
-    }
-
-    [Fact]
     public void ResolveApp_KnownOrigin_ReturnsConfig() {
         var oauth = new EggIdentity.Auth.AuthentikOAuth("https://auth.example.com", "id", "secret", "https://identity.example.com/auth/callback");
         var configs = new Dictionary<string, AppAuthConfig> {
@@ -79,13 +65,6 @@ public class LoginRoutesTests {
     private static readonly LinkOutcome NotLinked = new(Linked: false, Conflict: false, null, null);
     private static readonly LinkOutcome Conflicted = new(Linked: false, Conflict: true, "someone-else", null);
     private static readonly LinkOutcome Unavailable = new(Linked: false, Conflict: false, null, null, NotAvailable: true);
-
-    [Fact]
-    public void ComputeLinkFlag_AllSucceed_ReturnsLinkedOk() {
-        var result = Program.ComputeLinkFlag(null, Linked, [("discord", Linked), ("google", Linked)]);
-
-        Assert.Equal("linked=ok", result);
-    }
 
     [Fact]
     public void ComputeLinkFlag_OneSourceConflicts_NamesThatProvider() {

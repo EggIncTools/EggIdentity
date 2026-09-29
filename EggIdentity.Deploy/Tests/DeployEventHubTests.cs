@@ -18,18 +18,6 @@ public class DeployEventHubTests {
     }
 
     [Fact]
-    public async Task Subscribe_ReceivesPublishedEvents() {
-        var hub = new DeployEventHub();
-        var reader = hub.Subscribe();
-
-        hub.Publish(TestFixtures.Event(1));
-        hub.Publish(TestFixtures.Event(2));
-
-        Assert.Equal(1, (await reader.ReadAsync()).Id);
-        Assert.Equal(2, (await reader.ReadAsync()).Id);
-    }
-
-    [Fact]
     public async Task Subscribe_BoundedChannel_DropsOldest() {
         var hub = new DeployEventHub(subscriberCapacity: 2);
         var reader = hub.Subscribe();

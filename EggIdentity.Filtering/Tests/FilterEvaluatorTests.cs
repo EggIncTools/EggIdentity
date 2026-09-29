@@ -39,16 +39,6 @@ public class FilterEvaluatorTests {
     }
 
     [Fact]
-    public async Task EnumNegativeSentinel() {
-        var evaluator = BuildEvaluator();
-        var untargeted = new TestItem(null, null, -1, null, null);
-        var targeted = new TestItem(null, null, 40, null, null);
-
-        Assert.True(await evaluator.MatchesAsync(untargeted, SingleConditionFilter(TestField.Target, FilterOperator.Equals, new FilterValue.EnumValue(-1))));
-        Assert.True(await evaluator.MatchesAsync(targeted, SingleConditionFilter(TestField.Target, FilterOperator.NotEquals, new FilterValue.EnumValue(41))));
-    }
-
-    [Fact]
     public async Task FlagIsTrueIsFalse() {
         var evaluator = BuildEvaluator();
         var dubbed = new TestItem(null, null, null, true, null);

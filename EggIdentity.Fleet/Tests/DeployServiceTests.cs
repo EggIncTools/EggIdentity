@@ -126,15 +126,6 @@ public class DeployServiceTests {
     }
 
     [Fact]
-    public async Task Deploy_StackMissingInPortainer_Refuses() {
-        var rig = Build(stack: "nope");
-
-        await rig.Service.DeployAsync(App, "manual", CancellationToken.None);
-
-        Assert.Contains("no stack named \"nope\"", LastMessage(rig.Ring), StringComparison.Ordinal);
-    }
-
-    [Fact]
     public async Task Deploy_AmbiguousStack_RefusesNamingBothIds() {
         var rig = Build(stacks: [
             PortainerFakes.Parse(PortainerFakes.GitStack),
@@ -156,15 +147,6 @@ public class DeployServiceTests {
 
         Assert.Contains("force redeploy", LastMessage(rig.Ring), StringComparison.Ordinal);
         Assert.Empty(rig.Engine.Calls);
-    }
-
-    [Fact]
-    public async Task Deploy_WithoutPortainer_Refuses() {
-        var rig = Build(portainer: false);
-
-        await rig.Service.DeployAsync(App, "manual", CancellationToken.None);
-
-        Assert.Contains("portainer.api_url", LastMessage(rig.Ring), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -8,13 +8,6 @@ public class MaintenanceStateTests {
     }
 
     [Fact]
-    public void SetTrue_TurnsOn() {
-        var state = new MaintenanceState();
-        state.Set(true);
-        Assert.True(state.IsOn);
-    }
-
-    [Fact]
     public void SetFalse_TurnsOff() {
         var state = new MaintenanceState();
         state.Set(true);

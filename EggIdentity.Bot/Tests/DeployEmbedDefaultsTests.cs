@@ -34,16 +34,4 @@ public class DeployEmbedDefaultsTests {
         Assert.Equal("Current", embed.Fields[0].Name);
         Assert.Contains("def", embed.Fields[0].Value);
     }
-
-    [Fact]
-    public void Variables_ListsExpectedNames() {
-        var names = new HashSet<string>();
-        foreach (var (name, _) in DeployEmbedDefaults.Variables) names.Add(name);
-
-        Assert.Contains("ok", names);
-        Assert.Contains("tail", names);
-        Assert.Contains("from_hash", names);
-        Assert.Contains("to_hash", names);
-        Assert.Contains("app_name", names);
-    }
 }

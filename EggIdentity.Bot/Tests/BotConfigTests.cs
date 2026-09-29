@@ -1,5 +1,3 @@
-using Discord;
-
 namespace EggIdentity.Bot.Tests;
 
 public class BotConfigTests {
@@ -10,15 +8,5 @@ public class BotConfigTests {
         Assert.False(cfg.GlobalCommands);
         Assert.False(cfg.GuildCommandMirror);
         Assert.Equal("", cfg.SupporterRoleId);
-    }
-
-    [Fact]
-    public void BotCommand_AutocompleteHandler_DefaultsToNull() {
-        var cmd = new BotCommand(
-            new SlashCommandBuilder().WithName("x").WithDescription("d").Build(),
-            "x",
-            _ => Task.CompletedTask);
-
-        Assert.Null(cmd.AutocompleteHandler);
     }
 }

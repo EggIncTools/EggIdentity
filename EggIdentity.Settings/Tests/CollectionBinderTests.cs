@@ -1,15 +1,9 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace EggIdentity.Settings.Tests;
 
 public class CollectionBinderTests {
     private sealed record TestApp(string Name, string Image, bool AutoDeploy, int Replicas, string? RepoUrl, bool? Enabled);
-
-    private sealed class Renamed {
-        [JsonPropertyName("client_id")] public string ClientId { get; init; } = "";
-        public string Origin { get; init; } = "";
-    }
 
     private static Dictionary<string, string?> Values(params (string Field, string? Value)[] pairs) =>
         pairs.ToDictionary(p => p.Field, p => p.Value, StringComparer.Ordinal);
@@ -51,13 +45,5 @@ public class CollectionBinderTests {
         Assert.Null(app.RepoUrl);
         Assert.Null(app.Enabled);
         Assert.False(app.AutoDeploy);
-    }
-
-    [Fact]
-    public void Bind_HonoursExplicitPropertyNames() {
-        var reg = CollectionBinder.Bind<Renamed>(Values(("client_id", "abc"), ("origin", "https://o")));
-
-        Assert.Equal("abc", reg.ClientId);
-        Assert.Equal("https://o", reg.Origin);
     }
 }

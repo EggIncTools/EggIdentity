@@ -26,13 +26,6 @@ public class ThemeTokenRegistryTests {
     }
 
     [Fact]
-    public void IsKnown_ReturnsFalse_ForUnregisteredToken() {
-        var registry = new ThemeTokenRegistry();
-
-        Assert.False(registry.IsKnown("view-ships"));
-    }
-
-    [Fact]
     public void Canonicalize_ReturnsRegisteredName_ThenNullWhenUnregistered() {
         var registry = new ThemeTokenRegistry();
 

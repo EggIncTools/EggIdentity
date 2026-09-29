@@ -20,9 +20,21 @@ public sealed class DockerEngineClient(HttpClient http, string prefix, TimeSpan 
 
     public Task<ImageInfo?> InspectImageAsync(string reference, CancellationToken ct) =>
         Deadline.RunAsync($"inspect image {reference}", async token => {
-            using var image = await GetJsonAsync($"images/{Uri.EscapeDataString(reference)}/json", token);
+            if (await ResolveImageIdAsync(reference, token) is not { } id) return null;
+            using var image = await GetJsonAsync($"images/{Uri.EscapeDataString(id)}/json", token);
             return image is null ? null : DockerJson.ParseImage(image.RootElement);
         }, callTimeout, ct: ct);
+
+    private async Task<string?> ResolveImageIdAsync(string reference, CancellationToken ct) {
+        if (!reference.Contains('/', StringComparison.Ordinal)) return reference;
+        var filters = JsonSerializer.Serialize(new Dictionary<string, string[]> { ["reference"] = [reference] });
+        using var list = await GetJsonAsync($"images/json?filters={Uri.EscapeDataString(filters)}", ct);
+        if (list is null || list.RootElement.ValueKind != JsonValueKind.Array) return null;
+        foreach (var image in list.RootElement.EnumerateArray()) {
+            if (image.TryGetProperty("Id", out var id) && id.GetString() is { Length: > 0 } value) return value;
+        }
+        return null;
+    }
 
     public Task PullImageAsync(string reference, IProgress<string>? progress, CancellationToken ct) =>
         Deadline.RunAsync($"pull {reference}", async token => {

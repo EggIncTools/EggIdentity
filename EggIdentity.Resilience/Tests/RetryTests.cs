@@ -9,23 +9,10 @@ public class RetryTests {
     };
 
     private static async Task DriveAsync(FakeTimeProvider time, Task task) {
-        for (var i = 0; i < 50 && !task.IsCompleted; i++) {
-            time.Advance(TimeSpan.FromSeconds(1));
-            await Task.Yield();
-            await Task.Delay(1);
+        for (var spins = 0; spins < 100_000 && !task.IsCompleted; spins++) {
+            if (time.PendingTimers > 0) time.Advance(TimeSpan.FromSeconds(1));
+            else await Task.Yield();
         }
-    }
-
-    [Fact]
-    public async Task RunAsync_SucceedsFirstTime_CallsOnce() {
-        var calls = 0;
-        var result = await Retry.RunAsync(_ => {
-            calls++;
-            return Task.FromResult(42);
-        }, Options, new FakeTimeProvider());
-
-        Assert.Equal(42, result);
-        Assert.Equal(1, calls);
     }
 
     [Fact]

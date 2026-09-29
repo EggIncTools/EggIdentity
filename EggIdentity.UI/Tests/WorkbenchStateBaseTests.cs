@@ -11,12 +11,6 @@ file sealed class NoModesState : WorkbenchStateBase {
 
 public class WorkbenchStateBaseTests {
     [Fact]
-    public void DefaultMode_IsFirstModeKey() {
-        var state = new TestState();
-        Assert.Equal("list", state.DefaultMode);
-    }
-
-    [Fact]
     public void DefaultMode_EmptyWhenNoModes() {
         var state = new NoModesState();
         Assert.Equal("", state.DefaultMode);

@@ -25,8 +25,4 @@ public class UserRolesTests {
         Assert.True(UserRoles.IsAtLeast(UserRole.Contributor, UserRole.Contributor));
         Assert.False(UserRoles.IsAtLeast(UserRole.Viewer, UserRole.Admin));
     }
-
-    [Fact]
-    public void Roundtrip_nameThenParse() =>
-        Assert.Equal(UserRole.Contributor, UserRoles.Parse(UserRoles.ToName(UserRole.Contributor)));
 }

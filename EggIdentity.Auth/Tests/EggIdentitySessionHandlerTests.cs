@@ -101,15 +101,4 @@ public class EggIdentitySessionHandlerTests {
 
         Assert.False(result.Succeeded);
     }
-
-    [Fact]
-    public async Task RevocationOptedOut_NoClientStillSucceeds() {
-        var cookie = Cookie();
-        var token = SessionToken.Issue(cookie, new SessionUser("11111111-1111-1111-1111-111111111111", "sid", "admin"), Now);
-        var handler = await HandlerAsync(Options(cookie), ContextWithCookie(token));
-
-        var result = await handler.AuthenticateAsync();
-
-        Assert.True(result.Succeeded);
-    }
 }

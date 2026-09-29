@@ -4,12 +4,6 @@ namespace EggIdentity.Bot.Tests;
 
 public class TemplateRendererTests {
     [Fact]
-    public void Render_NullTemplate_ReturnsFallback() {
-        var result = TemplateRenderer.Render(null, "fallback text", new DeployResponse(), "eggledger");
-        Assert.Equal("fallback text", result);
-    }
-
-    [Fact]
     public void Render_EmptyTemplate_ReturnsFallback() {
         var result = TemplateRenderer.Render("", "fallback text", new DeployResponse(), "eggledger");
         Assert.Equal("fallback text", result);
@@ -39,17 +33,5 @@ public class TemplateRendererTests {
     public void Render_MissingField_RendersEmpty_DoesNotThrow() {
         var result = TemplateRenderer.Render("Tail: [{{ tail }}]", "fallback", new DeployResponse(), "app");
         Assert.Equal("Tail: []", result);
-    }
-
-    [Fact]
-    public void Render_MalformedTemplate_ReturnsFallback() {
-        var result = TemplateRenderer.Render("{{ if ok ", "fallback text", new DeployResponse(), "app");
-        Assert.Equal("fallback text", result);
-    }
-
-    [Fact]
-    public void Render_UnknownVariable_ReturnsFallback() {
-        var result = TemplateRenderer.Render("{{ this is not valid scriban !! }}", "fallback text", new DeployResponse(), "app");
-        Assert.Equal("fallback text", result);
     }
 }

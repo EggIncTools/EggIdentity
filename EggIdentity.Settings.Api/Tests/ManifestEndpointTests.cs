@@ -9,32 +9,50 @@ using Microsoft.Extensions.Hosting;
 
 namespace EggIdentity.Settings.Api.Tests;
 
-public class ManifestEndpointTests {
-    private const string Secret = "correct-horse-battery-staple";
+public sealed class ManifestHosts : IAsyncLifetime {
+    public const string Secret = "correct-horse-battery-staple";
 
     private sealed class NoopRestart : IRestartTrigger {
         public Task<string?> RestartAsync(CancellationToken ct) => Task.FromResult<string?>(null);
     }
 
-    private static async Task<IHost> StartAsync(bool clone = false, bool restart = false) =>
+    public IHost Bare { get; private set; } = null!;
+
+    public IHost WithCloneAndRestart { get; private set; } = null!;
+
+    public async Task InitializeAsync() {
+        Bare = await StartAsync(extended: false);
+        WithCloneAndRestart = await StartAsync(extended: true);
+    }
+
+    public async Task DisposeAsync() {
+        foreach (var host in new[] { Bare, WithCloneAndRestart }) {
+            await host.StopAsync();
+            host.Dispose();
+        }
+    }
+
+    private static async Task<IHost> StartAsync(bool extended) =>
         await new HostBuilder()
             .ConfigureWebHost(web => web
                 .UseTestServer()
                 .ConfigureServices(services => {
                     services.AddRouting();
-                    if (restart) services.AddSingleton<IRestartTrigger, NoopRestart>();
+                    if (extended) services.AddSingleton<IRestartTrigger, NoopRestart>();
                 })
                 .Configure(app => {
                     app.UseRouting();
                     app.UseEndpoints(routes => {
                         var group = routes.MapAdminApi(new AdminApiOptions("testapp", Secret) { Version = "1.2.3", Revision = "abc" });
-                        if (clone) group.MapGet("/clone", () => Results.Ok()).WithMetadata(new AdminCapability(AdminCapabilities.Clone));
+                        if (extended) group.MapGet("/clone", () => Results.Ok()).WithMetadata(new AdminCapability(AdminCapabilities.Clone));
                         routes.MapGet("/elsewhere", () => Results.Ok()).WithMetadata(new AdminCapability("stray"));
                     });
                 }))
             .StartAsync();
+}
 
-    private static async Task<(HttpStatusCode Status, AdminManifest? Manifest)> GetAsync(IHost host, string? secret = Secret) {
+public class ManifestEndpointTests(ManifestHosts hosts) : IClassFixture<ManifestHosts> {
+    private static async Task<(HttpStatusCode Status, AdminManifest? Manifest)> GetAsync(IHost host, string? secret = ManifestHosts.Secret) {
         using var request = new HttpRequestMessage(HttpMethod.Get, "/admin/api/manifest");
         if (secret is not null) request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {secret}");
         var response = await host.GetTestClient().SendAsync(request);
@@ -43,9 +61,7 @@ public class ManifestEndpointTests {
 
     [Fact]
     public async Task BareAdminApi_ListsItsOwnCapabilitiesAndIdentity() {
-        using var host = await StartAsync();
-
-        var (status, manifest) = await GetAsync(host);
+        var (status, manifest) = await GetAsync(hosts.Bare);
 
         Assert.Equal(HttpStatusCode.OK, status);
         Assert.NotNull(manifest);
@@ -57,9 +73,7 @@ public class ManifestEndpointTests {
 
     [Fact]
     public async Task RoutesTaggedOnTheGroup_AppearAndRoutesElsewhereDoNot() {
-        using var host = await StartAsync(clone: true);
-
-        var (_, manifest) = await GetAsync(host);
+        var (_, manifest) = await GetAsync(hosts.WithCloneAndRestart);
 
         Assert.True(manifest?.Has(AdminCapabilities.Clone));
         Assert.False(manifest?.Has("stray"));
@@ -67,17 +81,11 @@ public class ManifestEndpointTests {
 
     [Fact]
     public async Task RestartAppears_OnlyWithATrigger() {
-        using var without = await StartAsync();
-        using var with = await StartAsync(restart: true);
-
-        Assert.False((await GetAsync(without)).Manifest?.Has(AdminCapabilities.Restart));
-        Assert.True((await GetAsync(with)).Manifest?.Has(AdminCapabilities.Restart));
+        Assert.False((await GetAsync(hosts.Bare)).Manifest?.Has(AdminCapabilities.Restart));
+        Assert.True((await GetAsync(hosts.WithCloneAndRestart)).Manifest?.Has(AdminCapabilities.Restart));
     }
 
     [Fact]
-    public async Task Manifest_IsBehindTheBearerGate() {
-        using var host = await StartAsync();
-
-        Assert.Equal(HttpStatusCode.Unauthorized, (await GetAsync(host, secret: null)).Status);
-    }
+    public async Task Manifest_IsBehindTheBearerGate() =>
+        Assert.Equal(HttpStatusCode.Unauthorized, (await GetAsync(hosts.Bare, secret: null)).Status);
 }

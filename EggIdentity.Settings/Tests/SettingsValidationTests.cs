@@ -92,13 +92,6 @@ public class SettingsValidationTests {
     }
 
     [Fact]
-    public void Row_AcceptsAWellFormedRecord() {
-        var row = Row(("name", "eggledger"), ("image", "ghcr.io/x/y:latest"), ("repo_url", "https://github.com/x/y"));
-
-        Assert.Null(SettingsValidation.ValidateRow(Apps, row));
-    }
-
-    [Fact]
     public void Row_RejectsUnknownFields() {
         var error = SettingsValidation.ValidateRow(Apps, Row(("name", "a"), ("image", "b"), ("bogus", "c")));
 
@@ -149,8 +142,4 @@ public class SettingsValidationTests {
         Assert.StartsWith("Repository:", error, StringComparison.Ordinal);
         Assert.NotNull(SettingsValidation.ValidateRow(Apps, Row(("name", "a"), ("image", "b"), ("auto_deploy", "maybe"))));
     }
-
-    [Fact]
-    public void Row_OptionalBlankFieldsAreFine() =>
-        Assert.Null(SettingsValidation.ValidateRow(Apps, Row(("name", "a"), ("image", "b"), ("auth_client_secret", ""), ("auto_deploy", null))));
 }

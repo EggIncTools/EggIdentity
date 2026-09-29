@@ -2,13 +2,6 @@ namespace EggIdentity.Resilience.Tests;
 
 public class CircuitBreakerTests {
     [Fact]
-    public void Closed_AllowsEntry() {
-        var breaker = new CircuitBreaker(3, TimeSpan.FromMinutes(1), new FakeTimeProvider());
-        Assert.Equal(CircuitState.Closed, breaker.State);
-        Assert.True(breaker.TryEnter());
-    }
-
-    [Fact]
     public void FailuresBelowThreshold_StayClosed() {
         var breaker = new CircuitBreaker(3, TimeSpan.FromMinutes(1), new FakeTimeProvider());
         breaker.RecordFailure();

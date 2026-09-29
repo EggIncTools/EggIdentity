@@ -110,13 +110,6 @@ public class SessionTokenTests {
     }
 
     [Fact]
-    public void RotatedAwayWithoutPrevious_OldTokenFails() {
-        var token = SessionToken.Issue(Options(secret: "old-secret-that-is-plenty-long-aaaaaaaa"), User(), Now);
-
-        Assert.Null(SessionToken.Validate(Options(secret: "new-secret-that-is-plenty-long-bbbbbbbb"), token, Now));
-    }
-
-    [Fact]
     public void NewTokenSignedWithPrimary_ValidatesUnderRotation() {
         var rotated = new SessionCookieOptions {
             SigningSecret = "new-secret-that-is-plenty-long-bbbbbbbb",

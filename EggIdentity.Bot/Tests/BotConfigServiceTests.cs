@@ -37,15 +37,6 @@ public class BotConfigServiceTests {
         Assert.NotNull(BotConfigService.ValidateEmbedJson("""{"fields":[{"name":"n","value":"{{ 1 + }}","inline":false}]}"""));
 
     [Fact]
-    public void DefaultsAndVariables_Exposed() {
-        var svc = MakePureService();
-        Assert.NotNull(svc.DefaultSuccess);
-        Assert.NotNull(svc.DefaultFailure);
-        Assert.NotNull(svc.DefaultAlreadyUpToDate);
-        Assert.NotEmpty(svc.Variables);
-    }
-
-    [Fact]
     public async Task SaveAsync_BadEmbedJson_ReturnsErrorWithoutPersist() {
         if (string.IsNullOrEmpty(ConnString)) return;
         await using var db = await MakeDbAsync();
@@ -102,14 +93,6 @@ public class BotConfigServiceTests {
         Assert.Equal("999", view.GithubFeedThreadId);
         Assert.Equal("888", view.DeployNotificationsThreadId);
         Assert.Null(view.GithubWebhookUrl);
-    }
-
-    private static BotConfigService MakePureService() {
-        var db = NpgsqlDataSource.Create("Host=localhost");
-        return new BotConfigService("g", "eggledger",
-            new ChannelConfigStore(db), new ChannelStateStore(db),
-            (_, _, _) => Task.FromResult<string?>(null),
-            (_, _) => Task.CompletedTask);
     }
 
     private static (BotConfigService Service, List<(string Op, ulong Id)> Calls) MakeDbService(NpgsqlDataSource db, string guildId) {

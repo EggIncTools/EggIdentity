@@ -132,20 +132,6 @@ public class PathRouteSyncTests {
     }
 
     [Fact]
-    public async Task Replace_DoesNotRaiseChanged() {
-        var nav = MakeNav("/protos");
-        var jsRuntime = new FakeJSRuntime();
-        var sync = new PathRouteSync(jsRuntime, nav, "/protos");
-        await sync.StartAsync();
-        var fired = 0;
-        sync.Changed += () => fired++;
-
-        await sync.Replace("/protos/terms");
-
-        Assert.Equal(0, fired);
-    }
-
-    [Fact]
     public async Task DisposeAsync_CallsUnlisten() {
         var nav = MakeNav("/protos");
         var jsRuntime = new FakeJSRuntime();

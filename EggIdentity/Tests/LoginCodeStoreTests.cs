@@ -77,10 +77,9 @@ public class LoginCodeStoreTests {
         if (string.IsNullOrEmpty(ConnString)) return;
         await using var db = await MakeDbAsync();
         var userId = await SeedUserAsync(db);
-        var store = new LoginCodeStore(db, ttl: TimeSpan.FromMilliseconds(1));
+        var store = new LoginCodeStore(db, ttl: TimeSpan.FromMinutes(-1));
 
         var code = await store.IssueAsync(userId, isNew: false, CancellationToken.None);
-        await Task.Delay(50);
         var result = await store.RedeemAsync(code, CancellationToken.None);
 
         Assert.Null(result);

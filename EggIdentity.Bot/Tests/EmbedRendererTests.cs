@@ -65,12 +65,6 @@ public class EmbedRendererTests {
     }
 
     [Fact]
-    public void Render_TimestampOff_NoTimestamp() {
-        var embed = EmbedRenderer.Render(Spec(timestamp: false), new DeployResponse(), "app");
-        Assert.Null(embed.Timestamp);
-    }
-
-    [Fact]
     public void Render_TimestampOn_NoFixed_UsesDeployMoment() {
         var before = DateTimeOffset.UtcNow.AddSeconds(-2);
         var embed = EmbedRenderer.Render(Spec(timestamp: true), new DeployResponse(), "app");

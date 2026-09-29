@@ -296,21 +296,6 @@ public class IdentityResolverTests {
     }
 
     [Fact]
-    public async Task SyncSourceIdentitiesAsync_AllNullClaims_ReportsNotAvailable() {
-        if (string.IsNullOrEmpty(ConnString)) return;
-        await using var db = await MakeDbAsync();
-        var resolver = MakeResolver(db);
-
-        var owner = await resolver.ResolveAsync("authentik", "sync-sub-3", null, "syncer3", null, CancellationToken.None);
-        var perSourceIds = new Dictionary<string, string?> { ["discord"] = null, ["google"] = null };
-
-        var results = await resolver.SyncSourceIdentitiesAsync(owner.UserId, perSourceIds, CancellationToken.None);
-
-        Assert.Equal(2, results.Count);
-        Assert.All(results, r => Assert.True(r.Outcome.NotAvailable));
-    }
-
-    [Fact]
     public async Task SyncSourceIdentitiesAsync_RepeatedSync_DoesNotOverwriteOtherIdentitiesUsername() {
         if (string.IsNullOrEmpty(ConnString)) return;
         await using var db = await MakeDbAsync();

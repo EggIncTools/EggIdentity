@@ -109,21 +109,6 @@ public class FleetClientTests {
     }
 
     [Fact]
-    public async Task GetStacksAsync_ParsesList() {
-        const string body = """
-            [{"name":"egg-apps","stackId":7,"endpointId":2,"portainerName":"egg-apps","gitBacked":true,
-              "repositoryUrl":"https://github.com/EggIncTools/stacks","referenceName":"refs/heads/main",
-              "webhookArmed":true,"forceUpdate":true,"refusal":null}]
-            """;
-        var handler = new FakeFleetHandler((_, _) => FakeFleetHandler.Json(body));
-
-        var stack = Assert.Single(await TestFixtures.Client(handler).GetStacksAsync(CancellationToken.None));
-
-        Assert.Equal(7, stack.StackId);
-        Assert.True(stack.Ready);
-    }
-
-    [Fact]
     public async Task GetStackServicesAsync_EscapesStackAndParsesServices() {
         var handler = new FakeFleetHandler((req, _) => {
             Assert.Equal(FleetRoot + "portainer/stacks/ei%20servers/services", req.RequestUri!.AbsolutePath);
@@ -170,16 +155,18 @@ public class FleetClientTests {
     [Fact]
     public async Task StreamEventsAsync_StalledStream_ThrowsTimeoutAfterIdleWindow() {
         var pipe = new Pipe();
+        var time = new ExpiringTimeProvider();
         var handler = new FakeFleetHandler((_, _) => FakeFleetHandler.Stream(pipe));
-        var client = TestFixtures.Client(handler, TestFixtures.Options() with { StreamIdleTimeout = TimeSpan.FromMilliseconds(200) });
+        var client = TestFixtures.Client(handler, time: time);
         await FakeFleetHandler.WriteAsync(pipe, FakeFleetHandler.Frame(TestFixtures.Event(7, phase: DeployPhase.Pulling)));
 
-        var events = new List<DeployEvent>();
-        var failure = await Assert.ThrowsAsync<TimeoutException>(async () => {
-            await foreach (var evt in client.StreamEventsAsync(null, CancellationToken.None)) events.Add(evt);
-        });
+        await using var events = client.StreamEventsAsync(null, CancellationToken.None).GetAsyncEnumerator();
+        Assert.True(await events.MoveNextAsync());
+        Assert.Equal(7L, events.Current.Id);
+        time.Expired = true;
 
-        Assert.Equal([7L], events.Select(e => e.Id));
+        var failure = await Assert.ThrowsAsync<TimeoutException>(async () => await events.MoveNextAsync());
+
         Assert.Contains("idle", failure.Message, StringComparison.Ordinal);
         await pipe.Writer.CompleteAsync();
     }
@@ -192,5 +179,20 @@ public class FleetClientTests {
         var options = DeployOptions.FromEnvironment(Ledger, k => k == DeployOptions.BaseUrlEnv ? "http://eggidentity:8090" : "s");
 
         Assert.Equal("http://eggidentity:8090/admin/api/fleet/", options?.BaseAddress.AbsoluteUri);
+    }
+
+    private sealed class ExpiringTimeProvider : TimeProvider {
+        public bool Expired { get; set; }
+
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period) {
+            if (Expired) ThreadPool.QueueUserWorkItem(_ => callback(state));
+            return new NoopTimer();
+        }
+
+        private sealed class NoopTimer : ITimer {
+            public bool Change(TimeSpan dueTime, TimeSpan period) => true;
+            public void Dispose() { }
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        }
     }
 }

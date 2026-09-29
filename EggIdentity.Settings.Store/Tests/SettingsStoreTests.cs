@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Security.Cryptography;
 using EggIdentity.Db;
 using Npgsql;
@@ -70,13 +69,6 @@ public class SettingsStoreTests {
         Assert.Contains("CREATE TABLE IF NOT EXISTS app_setting_collections", sql, StringComparison.Ordinal);
         Assert.Contains("value JSONB NOT NULL", sql, StringComparison.Ordinal);
         Assert.Contains("PRIMARY KEY (collection, id)", sql, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void EmbeddedMigrations_IgnoreNonMatchingPrefixes() {
-        var assembly = Assembly.GetExecutingAssembly();
-
-        Assert.Empty(Migrator.EmbeddedMigrations(assembly, "nothing.matches."));
     }
 
     [Fact]

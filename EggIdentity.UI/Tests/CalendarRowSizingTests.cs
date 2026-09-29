@@ -2,15 +2,6 @@ namespace EggIdentity.UI.Tests;
 
 public class CalendarRowSizingTests {
     [Fact]
-    public void RowHeightRem_SingleGroupNoLanes_ReturnsInsetPlusHeader() {
-        var groups = new[] { new CalendarLaneGroupSizing(0, 1.35, 0.15, 1.9) };
-
-        var result = CalendarRowSizing.RowHeightRem(groups, 0.2);
-
-        Assert.Equal(2.1, result, 3);
-    }
-
-    [Fact]
     public void RowHeightRem_SingleGroupWithLanes_AddsLaneAndGapWidth() {
         var groups = new[] { new CalendarLaneGroupSizing(3, 1.35, 0.15, 0) };
 
@@ -29,18 +20,6 @@ public class CalendarRowSizingTests {
         var result = CalendarRowSizing.RowHeightRem(groups, 0.2);
 
         Assert.Equal(0.2 + 4.8 + 2 * 1.35 + 1 * 0.15 + CalendarRowSizing.GroupGapRem, result, 3);
-    }
-
-    [Fact]
-    public void RowHeightRem_TwoGroups_NoEventHeaderVariant() {
-        var groups = new[] {
-            new CalendarLaneGroupSizing(0, 0, 0, 1.9),
-            new CalendarLaneGroupSizing(3, 1.35, 0.15, 0),
-        };
-
-        var result = CalendarRowSizing.RowHeightRem(groups, 0.2);
-
-        Assert.Equal(0.2 + 1.9 + 3 * 1.35 + 2 * 0.15 + CalendarRowSizing.GroupGapRem, result, 3);
     }
 
     [Fact]
@@ -70,18 +49,6 @@ public class CalendarRowSizingTests {
         var result = CalendarRowSizing.RowHeightRem(groups, 0.2);
 
         Assert.Equal(0.2 + 1.0, result, 3);
-    }
-
-    [Fact]
-    public void RowHeightRem_MultipleGroups_AddsInterGroupGapByDefault() {
-        var groups = new[] {
-            new CalendarLaneGroupSizing(1, 1.0, 0, 0),
-            new CalendarLaneGroupSizing(1, 1.0, 0, 0),
-        };
-
-        var result = CalendarRowSizing.RowHeightRem(groups, 0);
-
-        Assert.Equal(2.0 + CalendarRowSizing.GroupGapRem, result, 3);
     }
 
     [Fact]

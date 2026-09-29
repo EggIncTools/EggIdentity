@@ -27,6 +27,8 @@ public sealed class FleetClient {
         _options = options;
     }
 
+    internal TimeProvider Time { get; init; } = TimeProvider.System;
+
     public string AppName => _options.AppName;
 
     public async Task<DeployStatus?> GetStatusAsync(string app, CancellationToken ct) {
@@ -114,10 +116,10 @@ public sealed class FleetClient {
     }
 
     private async Task<string?> ReadLineWithIdleTimeoutAsync(StreamReader reader, CancellationToken ct) {
-        using var idle = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        idle.CancelAfter(_options.StreamIdleTimeout);
+        using var idle = new CancellationTokenSource(_options.StreamIdleTimeout, Time);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, idle.Token);
         try {
-            return await reader.ReadLineAsync(idle.Token);
+            return await reader.ReadLineAsync(linked.Token);
         } catch (OperationCanceledException) when (!ct.IsCancellationRequested) {
             throw new TimeoutException($"fleet event stream idle for {_options.StreamIdleTimeout}");
         }

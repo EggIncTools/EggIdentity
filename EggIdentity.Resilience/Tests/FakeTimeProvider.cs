@@ -21,6 +21,14 @@ internal sealed class FakeTimeProvider : TimeProvider {
         return timer;
     }
 
+    public int PendingTimers {
+        get {
+            lock (_gate) {
+                return _timers.Count;
+            }
+        }
+    }
+
     public void Advance(TimeSpan by) {
         DateTimeOffset target;
         lock (_gate) {

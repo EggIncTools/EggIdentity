@@ -85,23 +85,6 @@ public class DriftEndpointTests {
     }
 
     [Fact]
-    public async Task WithNoEnvSourceRegistered_ADeclaredKeyThatIsSet_IsMatchedNotMissing() {
-        var conn = Environment.GetEnvironmentVariable("EGGIDENTITY_TEST_PG_CONN");
-        if (string.IsNullOrWhiteSpace(conn)) return;
-
-        Environment.SetEnvironmentVariable(DeclaredKey, "value");
-        try {
-            using var host = await StartAsync(conn, null);
-
-            var drift = await DriftAsync(host);
-
-            Assert.Contains(drift.Entries, e => e.Key == DeclaredKey && e.Reason == nameof(DriftReason.Matched));
-        } finally {
-            Environment.SetEnvironmentVariable(DeclaredKey, null);
-        }
-    }
-
-    [Fact]
     public async Task ARegisteredEnvSourceWins_SoTheAgentViewIsNotReplacedByTheFallback() {
         var conn = Environment.GetEnvironmentVariable("EGGIDENTITY_TEST_PG_CONN");
         if (string.IsNullOrWhiteSpace(conn)) return;

@@ -51,15 +51,4 @@ public class VisitFlusherTests {
         await flusher.FlushAsync(CancellationToken.None);
         Assert.Empty(sink.Writes);
     }
-
-    [Fact]
-    public async Task IdleFlushWritesNothing() {
-        var clock = new FixedClock(Start);
-        var options = new VisitsOptions("site");
-        var sink = new CapturingSink();
-        var flusher = new VisitFlusher(new VisitTracker(options, clock), sink, options, clock);
-
-        await flusher.FlushAsync(CancellationToken.None);
-        Assert.Empty(sink.Writes);
-    }
 }

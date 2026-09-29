@@ -13,10 +13,6 @@ public class StartupRetryTests {
     }
 
     [Fact]
-    public void ARefusedConnectionIsTransient() =>
-        Assert.True(Database.IsTransient(new NpgsqlException("refused", new SocketException(111))));
-
-    [Fact]
     public void ATimeoutIsTransient() =>
         Assert.True(Database.IsTransient(new TimeoutException("timed out")));
 

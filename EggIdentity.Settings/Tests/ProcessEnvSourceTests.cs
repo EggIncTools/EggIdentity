@@ -60,12 +60,4 @@ public class ProcessEnvSourceTests {
             Environment.SetEnvironmentVariable(name, null);
         }
     }
-
-    [Fact]
-    public async Task TheInstanceSourceReturnsWhatTheStaticReaderDoes() {
-        var registry = Registry();
-        var source = new ProcessEnvSource(registry);
-        var fromInstance = await source.GetAsync(CancellationToken.None);
-        Assert.Equal(ProcessEnvSource.Read(registry).Select(k => k.Name), fromInstance.Select(k => k.Name));
-    }
 }

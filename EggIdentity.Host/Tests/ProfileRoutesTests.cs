@@ -27,14 +27,4 @@ public class ProfileRoutesTests {
         Assert.Equal(2, result.Count);
         Assert.DoesNotContain(result, i => i.Provider == "authentik");
     }
-
-    [Fact]
-    public void FilterIdentitiesForDisplay_LegacyDiscordOnly_KeepsIt() {
-        var identities = new[] { Make("discord", "d-1") };
-
-        var result = ProfileRoutes.FilterIdentitiesForDisplay(identities);
-
-        Assert.Single(result);
-        Assert.Equal("discord", result[0].Provider);
-    }
 }

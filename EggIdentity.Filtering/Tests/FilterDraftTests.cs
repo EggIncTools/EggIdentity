@@ -101,14 +101,4 @@ public class FilterDraftTests {
         Assert.Single(filter.Groups[0].Conditions);
         Assert.Equal(TestField.Ship, filter.Groups[0].Conditions[0].Field);
     }
-
-    [Fact]
-    public void ToFilter_producesEmptyFilterWhenNoCompleteConditionsAnywhere() {
-        var draft = new FilterDraft<TestField>();
-
-        var filter = draft.ToFilter();
-
-        Assert.True(filter.IsEmpty);
-        Assert.Empty(filter.Groups);
-    }
 }

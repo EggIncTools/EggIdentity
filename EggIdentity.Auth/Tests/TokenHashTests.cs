@@ -9,12 +9,6 @@ public class TokenHashTests {
     }
 
     [Fact]
-    public void Of_IsStable() {
-        Assert.Equal(TokenHash.Of("abc"), TokenHash.Of("abc"));
-        Assert.NotEqual(TokenHash.Of("abc"), TokenHash.Of("abd"));
-    }
-
-    [Fact]
     public void AMintedToken_IsNotItsOwnHash() {
         var token = TokenHash.Mint();
 

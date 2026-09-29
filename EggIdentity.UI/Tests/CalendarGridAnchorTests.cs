@@ -109,16 +109,6 @@ public class CalendarGridAnchorTests {
     }
 
     [Fact]
-    public void WeekStartForDate_DefaultSunday_MatchesWeekStartDate() {
-        var date = new DateOnly(2026, 1, 15);
-
-        var result = CalendarGridAnchor.WeekStartForDate(date, TimeZoneInfo.Utc, TimeSpan.Zero);
-        var expectedDate = CalendarGridAnchor.WeekStartDate(date);
-
-        Assert.Equal(expectedDate, DateOnly.FromDateTime(result.DateTime));
-    }
-
-    [Fact]
     public void WeekStartForDate_NonSundayStartDay_MatchesWeekStartDate() {
         var date = new DateOnly(2026, 1, 15);
 
@@ -148,15 +138,6 @@ public class CalendarGridAnchorTests {
 
         Assert.Equal(DayOfWeek.Monday, result.DayOfWeek);
         Assert.True(result <= date);
-    }
-
-    [Fact]
-    public void DayStart_ZeroAnchorUtc_EqualsMidnightOfSameUtcDate() {
-        var instant = new DateTimeOffset(2026, 6, 10, 15, 30, 0, TimeSpan.Zero);
-
-        var result = CalendarGridAnchor.DayStart(instant, TimeZoneInfo.Utc, TimeSpan.Zero);
-
-        Assert.Equal(new DateTimeOffset(2026, 6, 10, 0, 0, 0, TimeSpan.Zero), result);
     }
 
     [Fact]

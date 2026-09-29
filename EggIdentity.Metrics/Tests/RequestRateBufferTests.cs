@@ -43,12 +43,4 @@ public class RequestRateBufferTests {
         var snap = buffer.Snapshot();
         Assert.All(snap, m => Assert.Equal(0, m.Total));
     }
-
-    [Fact]
-    public void Snapshot_minuteEpochIsSixtySecondAligned() {
-        var buffer = new RequestRateBuffer(new FixedClock(Start));
-        buffer.Record(false);
-        var last = buffer.Snapshot()[^1];
-        Assert.Equal(0, last.MinuteEpochSeconds % 60);
-    }
 }

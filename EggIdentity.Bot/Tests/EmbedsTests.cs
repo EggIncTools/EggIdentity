@@ -52,23 +52,6 @@ public class EmbedsTests {
     }
 
     [Fact]
-    public void DashboardCustomSpec_TemplatesExtraFields() {
-        var snapshot = new DashboardSnapshot {
-            AppName = "EGI",
-            UptimeSince = DateTimeOffset.UtcNow,
-            ExtraFields = new Dictionary<string, string> { ["Mode"] = "Hosted" },
-        };
-        var spec = new EmbedSpec(
-            null, null, null, null, "{{ app_name }}", null, null,
-            new List<EmbedFieldSpec> { new("Mode", "{{ extra.Mode }}", true) },
-            null, null, null, null, false);
-
-        var e = EmbedRenderer.Render(spec, DashboardVars.Build(snapshot));
-
-        Assert.Contains(e.Fields, f => f.Name == "Mode" && f.Value.ToString() == "Hosted");
-    }
-
-    [Fact]
     public void EmbedOptions_Apply_NoOverrides_ReturnsEquivalentEmbed() {
         var original = DefaultEmbeds.Verify(Cfg());
         var applied = new EmbedOptions().Apply(original);

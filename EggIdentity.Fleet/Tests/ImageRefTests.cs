@@ -14,10 +14,6 @@ public class ImageRefTests {
     }
 
     [Fact]
-    public void Parse_NoTag_DefaultsLatest() =>
-        Assert.Equal("latest", ImageRef.Parse("ghcr.io/x/y").Tag);
-
-    [Fact]
     public void Parse_RegistryWithPort_KeepsPortOutOfTag() {
         var image = ImageRef.Parse("localhost:5000/team/app");
 

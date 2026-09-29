@@ -3,19 +3,22 @@ using System.Security.Claims;
 using EggIdentity.Auth;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace EggIdentity.Fallback.Tests;
 
-public class FallbackMiddlewareTests {
-    private static async Task<(WebApplication app, HttpClient client)> StartAsync() {
+public sealed class FallbackHostFixture : IAsyncLifetime {
+    private WebApplication _app = null!;
+
+    public async Task InitializeAsync() {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Logging.ClearProviders();
         builder.Services.AddEggIdentityFallback(new FallbackBranding("TestApp", new Dictionary<string, string> {
             ["--color-bg"] = "#0b0d12",
         }));
-        var app = builder.Build();
+        var app = _app = builder.Build();
 
         app.Use(async (ctx, next) => {
             var roleHeader = ctx.Request.Headers["X-Test-Role"].ToString();
@@ -30,13 +33,20 @@ public class FallbackMiddlewareTests {
         app.MapGet("/ok", () => "ok");
 
         await app.StartAsync();
-        return (app, app.GetTestClient());
     }
 
+    public async Task DisposeAsync() => await _app.DisposeAsync();
+
+    public HttpClient FreshClient() {
+        _app.Services.GetRequiredService<MaintenanceState>().Set(false);
+        return _app.GetTestClient();
+    }
+}
+
+public class FallbackMiddlewareTests(FallbackHostFixture host) : IClassFixture<FallbackHostFixture> {
     [Fact]
     public async Task Throws_AnonymousUser_GetsGenericPage() {
-        var (app, client) = await StartAsync();
-        await using var _ = app;
+        using var client = host.FreshClient();
 
         var resp = await client.GetAsync("/throws");
 
@@ -47,8 +57,7 @@ public class FallbackMiddlewareTests {
 
     [Fact]
     public async Task Throws_AdminUser_GetsStackTrace() {
-        var (app, client) = await StartAsync();
-        await using var _ = app;
+        using var client = host.FreshClient();
         client.DefaultRequestHeaders.Add("X-Test-Role", "admin");
 
         var resp = await client.GetAsync("/throws");
@@ -59,8 +68,7 @@ public class FallbackMiddlewareTests {
 
     [Fact]
     public async Task MaintenanceOn_BlocksNonAdmin() {
-        var (app, client) = await StartAsync();
-        await using var _ = app;
+        using var client = host.FreshClient();
         client.DefaultRequestHeaders.Add("X-Test-Role", "admin");
         await client.PostAsync("/admin/maintenance/on", null);
         client.DefaultRequestHeaders.Remove("X-Test-Role");
@@ -72,8 +80,7 @@ public class FallbackMiddlewareTests {
 
     [Fact]
     public async Task MaintenanceOn_AdminBypasses() {
-        var (app, client) = await StartAsync();
-        await using var _ = app;
+        using var client = host.FreshClient();
         client.DefaultRequestHeaders.Add("X-Test-Role", "admin");
         await client.PostAsync("/admin/maintenance/on", null);
 
@@ -84,8 +91,7 @@ public class FallbackMiddlewareTests {
 
     [Fact]
     public async Task MaintenanceToggle_RejectsNonAdmin() {
-        var (app, client) = await StartAsync();
-        await using var _ = app;
+        using var client = host.FreshClient();
 
         var resp = await client.PostAsync("/admin/maintenance/on", null);
 
@@ -94,8 +100,7 @@ public class FallbackMiddlewareTests {
 
     [Fact]
     public async Task UnmatchedRoute_GetsNotFoundPage() {
-        var (app, client) = await StartAsync();
-        await using var _ = app;
+        using var client = host.FreshClient();
 
         var resp = await client.GetAsync("/does-not-exist");
 
@@ -106,8 +111,7 @@ public class FallbackMiddlewareTests {
 
     [Fact]
     public async Task MaintenanceAdminPage_RejectsNonAdmin() {
-        var (app, client) = await StartAsync();
-        await using var _ = app;
+        using var client = host.FreshClient();
 
         var resp = await client.GetAsync("/admin/maintenance");
 
@@ -116,8 +120,7 @@ public class FallbackMiddlewareTests {
 
     [Fact]
     public async Task MaintenanceAdminPage_AdminSeesToggle() {
-        var (app, client) = await StartAsync();
-        await using var _ = app;
+        using var client = host.FreshClient();
         client.DefaultRequestHeaders.Add("X-Test-Role", "admin");
 
         var resp = await client.GetAsync("/admin/maintenance");
@@ -129,8 +132,7 @@ public class FallbackMiddlewareTests {
 
     [Fact]
     public async Task Throws_JsonAccept_GetsJsonBody() {
-        var (app, client) = await StartAsync();
-        await using var _ = app;
+        using var client = host.FreshClient();
         client.DefaultRequestHeaders.Add("Accept", "application/json");
 
         var resp = await client.GetAsync("/throws");
@@ -142,8 +144,7 @@ public class FallbackMiddlewareTests {
 
     [Fact]
     public async Task MaintenanceOn_JsonAccept_GetsJsonBody() {
-        var (app, client) = await StartAsync();
-        await using var _ = app;
+        using var client = host.FreshClient();
         client.DefaultRequestHeaders.Add("X-Test-Role", "admin");
         await client.PostAsync("/admin/maintenance/on", null);
         client.DefaultRequestHeaders.Remove("X-Test-Role");
@@ -157,8 +158,7 @@ public class FallbackMiddlewareTests {
 
     [Fact]
     public async Task UnmatchedRoute_JsonAccept_GetsJsonBody() {
-        var (app, client) = await StartAsync();
-        await using var _ = app;
+        using var client = host.FreshClient();
         client.DefaultRequestHeaders.Add("Accept", "application/json");
 
         var resp = await client.GetAsync("/does-not-exist");

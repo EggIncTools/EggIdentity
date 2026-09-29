@@ -17,12 +17,11 @@ public class ExpiredRowSweeperTests {
     public async Task SweepAsync_DeletesExpiredOAuthStates_KeepsLive() {
         if (string.IsNullOrEmpty(ConnString)) return;
         await using var db = await MakeDbAsync();
-        var states = new OAuthStateStore(db, ttl: TimeSpan.FromMilliseconds(1));
+        var states = new OAuthStateStore(db, ttl: TimeSpan.FromMinutes(-1));
         var liveStates = new OAuthStateStore(db, ttl: TimeSpan.FromMinutes(5));
 
         await states.SaveAsync("expired-state", "v", "https://example.com", "popup", CancellationToken.None);
         await liveStates.SaveAsync("live-state", "v", "https://example.com", "popup", CancellationToken.None);
-        await Task.Delay(50);
 
         var sweeper = new ExpiredRowSweeper(db, TimeSpan.FromMinutes(10));
         await sweeper.SweepAsync(CancellationToken.None);
@@ -69,12 +68,11 @@ public class ExpiredRowSweeperTests {
         var resolver = new IdentityResolver(db, AdminAllowlist.FromConfig(""));
         var userId = (await resolver.ResolveAsync("authentik", Guid.NewGuid().ToString(), null, "sweepuser", null, CancellationToken.None)).UserId;
 
-        var codes = new LoginCodeStore(db, ttl: TimeSpan.FromMilliseconds(1));
+        var codes = new LoginCodeStore(db, ttl: TimeSpan.FromMinutes(-1));
         var liveCodes = new LoginCodeStore(db, ttl: TimeSpan.FromMinutes(5));
 
         var expiredCode = await codes.IssueAsync(userId, false, CancellationToken.None);
         var liveCode = await liveCodes.IssueAsync(userId, false, CancellationToken.None);
-        await Task.Delay(50);
 
         var sweeper = new ExpiredRowSweeper(db, TimeSpan.FromMinutes(10));
         await sweeper.SweepAsync(CancellationToken.None);

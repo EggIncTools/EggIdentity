@@ -30,10 +30,14 @@ jobs:
           dotnet-version: ${{ inputs.dotnet-version }}
           dotnet-quality: preview
 
+      - name: Verify whitespace
+        if: inputs.format-gate
+        run: dotnet format whitespace --folder --verify-no-changes
+
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/Directory.Packages.props') }}
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: Authenticate GitHub Packages
@@ -44,60 +48,9 @@ jobs:
             --password ${{ secrets.PACKAGES_PAT || github.token }} \
             --store-password-in-clear-text \
             --configfile nuget.config
+
+      - name: Build
+        run: dotnet build ${{ inputs.solution }} -c Release
 
       - name: Test
-        run: dotnet test ${{ inputs.solution }} -c Release
-
-  detect-changes:
-    if: inputs.format-gate
-    runs-on: ubuntu-latest
-    outputs:
-      cs-files: ${{ steps.diff.outputs.cs-files }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          fetch-depth: 0
-
-      - id: diff
-        if: github.event_name == 'pull_request'
-        run: |
-          git fetch --depth=1 origin ${{ github.event.pull_request.base.sha }}
-          cs=$(git diff --name-only --diff-filter=ACMR ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- '*.cs' | tr '\n' ' ')
-          echo "cs-files=$cs" >> "$GITHUB_OUTPUT"
-
-  format:
-    needs: detect-changes
-    if: inputs.format-gate && (github.event_name != 'pull_request' || needs.detect-changes.outputs.cs-files != '')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
-        with:
-          dotnet-version: ${{ inputs.dotnet-version }}
-          dotnet-quality: preview
-
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
-          restore-keys: ${{ runner.os }}-nuget-
-
-      - name: Authenticate GitHub Packages
-        if: inputs.packages-auth
-        run: |
-          dotnet nuget update source github \
-            --username ${{ github.repository_owner }} \
-            --password ${{ secrets.PACKAGES_PAT || github.token }} \
-            --store-password-in-clear-text \
-            --configfile nuget.config
-
-      - name: Verify formatting (changed files)
-        if: github.event_name == 'pull_request' && needs.detect-changes.outputs.cs-files != ''
-        run: dotnet format ${{ inputs.solution }} --verify-no-changes --include ${{ needs.detect-changes.outputs.cs-files }}
-
-      - name: Verify formatting (full solution)
-        if: github.event_name != 'pull_request' || needs.detect-changes.outputs.cs-files == ''
-        run: dotnet format ${{ inputs.solution }} --verify-no-changes
+        run: dotnet test ${{ inputs.solution }} -c Release --no-build

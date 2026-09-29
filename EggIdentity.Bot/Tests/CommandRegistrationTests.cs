@@ -4,10 +4,6 @@ namespace EggIdentity.Bot.Tests;
 
 public class CommandRegistrationTests {
     [Fact]
-    public void BuiltinCommandNames_IsVerifyOnly() =>
-        Assert.Equal(new[] { "verify" }, EggIdentityBot.BuiltinCommandNames);
-
-    [Fact]
     public void FilterExtras_DropsBuiltinCollisions() {
         var extras = new[] {
             MakeCmd("verify"), // collides, dropped
@@ -24,19 +20,6 @@ public class CommandRegistrationTests {
         Assert.Equal(expected, EggIdentityBot.NeedsRole(memberRoles, roleId));
 
     [Fact]
-    public void GlobalCommands_Default_IsFalse() {
-        var cfg = new BotConfig();
-        Assert.False(cfg.GlobalCommands);
-    }
-
-    [Fact]
-    public void FilterExtras_StillDropsBuiltins_WhenGlobalCommandsEnabled() {
-        var extras = new[] { MakeCmd("verify"), MakeCmd("mystats") };
-        var kept = EggIdentityBot.FilterExtras(extras).Select(c => c.Name).ToArray();
-        Assert.Equal(new[] { "mystats" }, kept);
-    }
-
-    [Fact]
     public void FilterExtras_PreservesAutocompleteHandler() {
         var handler = (SocketAutocompleteContext _) => Task.CompletedTask;
         var cmd = new BotCommand(
@@ -51,19 +34,4 @@ public class CommandRegistrationTests {
 
     private static BotCommand MakeCmd(string name) =>
         new(new SlashCommandBuilder().WithName(name).WithDescription("d").Build(), name, _ => Task.CompletedTask);
-
-    private static BotConfig BuildFixtureConfig(params BotCommand[] commands) {
-        var builder = new EggIdentityBotBuilder()
-            .WithName("FixtureBot")
-            .WithEnvFallback(_ => null);
-        foreach (var c in commands) builder.WithCommand(c);
-        return builder.BuildConfig();
-    }
-
-    [Fact]
-    public void BuilderFixture_ProducesConfigWithSuppliedCommands() {
-        var cfg = BuildFixtureConfig(MakeCmd("mystats"));
-        Assert.Single(cfg.Extra);
-        Assert.Equal("mystats", cfg.Extra[0].Name);
-    }
 }

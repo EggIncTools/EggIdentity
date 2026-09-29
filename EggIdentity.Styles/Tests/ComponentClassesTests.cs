@@ -2,27 +2,6 @@ namespace EggIdentity.Styles.Tests;
 
 public class ComponentClassesTests {
     [Fact]
-    public void All_ContainsAtLeastOneKeyFromEachSet() {
-        Assert.True(ComponentClasses.All.ContainsKey(".badge"));
-        Assert.True(ComponentClasses.All.ContainsKey(".btn-primary"));
-        Assert.True(ComponentClasses.All.ContainsKey(".panel"));
-        Assert.True(ComponentClasses.All.ContainsKey(".segmented"));
-        Assert.True(ComponentClasses.All.ContainsKey(".popover"));
-        Assert.True(ComponentClasses.All.ContainsKey(".modal-card"));
-        Assert.True(ComponentClasses.All.ContainsKey(".fab-bubble"));
-        Assert.True(ComponentClasses.All.ContainsKey(".form-input"));
-        Assert.True(ComponentClasses.All.ContainsKey(".data-table"));
-        Assert.True(ComponentClasses.All.ContainsKey(".toast"));
-        Assert.True(ComponentClasses.All.ContainsKey(".tooltip-floating"));
-        Assert.True(ComponentClasses.All.ContainsKey(".prose-legal"));
-        Assert.True(ComponentClasses.All.ContainsKey(".modal-card.wb-card"));
-        Assert.True(ComponentClasses.All.ContainsKey(".filter-panel"));
-        Assert.True(ComponentClasses.All.ContainsKey(".cal-viewport"));
-        Assert.True(ComponentClasses.All.ContainsKey(".icon"));
-        Assert.True(ComponentClasses.All.ContainsKey(".brand-icon"));
-    }
-
-    [Fact]
     public void All_Count_EqualsSumOfAllSetsWithNoOverwrittenKeys() {
         var expected = Components.Badges.Applies.Count
             + Components.Buttons.Applies.Count

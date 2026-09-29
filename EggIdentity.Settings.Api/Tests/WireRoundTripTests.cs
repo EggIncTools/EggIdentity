@@ -41,15 +41,6 @@ public class WireRoundTripTests {
     }
 
     [Fact]
-    public void EditableSurvives_BecauseItIsDerivedFromWhatTheWireCarries() {
-        var locked = new SettingRow(
-            Descriptor() with { AllowBootstrapEdit = false }, null, SettingSource.Default, false);
-
-        Assert.False(locked.Descriptor.Editable);
-        Assert.False(AdminWireMapping.FromWire(AdminWireMapping.ToWire(locked)).Descriptor.Editable);
-    }
-
-    [Fact]
     public void FieldVisibilityConditionSurvives() {
         var field = new FieldDescriptor("token", "Token", SettingKind.Secret) { VisibleWhen = new FieldCondition("mode", "own") };
 

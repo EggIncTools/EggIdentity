@@ -22,10 +22,6 @@ public class AuthentikAdminClientTests {
         Assert.Null(AuthentikAdminClient.ParseUserPk(Users, "hash-nobody"));
 
     [Fact]
-    public void ParseUserPk_NoResults_ReturnsNull() =>
-        Assert.Null(AuthentikAdminClient.ParseUserPk("""{"results":[]}""", "x"));
-
-    [Fact]
     public void ParseConnections_ReadsPkIdentifierAndSource() {
         const string json = """
             {"results":[

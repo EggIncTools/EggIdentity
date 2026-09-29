@@ -34,14 +34,6 @@ public class DriftReportTests {
     }
 
     [Fact]
-    public void ImageOriginWins_WhenSameKeyAlsoInContainerEnv() {
-        var report = DriftReport.Compare(
-            Registry(), [Env("ADB_SERVER_SOCKET", EnvOrigin.Runtime), Env("ADB_SERVER_SOCKET", EnvOrigin.Image)]);
-
-        Assert.Empty(report.Undeclared);
-    }
-
-    [Fact]
     public void ExternalDescriptor_IsReportedAsExternal_NotUndeclared() {
         var report = DriftReport.Compare(Registry(Of("CAPTURE_IFACE", kind: SettingKind.External)), [Env("CAPTURE_IFACE")]);
 

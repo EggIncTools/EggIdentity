@@ -51,6 +51,21 @@ public class PortainerApiTests {
     }
 
     [Fact]
+    public async Task Docker_InspectImageByName_ResolvesIdSoNoSlashReachesThePath() {
+        const string id = "sha256:abc";
+        var filters = Uri.EscapeDataString("""{"reference":["ghcr.io/egginctools/eggledger:latest"]}""");
+        var (api, handler) = PortainerFakes.Api();
+        handler.On("GET", $"/api/endpoints/9/docker/images/json?filters={filters}", $$"""[{"Id":"{{id}}"}]""")
+            .On("GET", $"/api/endpoints/9/docker/images/{Uri.EscapeDataString(id)}/json", $$"""{"Id":"{{id}}","RepoDigests":["ghcr.io/egginctools/eggledger@sha256:def"]}""");
+
+        var image = await api.Docker(9).InspectImageAsync("ghcr.io/egginctools/eggledger:latest", CancellationToken.None);
+
+        Assert.NotNull(image);
+        Assert.Equal(id, image.Id);
+        Assert.DoesNotContain(handler.Requests, r => r.RequestUri?.AbsolutePath is { } path && path.Contains("%2F", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public async Task Redeploy_GitStack_PostsWebhookWithoutApiRequirement() {
         var (api, handler) = PortainerFakes.Api();
         handler.On("GET", "/api/stacks/56", PortainerFakes.GitStack)

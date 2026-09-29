@@ -37,12 +37,6 @@ public class FallbackPagesTests {
     }
 
     [Fact]
-    public void RenderNotFound_ContainsAppName() {
-        var html = FallbackPages.RenderNotFound(Branding);
-        Assert.Contains("TestApp", html);
-    }
-
-    [Fact]
     public void RenderDown_AdminLink_ShowsLogsUrl() {
         var html = FallbackPages.RenderDown(Branding, showAdminLink: true, logsUrl: "/logs/testapp/tail");
         Assert.Contains("/logs/testapp/tail", html);

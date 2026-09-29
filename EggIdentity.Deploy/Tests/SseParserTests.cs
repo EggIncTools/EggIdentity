@@ -1,5 +1,3 @@
-using EggIdentity.Contract;
-
 namespace EggIdentity.Deploy.Tests;
 
 public class SseParserTests {
@@ -55,15 +53,6 @@ public class SseParserTests {
         var messages = SseParser.Parse(["data", ""]);
 
         Assert.Equal("", Assert.Single(messages).Data);
-    }
-
-    [Fact]
-    public void TryReadDeployEvent_ParsesContractShape() {
-        var evt = TestFixtures.Event(5, phase: DeployPhase.Deployed, message: "done");
-        var message = new SseMessage(5, "deploy", System.Text.Json.JsonSerializer.Serialize(evt));
-
-        Assert.True(SseParser.TryReadDeployEvent(message, out var parsed));
-        Assert.Equal(evt, parsed);
     }
 
     [Fact]

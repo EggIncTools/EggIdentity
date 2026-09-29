@@ -49,8 +49,8 @@ public static class TestFixtures {
         CallTimeout = TimeSpan.FromSeconds(5),
     };
 
-    public static FleetClient Client(FakeFleetHandler handler, DeployOptions? options = null) =>
-        new(new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan }, options ?? Options());
+    public static FleetClient Client(FakeFleetHandler handler, DeployOptions? options = null, TimeProvider? time = null) =>
+        new(new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan }, options ?? Options()) { Time = time ?? TimeProvider.System };
 
     public static DeployEvent Event(long id, string app = "eggledger", DeployPhase phase = DeployPhase.Checked, string message = "checked") =>
         new(id, app, phase, message, new DateTimeOffset(2026, 9, 5, 12, 0, 0, TimeSpan.Zero), null, null, null, null);

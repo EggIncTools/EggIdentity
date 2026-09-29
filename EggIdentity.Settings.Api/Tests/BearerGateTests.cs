@@ -9,11 +9,13 @@ using Microsoft.Extensions.Hosting;
 
 namespace EggIdentity.Settings.Api.Tests;
 
-public class BearerGateTests {
-    private const string Secret = "correct-horse-battery-staple";
+public sealed class BearerGateHost : IAsyncLifetime {
+    public const string Secret = "correct-horse-battery-staple";
 
-    private static async Task<IHost> StartAsync() {
-        var host = await new HostBuilder()
+    public IHost Host { get; private set; } = null!;
+
+    public async Task InitializeAsync() =>
+        Host = await new HostBuilder()
             .ConfigureWebHost(web => web
                 .UseTestServer()
                 .ConfigureServices(services => services.AddRouting())
@@ -25,11 +27,18 @@ public class BearerGateTests {
                     });
                 }))
             .StartAsync();
-        return host;
-    }
 
-    private static async Task<HttpResponseMessage> GetAsync(IHost host, string path, string? authorization) {
-        var client = host.GetTestClient();
+    public async Task DisposeAsync() {
+        await Host.StopAsync();
+        Host.Dispose();
+    }
+}
+
+public class BearerGateTests(BearerGateHost fixture) : IClassFixture<BearerGateHost> {
+    private const string Secret = BearerGateHost.Secret;
+
+    private async Task<HttpResponseMessage> GetAsync(string path, string? authorization) {
+        var client = fixture.Host.GetTestClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
         if (authorization is not null) request.Headers.TryAddWithoutValidation("Authorization", authorization);
         return await client.SendAsync(request);
@@ -37,9 +46,7 @@ public class BearerGateTests {
 
     [Fact]
     public async Task NoAuthorizationHeader_IsRejected() {
-        using var host = await StartAsync();
-
-        var response = await GetAsync(host, "/admin/api/settings", null);
+        var response = await GetAsync("/admin/api/settings", null);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -50,17 +57,14 @@ public class BearerGateTests {
     [InlineData("Basic Y29ycmVjdA==")]
     [InlineData("Bearer ")]
     public async Task WrongCredential_IsRejected(string authorization) {
-        using var host = await StartAsync();
-
-        var response = await GetAsync(host, "/admin/api/settings", authorization);
+        var response = await GetAsync("/admin/api/settings", authorization);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
     public async Task EveryWriteRoute_IsGatedToo() {
-        using var host = await StartAsync();
-        var client = host.GetTestClient();
+        var client = fixture.Host.GetTestClient();
 
         var save = await client.PutAsJsonAsync("/admin/api/settings/a.one", new AdminSaveRequest { Value = "x" });
         var create = await client.PostAsJsonAsync("/admin/api/collections/suite.apps", new AdminRowRequest { Id = "x" });
@@ -75,18 +79,14 @@ public class BearerGateTests {
 
     [Fact]
     public async Task TheGateCoversOnlyTheAdminApiGroup() {
-        using var host = await StartAsync();
-
-        var response = await GetAsync(host, "/admin/api/probe", null);
+        var response = await GetAsync("/admin/api/probe", null);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
     public async Task CorrectSecret_ReachesTheHandler() {
-        using var host = await StartAsync();
-
-        var response = await GetAsync(host, "/admin/api/drift", $"Bearer {Secret}");
+        var response = await GetAsync("/admin/api/drift", $"Bearer {Secret}");
 
         Assert.NotEqual(HttpStatusCode.Unauthorized, response.StatusCode);
     }

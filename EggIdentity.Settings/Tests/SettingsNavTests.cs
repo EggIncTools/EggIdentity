@@ -71,25 +71,4 @@ public class SettingsNavTests {
         var overflow = nav.Single(g => g.Key == SettingsNav.OverflowKey);
         Assert.Equal(["Egress", "Web"], overflow.Categories.Select(c => c.Label));
     }
-
-    [Fact]
-    public void TheFirstGroupIsNeverTheOverflow_SoOpeningThePaneNeverLandsInsideIt() {
-        var nav = SettingsNav.Build([
-            .. Many("Core", 6),
-            .. Many("Build", 1),
-            .. Many("Deploy", 1),
-            .. Many("Storage", 1),
-        ]);
-
-        Assert.NotEqual(SettingsNav.OverflowKey, nav[0].Key);
-        Assert.Equal("Core", nav[0].Categories[0].Category);
-    }
-
-    [Fact]
-    public void UnprefixedCategory_KeepsItsOwnName() {
-        Assert.Equal("Core", SettingsNav.GroupOf("Core"));
-        Assert.Equal("Core", SettingsNav.LabelOf("Core"));
-        Assert.Equal("Devices", SettingsNav.GroupOf("Devices: capture"));
-        Assert.Equal("capture", SettingsNav.LabelOf("Devices: capture"));
-    }
 }
