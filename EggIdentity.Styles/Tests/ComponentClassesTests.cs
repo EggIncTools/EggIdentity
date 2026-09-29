@@ -20,7 +20,8 @@ public class ComponentClassesTests {
             + Components.Calendar.Applies.Count
             + Components.Icons.Applies.Count
             + Components.Brand.Applies.Count
-            + Components.Consent.Applies.Count;
+            + Components.Consent.Applies.Count
+            + Components.Rarity.Applies.Count;
 
         Assert.Equal(expected, ComponentClasses.All.Count);
     }

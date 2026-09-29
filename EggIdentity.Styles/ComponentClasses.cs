@@ -22,5 +22,6 @@ public static class ComponentClasses {
         .AddRange(Workbench.Applies)
         .AddRange(Filters.Applies)
         .AddRange(Calendar.Applies)
-        .AddRange(Icons.Applies);
+        .AddRange(Icons.Applies)
+        .AddRange(Rarity.Applies);
 }
