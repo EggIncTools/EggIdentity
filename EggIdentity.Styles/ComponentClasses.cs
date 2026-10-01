@@ -4,7 +4,7 @@ using EggIdentity.Styles.Components;
 namespace EggIdentity.Styles;
 
 public static class ComponentClasses {
-    public static readonly ImmutableDictionary<string, string> All = ImmutableDictionary<string, string>.Empty
+    public static readonly ImmutableDictionary<string, string> All = ImmutableDictionary.Create<string, string>(StableKeyComparer.Instance)
         .AddRange(Badges.Applies)
         .AddRange(Brand.Applies)
         .AddRange(Buttons.Applies)

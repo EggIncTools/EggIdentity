@@ -25,4 +25,19 @@ public class ComponentClassesTests {
 
         Assert.Equal(expected, ComponentClasses.All.Count);
     }
+
+    [Theory]
+    [InlineData("", 0x811C9DC5u)]
+    [InlineData("a", 0xE40C292Cu)]
+    [InlineData("foobar", 0xBF9CF968u)]
+    public void All_KeyHashesAreProcessIndependent(string key, uint expected) {
+        Assert.Equal(unchecked((int)expected), ComponentClasses.All.KeyComparer.GetHashCode(key));
+    }
+
+    [Fact]
+    public void All_ComparerSurvivesConsumerMerge() {
+        var merged = ComponentClasses.All.SetItems([new(".app-x", "flex")]);
+
+        Assert.Same(ComponentClasses.All.KeyComparer, merged.KeyComparer);
+    }
 }

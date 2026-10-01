@@ -80,6 +80,18 @@ public class TooltipsTests {
     }
 
     [Fact]
+    public void FloatingAnchored_CompoundRuleWinsPositionBySpecificity() {
+        var css = BuildFramework().Process("tooltip-floating tooltip-anchored");
+        var flat = css.Replace(" ", "").Replace("\n", "");
+
+        var start = flat.IndexOf(".tooltip-floating.tooltip-anchored{", StringComparison.Ordinal);
+        Assert.True(start >= 0);
+        var block = flat[start..flat.IndexOf('}', start)];
+        Assert.Contains("position:absolute", block);
+        Assert.Contains("translateY(var(--tt-ty,-10px))", block);
+    }
+
+    [Fact]
     public void AllCoreSelectors_ProcessWithoutError() {
         var css = BuildFramework().Process(
             "tooltip-floating tooltip-anchored tooltip-fixed tooltip-host tooltip-toggle show tooltip-below tooltip-err");

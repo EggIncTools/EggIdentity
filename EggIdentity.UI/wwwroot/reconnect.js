@@ -28,8 +28,7 @@ function close() {
 }
 
 function startPolling() {
-  if (timer !== null) return;
-  polls = 0;
+  if (timer !== null || polls > MaxPolls) return;
   timer = setTimeout(poll, PollMs);
 }
 
@@ -99,6 +98,7 @@ document.addEventListener(StateEvent, e => {
   state = e.detail.state;
   if (state === "hide") {
     stopPolling();
+    polls = 0;
     close();
     return;
   }
@@ -117,9 +117,9 @@ document.addEventListener("cancel", e => {
 
 document.addEventListener("click", e => {
   const button = e.target.closest?.("[data-rcn-action]");
-  if (!button || !button.closest(`#${DialogId}`)) return;
+  if (!button?.closest(`#${DialogId}`)) return;
   const action = button.dataset.rcnAction;
-  if (action === "retry") retry();
-  else if (action === "resume") resume();
+  if (action === "retry") void retry();
+  else if (action === "resume") void resume();
   else location.reload();
 });
