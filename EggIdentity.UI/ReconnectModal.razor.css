@@ -1,0 +1,87 @@
+.rcn {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    width: min(32rem, calc(100vw - 2rem));
+    max-width: none;
+    overflow: visible;
+}
+
+.rcn::backdrop {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.rcn-card {
+    max-width: none;
+}
+
+.rcn-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.rcn-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+}
+
+.rcn.components-reconnect-show .rcn-reconnecting,
+.rcn.components-reconnect-retrying .rcn-reconnecting,
+.rcn.components-reconnect-paused .rcn-paused,
+.rcn.components-reconnect-failed .rcn-failed,
+.rcn.components-reconnect-resume-failed .rcn-resume-failed,
+.rcn.components-reconnect-rejected .rcn-rejected,
+.rcn.rcn-is-updated .rcn-updated {
+    display: flex;
+}
+
+.rcn-retry-line {
+    display: none;
+}
+
+.rcn.components-reconnect-retrying .rcn-retry-line {
+    display: block;
+}
+
+.rcn-text {
+    margin: 0;
+}
+
+.rcn-sub {
+    margin: 0;
+    font-size: 0.85rem;
+    opacity: 0.75;
+}
+
+.rcn-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.rcn-spinner {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 3px solid color-mix(in oklab, currentColor 20%, transparent);
+    border-top-color: var(--color-accent, currentColor);
+    animation: rcn-spin 0.9s linear infinite;
+}
+
+@keyframes rcn-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rcn-spinner {
+        animation-duration: 3s;
+    }
+}

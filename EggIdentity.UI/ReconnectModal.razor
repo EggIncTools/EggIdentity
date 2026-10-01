@@ -1,0 +1,45 @@
+<dialog id="components-reconnect-modal" class="rcn" aria-label="Connection status"
+        data-version="@Version" data-version-url="@VersionUrl">
+    <div class="modal-card modal-card-sm rcn-card">
+        <div class="modal-body rcn-body" aria-live="polite">
+            <div class="rcn-state rcn-reconnecting">
+                <span class="rcn-spinner" aria-hidden="true"></span>
+                <p class="rcn-text">Reconnecting to the server...</p>
+                <p class="rcn-sub rcn-retry-line">Next attempt in <span id="components-seconds-to-next-attempt"></span>s.</p>
+            </div>
+            <div class="rcn-state rcn-paused">
+                <p class="rcn-text">The session was paused.</p>
+                <div class="rcn-actions">
+                    <button type="button" class="btn-primary" data-rcn-action="resume">Resume</button>
+                </div>
+            </div>
+            <div class="rcn-state rcn-failed">
+                <p class="rcn-text">Couldn't reconnect to the server.</p>
+                <div class="rcn-actions">
+                    <button type="button" class="btn-secondary" data-rcn-action="reload">Reload</button>
+                    <button type="button" class="btn-primary" data-rcn-action="retry">Retry</button>
+                </div>
+            </div>
+            <div class="rcn-state rcn-resume-failed">
+                <p class="rcn-text">Couldn't resume the session.</p>
+                <div class="rcn-actions">
+                    <button type="button" class="btn-primary" data-rcn-action="reload">Reload</button>
+                </div>
+            </div>
+            <div class="rcn-state rcn-rejected">
+                <span class="rcn-spinner" aria-hidden="true"></span>
+                <p class="rcn-text">Reloading...</p>
+            </div>
+            <div class="rcn-state rcn-updated">
+                <span class="rcn-spinner" aria-hidden="true"></span>
+                <p class="rcn-text">Updated to <span class="rcn-new-version"></span>. Reloading...</p>
+            </div>
+        </div>
+    </div>
+</dialog>
+<script type="module" src="_content/EggIdentity.UI/reconnect.js"></script>
+
+@code {
+    [Parameter] public string Version { get; set; } = AppVersion.Current;
+    [Parameter] public string VersionUrl { get; set; } = AppVersion.Path;
+}
