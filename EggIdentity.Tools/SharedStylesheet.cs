@@ -30,7 +30,7 @@ internal static class SharedStylesheet {
             Applies = ComponentClasses.All,
         });
         var compiled = framework.Process("");
-        return Normalize(StripPalette(CssLayers.Unwrap(compiled)));
+        return Normalize(StripPalette(CssLayers.Unwrap(compiled)) + "\n" + SharedLiterals.Tail + "\n");
     }
 
     internal static string RenderPreflight() {
