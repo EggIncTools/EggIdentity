@@ -20,7 +20,7 @@ public static class SharedLiterals {
           }
         }
         @media (prefers-reduced-motion: reduce) {
-          .modal-card, .modal-card.wb-card, .wb-rail, .wb-main, .wb-drawer, .wb-drawer.wb-drawer-open, .wb-drawer-tab, .tooltip-floating, .popover, .toast, .cal-period, .cal-row, .cal-range-trigger, .fab-bubble, .progress-fill {
+          .modal-card, .modal-card.wb-card, .wb-rail, .wb-main, .wb-drawer, .wb-drawer.wb-drawer-open, .wb-drawer-tab, .tooltip-floating, .popover, .toast, .cal-period, .cal-row, .cal-range-trigger, .fab-bubble, .progress-fill, .caret, .mask, .menu, .menu.open {
             transition: none;
           }
           .pulse, .pane-in, .pane-in-reverse, .wb-pane-in {

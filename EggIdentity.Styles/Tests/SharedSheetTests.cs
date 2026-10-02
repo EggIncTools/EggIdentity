@@ -60,24 +60,14 @@ public partial class SharedSheetTests {
     }
 
     [Fact]
-    public void EveryMotionRuleReadsTheMotionTokens() {
-        var timed = Sheet.Rules
-            .Where(r => r.Container is null)
-            .SelectMany(r => r.Declarations)
-            .Where(d => d.Property is "transition" or "animation" && d.Value != "none")
-            .Select(d => StripVars(d.Value));
-        Assert.All(timed, v => Assert.DoesNotMatch(LiteralDuration(), v));
+    public void PassesTheMotionGuard() {
+        Assert.Empty(MotionGuard.Check(Sheet, ["pulse", "pane-in", "pane-in-reverse"]));
     }
 
-    [GeneratedRegex(@"var\([^()]*\)")]
-    private static partial Regex InnerVar();
-
-    [GeneratedRegex(@"(?<![\w.])(?!0s\b)\d*\.?\d+m?s\b")]
-    private static partial Regex LiteralDuration();
-
-    private static string StripVars(string value) {
-        while (InnerVar().IsMatch(value)) value = InnerVar().Replace(value, "");
-        return value;
+    [Fact]
+    public void ReducedMotionSheetOnlyActsUnderTheMediaQuery() {
+        var sheet = CssSheet.Load(Path.Combine(RepoRoot(), "EggIdentity.Styles", "wwwroot", "reduced-motion.css"));
+        Assert.All(sheet.Rules, r => Assert.Equal("@media (prefers-reduced-motion: reduce)", r.Container));
     }
 
     [Theory]

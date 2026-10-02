@@ -19,4 +19,6 @@ public static class ClaimsPrincipalExtensions {
 
     public static bool IsSupporter(this ClaimsPrincipal principal) =>
         principal.FindFirstValue(SessionClaims.Supporter) == "true";
+
+    public static CurrentUser ToCurrentUser(this ClaimsPrincipal? principal) => CurrentUser.From(principal);
 }

@@ -1,0 +1,30 @@
+@inject IJSRuntime JS
+
+<span class="@Class" data-tt tabindex="@(Focusable ? "0" : null)" aria-describedby="@_id">@ChildContent<span popover="manual" id="@_id" role="tooltip" class="@PopCss" data-tt-pop>@if (Content is not null) {
+            @Content
+        } else {
+            @Text
+        }</span></span>
+
+@code {
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public RenderFragment? Content { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string? PopClass { get; set; }
+    [Parameter] public bool Error { get; set; }
+    [Parameter] public bool Focusable { get; set; }
+
+    readonly string _id = "tt-" + Guid.NewGuid().ToString("N");
+
+    string PopCss {
+        get {
+            var css = Error ? "tooltip-floating tooltip-fixed tooltip-toggle tooltip-err" : "tooltip-floating tooltip-fixed tooltip-toggle";
+            return string.IsNullOrEmpty(PopClass) ? css : $"{css} {PopClass}";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender) await UiScript.EnsureAsync(JS, UiScript.Tooltip);
+    }
+}

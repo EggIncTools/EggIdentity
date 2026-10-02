@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EggIdentity.UI.csproj" />
+    <ProjectReference Include="..\..\EggIdentity.Testing\EggIdentity.Testing.csproj" />
   </ItemGroup>
 
 </Project>

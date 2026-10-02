@@ -1,0 +1,69 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div class="@WrapCss" @ref="_root" @onkeydown="OnKeyDown">
+    <button type="button" class="@TriggerClass" aria-haspopup="menu" aria-expanded="@(_open ? "true" : "false")" aria-label="@TriggerLabel" @onclick="ToggleAsync">@Trigger</button>
+    <div class="@MenuCss" role="menu" style="@MenuStyle" @onclick="OnMenuClick">@ChildContent</div>
+</div>
+
+@code {
+    [Parameter] public RenderFragment? Trigger { get; set; }
+    [Parameter] public string TriggerClass { get; set; } = "icon-btn";
+    [Parameter] public string? TriggerLabel { get; set; }
+    [Parameter] public bool AlignStart { get; set; }
+    [Parameter] public string? MaxHeight { get; set; }
+    [Parameter] public bool CloseOnSelect { get; set; } = true;
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    readonly string _id = Guid.NewGuid().ToString("N");
+    ElementReference _root;
+    OutsideClickInterop? _outsideClick;
+    DotNetObjectReference<Menu>? _self;
+    bool _open;
+    bool _lastOpen;
+
+    string WrapCss => string.IsNullOrEmpty(Class) ? "menu-wrap" : $"menu-wrap {Class}";
+
+    string MenuCss => (AlignStart ? "menu menu-start" : "menu") + (_open ? " open" : "");
+
+    string? MenuStyle => string.IsNullOrWhiteSpace(MaxHeight) ? null : $"--menu-max-h: {MaxHeight}";
+
+    protected override void OnParametersSet() {
+        if (Open == _lastOpen) return;
+        _open = Open;
+        _lastOpen = Open;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (!firstRender || !await UiScript.EnsureAsync(JS, UiScript.OutsideClick)) return;
+        _self = DotNetObjectReference.Create(this);
+        _outsideClick = new OutsideClickInterop(JS);
+        await _outsideClick.RegisterAsync(_id, _root, _self);
+    }
+
+    public Task CloseAsync() => SetOpenAsync(false);
+
+    Task ToggleAsync() => SetOpenAsync(!_open);
+
+    Task OnMenuClick() => CloseOnSelect ? SetOpenAsync(false) : Task.CompletedTask;
+
+    Task OnKeyDown(KeyboardEventArgs e) => e.Key == "Escape" ? SetOpenAsync(false) : Task.CompletedTask;
+
+    [JSInvokable]
+    public Task OnOutsideClick() => InvokeAsync(() => SetOpenAsync(false));
+
+    async Task SetOpenAsync(bool open) {
+        if (_open == open) return;
+        _open = open;
+        StateHasChanged();
+        await OpenChanged.InvokeAsync(open);
+    }
+
+    public async ValueTask DisposeAsync() {
+        if (_outsideClick is not null) await _outsideClick.UnregisterAsync(_id);
+        _self?.Dispose();
+    }
+}

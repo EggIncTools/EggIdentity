@@ -1,0 +1,33 @@
+<div class="@Css" role="status">
+    @if (!string.IsNullOrEmpty(Icon)) {
+        <Icon Name="@Icon" Class="empty-icon"/>
+    }
+    @if (!string.IsNullOrEmpty(Title)) {
+        <div class="empty-title">@Title</div>
+    }
+    @if (!string.IsNullOrEmpty(Hint)) {
+        <div class="empty-hint">@Hint</div>
+    }
+    @if (ChildContent is not null) {
+        <div class="empty-actions">@ChildContent</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Hint { get; set; }
+    [Parameter] public bool Fill { get; set; }
+    [Parameter] public bool Tall { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    string Css {
+        get {
+            var css = "empty";
+            if (Fill) css += " empty-fill";
+            if (Tall) css += " empty-tall";
+            return string.IsNullOrEmpty(Class) ? css : $"{css} {Class}";
+        }
+    }
+}

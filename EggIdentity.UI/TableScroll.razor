@@ -1,0 +1,19 @@
+<div class="@Css" style="@Style">@ChildContent</div>
+
+@code {
+    [Parameter] public string? MaxHeight { get; set; }
+    [Parameter] public string? MinHeight { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    string Css => string.IsNullOrEmpty(Class) ? "table-scroll" : $"table-scroll {Class}";
+
+    string? Style {
+        get {
+            var parts = new List<string>(2);
+            if (!string.IsNullOrWhiteSpace(MaxHeight)) parts.Add($"--table-scroll-max-h: {MaxHeight}");
+            if (!string.IsNullOrWhiteSpace(MinHeight)) parts.Add($"--table-scroll-min-h: {MinHeight}");
+            return parts.Count == 0 ? null : string.Join("; ", parts);
+        }
+    }
+}

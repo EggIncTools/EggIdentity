@@ -1,0 +1,51 @@
+@using Microsoft.Extensions.DependencyInjection
+@implements IDisposable
+@inject IJSRuntime JS
+@inject IServiceProvider Services
+
+<button type="button" class="@Class" aria-label="@(_done ? DoneLabel : Label)" title="@(_done ? DoneLabel : Label)" @onclick="CopyAsync">
+    <Icon Name="@(_done ? "check" : "copy")" Class="@IconClass"/>
+    @ChildContent
+</button>
+
+@code {
+    static readonly TimeSpan FeedbackFor = TimeSpan.FromMilliseconds(1500);
+
+    [Parameter, EditorRequired] public string Text { get; set; } = "";
+    [Parameter] public string Label { get; set; } = "Copy";
+    [Parameter] public string DoneLabel { get; set; } = "Copied";
+    [Parameter] public string Class { get; set; } = "icon-btn";
+    [Parameter] public string? IconClass { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    bool _done;
+    CancellationTokenSource? _feedback;
+
+    async Task CopyAsync() {
+        if (!await UiScript.EnsureAsync(JS, UiScript.Clipboard)) return;
+        bool ok;
+        try {
+            ok = await JS.InvokeAsync<bool>("eggClipboardWrite", Text);
+        } catch (Exception ex) when (ex is JSDisconnectedException or JSException or TaskCanceledException) {
+            return;
+        }
+        if (!ok) return;
+        if (_feedback is not null) await _feedback.CancelAsync();
+        _feedback?.Dispose();
+        _feedback = new CancellationTokenSource();
+        var token = _feedback.Token;
+        _done = true;
+        await InvokeAsync(StateHasChanged);
+        try {
+            await Task.Delay(FeedbackFor, Services.GetService<TimeProvider>() ?? TimeProvider.System, token);
+        } catch (TaskCanceledException) {
+            return;
+        }
+        _done = false;
+    }
+
+    public void Dispose() {
+        _feedback?.Cancel();
+        _feedback?.Dispose();
+    }
+}

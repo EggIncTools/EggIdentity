@@ -15,5 +15,9 @@ internal static class Motion {
         { ".pane-in-reverse", $"[animation:pane-in-reverse_{Morph}_{Standard}_backwards]" },
         { ".progress", "relative w-full h-2 rounded-full overflow-hidden [background-color:var(--progress-track,var(--color-panel2))]" },
         { ".progress-fill", $"h-full rounded-full [width:var(--progress,0%)] [background-color:var(--progress-fill,var(--color-accent))] [transition:width_{Morph}_{Standard}]" },
+        { ".caret", $"inline-flex shrink-0 [transition:transform_{Fast}_{Standard}]" },
+        { ".caret.open", "[transform:rotate(var(--caret-turn,90deg))]" },
+        { ".mask", $"[filter:blur(var(--mask-blur,5px))] [transition:filter_{Fast}_{Standard}]" },
+        { ".mask.revealed", "[filter:none]" },
     }.ToImmutableDictionary();
 }

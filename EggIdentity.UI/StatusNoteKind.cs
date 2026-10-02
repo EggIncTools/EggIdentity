@@ -4,5 +4,6 @@ public enum StatusNoteKind {
     Info,
     Busy,
     Ok,
-    Error
+    Error,
+    Warn
 }

@@ -1,0 +1,47 @@
+<div class="@Css">
+    <div class="disclosure-head">
+        <button type="button" class="disclosure-toggle" aria-expanded="@(_open ? "true" : "false")" aria-controls="@_id" @onclick="ToggleAsync">
+            <span class="@CaretCss" aria-hidden="true"><Icon Name="chevron-right" Class="icon-sm"/></span>
+            @if (Head is not null) {
+                @Head
+            } else {
+                <span class="disclosure-label">@Label</span>
+            }
+        </button>
+        @if (Tools is not null) {
+            <span class="disclosure-tools">@Tools</span>
+        }
+    </div>
+    @if (_open) {
+        <div class="disclosure-body" id="@_id">@ChildContent</div>
+    }
+</div>
+
+@code {
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public RenderFragment? Head { get; set; }
+    [Parameter] public RenderFragment? Tools { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    readonly string _id = "dc-" + Guid.NewGuid().ToString("N");
+    bool _open;
+    bool _lastOpen;
+
+    string Css => string.IsNullOrEmpty(Class) ? "disclosure" : $"disclosure {Class}";
+
+    string CaretCss => _open ? "caret open" : "caret";
+
+    protected override void OnParametersSet() {
+        if (Open == _lastOpen) return;
+        _open = Open;
+        _lastOpen = Open;
+    }
+
+    async Task ToggleAsync() {
+        _open = !_open;
+        await OpenChanged.InvokeAsync(_open);
+    }
+}

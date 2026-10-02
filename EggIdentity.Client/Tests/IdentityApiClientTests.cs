@@ -1,6 +1,7 @@
 using System.Net;
 using System.Reflection;
 using EggIdentity.Contract;
+using EggIdentity.Testing;
 
 namespace EggIdentity.Client.Tests;
 

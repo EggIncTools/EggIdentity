@@ -17,6 +17,7 @@ internal static class Toasts {
         { ".toast-host .toast", "min-w-[220px] max-w-[320px] px-3 py-2 border-r rounded-md [box-shadow:0_6px_20px_rgba(0,0,0,.45)]" },
         { ".toast-text", "text-[13px] text-fg flex-1 min-w-0 break-words" },
         { ".toast.toast-busy", "border-l-muted" },
+        { ".toast.toast-warn", "border-l-warn" },
         { ".toast.toast-error", "border-l-err" },
         { ".status-note-x", "w-4 h-4 shrink-0 grid place-items-center rounded-sm bg-transparent border-0 p-0 text-muted cursor-pointer" },
         { ".status-note-x:hover", "text-fg" },

@@ -10,6 +10,11 @@ public class ComponentClassesTests {
             + Components.Popovers.Applies.Count
             + Components.Modals.Applies.Count
             + Components.Motion.Applies.Count
+            + Components.Disclosures.Applies.Count
+            + Components.Menus.Applies.Count
+            + Components.EmptyStates.Applies.Count
+            + Components.StatusNotes.Applies.Count
+            + Components.TableScrolls.Applies.Count
             + Components.FloatingBubbles.Applies.Count
             + Components.FormControls.Applies.Count
             + Components.DataTables.Applies.Count

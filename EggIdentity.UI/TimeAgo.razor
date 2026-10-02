@@ -1,0 +1,67 @@
+@using Microsoft.Extensions.DependencyInjection
+@implements IDisposable
+@inject IServiceProvider Services
+
+@if (Hover) {
+    <Tooltip Text="@Absolute">
+        <time datetime="@Iso" class="@Class">@Relative</time>
+    </Tooltip>
+} else {
+    <time datetime="@Iso" class="@Class" title="@Absolute">@Relative</time>
+}
+
+@code {
+    public const string AbsoluteFormat = "dddd d MMMM yyyy 'at' HH:mm:ss zzz";
+    static readonly TimeSpan TickEvery = TimeSpan.FromSeconds(30);
+
+    [Parameter, EditorRequired] public DateTimeOffset At { get; set; }
+    [Parameter] public bool Live { get; set; }
+    [Parameter] public bool Hover { get; set; } = true;
+    [Parameter] public string? Class { get; set; }
+
+    TimeProvider _time = TimeProvider.System;
+    BrowserTimeZone? _zone;
+    ITimer? _timer;
+
+    string Iso => At.ToString("O", CultureInfo.InvariantCulture);
+
+    string Relative => Format(At, _time.GetUtcNow());
+
+    string Absolute => TimeZoneInfo.ConvertTime(At, _zone?.Zone ?? TimeZoneInfo.Utc).ToString(AbsoluteFormat, CultureInfo.CurrentCulture);
+
+    public static string Format(DateTimeOffset at, DateTimeOffset now) {
+        var age = now - at;
+        if (age < TimeSpan.Zero) age = TimeSpan.Zero;
+        if (age.TotalSeconds < 60) return "just now";
+        if (age.TotalMinutes < 60) return string.Create(CultureInfo.InvariantCulture, $"{(int)age.TotalMinutes}m ago");
+        if (age.TotalHours < 24) return string.Create(CultureInfo.InvariantCulture, $"{(int)age.TotalHours}h ago");
+        var days = (int)age.TotalDays;
+        if (days < 30) return string.Create(CultureInfo.InvariantCulture, $"{days}d ago");
+        if (days < 365) return string.Create(CultureInfo.InvariantCulture, $"{days / 30}mo ago");
+        return string.Create(CultureInfo.InvariantCulture, $"{days / 365}y ago");
+    }
+
+    protected override void OnInitialized() {
+        _time = Services.GetService<TimeProvider>() ?? TimeProvider.System;
+        _zone = Services.GetService<BrowserTimeZone>();
+        if (_zone is not null) _zone.Changed += Refresh;
+    }
+
+    protected override void OnAfterRender(bool firstRender) {
+        if (Live && _timer is null) {
+            _timer = _time.CreateTimer(_ => Refresh(), null, TickEvery, TickEvery);
+        } else if (!Live && _timer is not null) {
+            _timer.Dispose();
+            _timer = null;
+        }
+    }
+
+    void Refresh() {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() {
+        if (_zone is not null) _zone.Changed -= Refresh;
+        _timer?.Dispose();
+    }
+}

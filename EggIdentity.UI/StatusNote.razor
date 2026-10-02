@@ -1,0 +1,45 @@
+<div class="@Css" role="@(Kind == StatusNoteKind.Error ? "alert" : "status")">
+    @if (ShowIcon) {
+        <Icon Name="@IconName" Class="status-note-icon icon-sm"/>
+    }
+    <div class="status-note-text">
+        @if (ChildContent is not null) {
+            @ChildContent
+        } else {
+            @Text
+        }
+    </div>
+    @if (Actions is not null) {
+        <div class="status-note-actions">@Actions</div>
+    }
+    @if (OnDismiss.HasDelegate) {
+        <button type="button" class="status-note-x" aria-label="Dismiss" @onclick="OnDismiss">
+            <Icon Name="x" Class="icon-sm"/>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter] public StatusNoteKind Kind { get; set; } = StatusNoteKind.Info;
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public bool ShowIcon { get; set; } = true;
+    [Parameter] public RenderFragment? Actions { get; set; }
+    [Parameter] public EventCallback OnDismiss { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    string Css {
+        get {
+            var css = "status-note status-note-" + Kind.ToString().ToLowerInvariant();
+            return string.IsNullOrEmpty(Class) ? css : $"{css} {Class}";
+        }
+    }
+
+    string IconName => Kind switch {
+        StatusNoteKind.Ok => "circle-check",
+        StatusNoteKind.Warn => "triangle-alert",
+        StatusNoteKind.Error => "circle-alert",
+        StatusNoteKind.Busy => "loader-circle",
+        _ => "info"
+    };
+}
