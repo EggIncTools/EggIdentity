@@ -6,10 +6,13 @@ namespace EggIdentity.Tools;
 
 internal static class Program {
     private const string CloneSubProd = "clone-subprod";
+    private const string Css = "css";
 
     private static async Task<int> Main(string[] args) {
         if (args.Length > 0 && args[0] == CloneSubProd)
             return await CloneConsole.RunAsync(args[1..], SubProdClonePlan.Plan, Environment.GetEnvironmentVariable);
+        if (args.Length > 0 && args[0] == Css)
+            return SharedStylesheet.Run(args[1..]);
 
         var egiConn = RequireEnv("EGI_SOURCE_DB_CONNECTION");
         var ledgerConn = RequireEnv("LEDGER_SOURCE_DB_CONNECTION");

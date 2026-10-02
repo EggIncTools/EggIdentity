@@ -1,14 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Description>Shared CSS/design-system library for EggLedger and EggIncognito - component shape layer, skinned per app via CSS custom properties.</Description>
+    <Description>Shared CSS/design-system library: the compiled shared component layer and optional preflight as static web assets, the component class dictionary, the token contract and the cross-app theming model.</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MonorailCss" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>

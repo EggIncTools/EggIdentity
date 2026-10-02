@@ -13,5 +13,6 @@ public static class FallbackDefaults {
         ["--color-ok"] = "#3fb950",
         ["--color-err"] = "#f85149",
         ["--color-border"] = "#262c3a",
+        ["--color-warn"] = "#f0b232",
     };
 }

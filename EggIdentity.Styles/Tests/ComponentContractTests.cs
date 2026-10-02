@@ -47,7 +47,7 @@ public class ComponentContractTests {
     public void Tokens_MatchGoldenNames() {
         string[] expectedRequired = [
             "--color-bg", "--color-panel", "--color-panel2", "--color-fg", "--color-muted",
-            "--color-accent", "--color-accent2", "--color-ok", "--color-err", "--color-border",
+            "--color-accent", "--color-accent2", "--color-ok", "--color-err", "--color-border", "--color-warn",
         ];
         Assert.Equal<string>(expectedRequired, [.. ComponentTokens.Required]);
 

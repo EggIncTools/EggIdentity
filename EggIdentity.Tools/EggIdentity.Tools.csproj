@@ -5,18 +5,20 @@
     <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Description>Maintenance console: one-time users/identities cutover from EggIncognito and EggLedger (dry-run by default) and the clone-subprod verbs.</Description>
+    <Description>Maintenance console: one-time users/identities cutover from EggIncognito and EggLedger (dry-run by default), the clone-subprod verbs, and the css emit verb that regenerates the shared stylesheet assets.</Description>
     <RootNamespace>EggIdentity.Tools</RootNamespace>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MonorailCss" />
     <PackageReference Include="Npgsql" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\EggIdentity.Db\EggIdentity.Db.csproj" />
     <ProjectReference Include="..\EggIdentity.DbClone\EggIdentity.DbClone.csproj" />
+    <ProjectReference Include="..\EggIdentity.Styles\EggIdentity.Styles.csproj" />
     <ProjectReference Include="..\EggIdentity\EggIdentity.csproj" />
   </ItemGroup>
 

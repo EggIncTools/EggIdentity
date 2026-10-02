@@ -13,10 +13,11 @@ public static class ComponentTokens {
     public const string Ok = "--color-ok";
     public const string Err = "--color-err";
     public const string Border = "--color-border";
+    public const string Warn = "--color-warn";
     public const string Panel0 = "--color-panel0";
 
     public static readonly ImmutableArray<string> Required = [
-        Bg, Panel, Panel2, Fg, Muted, Accent, Accent2, Ok, Err, Border,
+        Bg, Panel, Panel2, Fg, Muted, Accent, Accent2, Ok, Err, Border, Warn,
     ];
 
     public static readonly ImmutableArray<string> Optional = [Panel0];
