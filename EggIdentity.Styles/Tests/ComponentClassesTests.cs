@@ -9,6 +9,7 @@ public class ComponentClassesTests {
             + Components.SegmentedToggles.Applies.Count
             + Components.Popovers.Applies.Count
             + Components.Modals.Applies.Count
+            + Components.Motion.Applies.Count
             + Components.FloatingBubbles.Applies.Count
             + Components.FormControls.Applies.Count
             + Components.DataTables.Applies.Count

@@ -8,6 +8,10 @@
     overflow: visible;
 }
 
+.rcn:focus {
+    outline: none;
+}
+
 .rcn::backdrop {
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
@@ -38,6 +42,10 @@
 .rcn.components-reconnect-rejected .rcn-rejected,
 .rcn.rcn-is-updated .rcn-updated {
     display: flex;
+}
+
+.rcn.rcn-is-updated .rcn-state:not(.rcn-updated) {
+    display: none;
 }
 
 .rcn-retry-line {

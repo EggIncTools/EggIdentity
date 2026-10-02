@@ -53,10 +53,31 @@ public partial class SharedSheetTests {
     [Fact]
     public void EveryMotionRuleHasAReducedMotionCounterpart() {
         var moving = Sheet.Rules
-            .Where(r => r.Container is null && r.Declarations.Any(d => d.Property is "transition" or "animation" && d.Value.Contains("--wb-morph-dur", StringComparison.Ordinal)))
+            .Where(r => r.Container is null && r.Declarations.Any(d => d.Property is "transition" or "animation" && d.Value != "none"))
             .Select(r => r.Selector);
         var calmed = Sheet.Within("@media (prefers-reduced-motion").SelectMany(r => r.Selector.Split(", ")).ToHashSet(StringComparer.Ordinal);
         Assert.All(moving, s => Assert.Contains(s, calmed));
+    }
+
+    [Fact]
+    public void EveryMotionRuleReadsTheMotionTokens() {
+        var timed = Sheet.Rules
+            .Where(r => r.Container is null)
+            .SelectMany(r => r.Declarations)
+            .Where(d => d.Property is "transition" or "animation" && d.Value != "none")
+            .Select(d => StripVars(d.Value));
+        Assert.All(timed, v => Assert.DoesNotMatch(LiteralDuration(), v));
+    }
+
+    [GeneratedRegex(@"var\([^()]*\)")]
+    private static partial Regex InnerVar();
+
+    [GeneratedRegex(@"(?<![\w.])(?!0s\b)\d*\.?\d+m?s\b")]
+    private static partial Regex LiteralDuration();
+
+    private static string StripVars(string value) {
+        while (InnerVar().IsMatch(value)) value = InnerVar().Replace(value, "");
+        return value;
     }
 
     [Theory]

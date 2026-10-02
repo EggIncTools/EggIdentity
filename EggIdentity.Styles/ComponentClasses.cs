@@ -12,6 +12,7 @@ public static class ComponentClasses {
         .AddRange(SegmentedToggles.Applies)
         .AddRange(Popovers.Applies)
         .AddRange(Modals.Applies)
+        .AddRange(Motion.Applies)
         .AddRange(FloatingBubbles.Applies)
         .AddRange(FormControls.Applies)
         .AddRange(DataTables.Applies)

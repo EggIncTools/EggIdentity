@@ -1,0 +1,20 @@
+<div @key="Key" class="@Css">@ChildContent</div>
+
+@code {
+    [Parameter] public object? Key { get; set; }
+    [Parameter] public PaneDirection Direction { get; set; } = PaneDirection.Forward;
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    string? Css {
+        get {
+            var motion = Direction switch {
+                PaneDirection.Forward => "pane-in",
+                PaneDirection.Back => "pane-in-reverse",
+                _ => null
+            };
+            var css = string.Join(' ', new[] { motion, Class }.Where(c => !string.IsNullOrEmpty(c)));
+            return css.Length > 0 ? css : null;
+        }
+    }
+}

@@ -71,7 +71,7 @@ function showUpdated(version) {
   stopPolling();
   dialog.classList.remove(...FrameworkClasses);
   dialog.classList.add("rcn-is-updated");
-  dialog.querySelector(".rcn-new-version").textContent = version;
+  dialog.querySelector(".rcn-new-version").textContent = version.split("+")[0];
   open();
   setTimeout(() => location.reload(), UpdatedReloadMs);
 }
