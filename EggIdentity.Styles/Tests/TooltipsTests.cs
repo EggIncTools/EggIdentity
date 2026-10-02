@@ -101,4 +101,15 @@ public class TooltipsTests {
         Assert.Contains(".tooltip-anchored{", flat);
         Assert.Contains(".tooltip-fixed{", flat);
     }
+
+    [Fact]
+    public void TooltipLine_UsesMutedSmallText() {
+        var css = BuildFramework().Process("tooltip-line tooltip-line-head");
+        var flat = css.Replace(" ", "").Replace("\n", "");
+
+        Assert.Contains(".tooltip-line{", flat);
+        Assert.Contains("font-size:0.75rem", flat);
+        Assert.Contains(".tooltip-line-head{", flat);
+        Assert.Contains("font-weight:var(--font-weight-medium)", flat);
+    }
 }

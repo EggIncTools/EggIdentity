@@ -41,4 +41,14 @@ public class ModalsTests {
 
         Assert.Contains("#25252b", css);
     }
+
+    [Fact]
+    public void ModalCard_SizeReadsFromCustomPropertiesWithUnchangedDefaults() {
+        var css = BuildFramework().Process("modal-card");
+        var flat = css.Replace(" ", "").Replace("\n", "");
+
+        Assert.Contains("width:var(--modal-card-w,100%)", flat);
+        Assert.Contains("max-width:var(--modal-card-max,48rem)", flat);
+        Assert.Contains("max-height:var(--modal-card-max-h,calc(100dvh-2rem))", flat);
+    }
 }

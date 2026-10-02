@@ -21,7 +21,7 @@ public class ComponentContractTests {
             ".tooltip-floating", ".tooltip-anchored", ".tooltip-floating.tooltip-anchored", ".tooltip-fixed", ".tooltip-host", ".tooltip-toggle",
             ".tooltip-host:hover .tooltip-toggle", ".tooltip-toggle.show", ".tooltip-floating.tooltip-below", ".tooltip-anchored.tooltip-below",
             ".tooltip-floating::before", ".tooltip-floating::after", ".tooltip-floating.tooltip-below::before", ".tooltip-floating.tooltip-below::after",
-            ".tooltip-floating.tooltip-err", ".tooltip-floating.tooltip-err *",
+            ".tooltip-floating.tooltip-err", ".tooltip-floating.tooltip-err *", ".tooltip-line", ".tooltip-line-head",
             ".prose-legal", ".prose-legal h2", ".prose-legal p", ".prose-legal ul", ".prose-legal a", ".prose-legal a:hover",
             ".modal-card.wb-card", ".wb-card.wb-card-wide", ".wb-body", ".wb-main", ".wb-notice", ".wb-head-tools",
             ".wb-rail", ".wb-entry", ".wb-entry:hover", ".wb-entry:focus-visible", ".wb-entry.selected",

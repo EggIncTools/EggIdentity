@@ -20,5 +20,7 @@ internal static class Tooltips {
         { ".tooltip-floating.tooltip-below::after", "top-auto bottom-full [transform:translateX(-50%)_translateY(1px)] [border-top-color:transparent] [border-bottom-color:var(--tooltip-bg,rgba(33,37,41,.95))]" },
         { ".tooltip-floating.tooltip-err", "text-err [--tooltip-border:var(--color-err)] [--tooltip-bg:color-mix(in_srgb,var(--color-err)_18%,var(--color-bg))] [box-shadow:0_0_0_1px_var(--color-err),0_4px_14px_color-mix(in_srgb,var(--color-err)_35%,transparent)]" },
         { ".tooltip-floating.tooltip-err *", "text-err" },
+        { ".tooltip-line", "text-[0.75rem] [line-height:calc(1_/_0.75)] text-muted" },
+        { ".tooltip-line-head", "font-medium text-fg" },
     }.ToImmutableDictionary();
 }
