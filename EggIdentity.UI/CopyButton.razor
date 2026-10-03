@@ -4,8 +4,14 @@
 @inject IServiceProvider Services
 
 <button type="button" class="@Class" aria-label="@(_done ? DoneLabel : Label)" title="@(_done ? DoneLabel : Label)" @onclick="CopyAsync">
-    <Icon Name="@(_done ? "check" : "copy")" Class="@IconClass"/>
-    @ChildContent
+    @if (ShowIcon) {
+        <Icon Name="@(_done ? "check" : "copy")" Class="@IconClass"/>
+    }
+    @if (_done && DoneContent is not null) {
+        @DoneContent
+    } else {
+        @ChildContent
+    }
 </button>
 
 @code {
@@ -16,25 +22,22 @@
     [Parameter] public string DoneLabel { get; set; } = "Copied";
     [Parameter] public string Class { get; set; } = "icon-btn";
     [Parameter] public string? IconClass { get; set; }
+    [Parameter] public bool ShowIcon { get; set; } = true;
+    [Parameter] public EventCallback OnCopied { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? DoneContent { get; set; }
 
     bool _done;
     CancellationTokenSource? _feedback;
 
     async Task CopyAsync() {
-        if (!await UiScript.EnsureAsync(JS, UiScript.Clipboard)) return;
-        bool ok;
-        try {
-            ok = await JS.InvokeAsync<bool>("eggClipboardWrite", Text);
-        } catch (Exception ex) when (ex is JSDisconnectedException or JSException or TaskCanceledException) {
-            return;
-        }
-        if (!ok) return;
+        if (!await new ClipboardInterop(JS).WriteAsync(Text)) return;
         if (_feedback is not null) await _feedback.CancelAsync();
         _feedback?.Dispose();
         _feedback = new CancellationTokenSource();
         var token = _feedback.Token;
         _done = true;
+        await OnCopied.InvokeAsync();
         await InvokeAsync(StateHasChanged);
         try {
             await Task.Delay(FeedbackFor, Services.GetService<TimeProvider>() ?? TimeProvider.System, token);

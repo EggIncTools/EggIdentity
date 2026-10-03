@@ -5,11 +5,15 @@ using Microsoft.Extensions.DependencyInjection;
 namespace EggIdentity.Auth;
 
 public interface ICurrentUser {
+    CurrentUser Current { get; }
+
     Task<CurrentUser> GetAsync();
 }
 
 public sealed class HttpCurrentUser(IHttpContextAccessor accessor) : ICurrentUser {
-    public Task<CurrentUser> GetAsync() => Task.FromResult(accessor.HttpContext?.User.ToCurrentUser() ?? CurrentUser.Anonymous);
+    public CurrentUser Current => accessor.HttpContext?.User.ToCurrentUser() ?? CurrentUser.Anonymous;
+
+    public Task<CurrentUser> GetAsync() => Task.FromResult(Current);
 }
 
 public sealed class CircuitCurrentUser : ICurrentUser, IDisposable {
@@ -21,6 +25,8 @@ public sealed class CircuitCurrentUser : ICurrentUser, IDisposable {
         _state = auth.GetAuthenticationStateAsync();
         auth.AuthenticationStateChanged += OnChanged;
     }
+
+    public CurrentUser Current => _state.IsCompletedSuccessfully ? _state.Result.User.ToCurrentUser() : CurrentUser.Anonymous;
 
     public async Task<CurrentUser> GetAsync() => (await _state).User.ToCurrentUser();
 

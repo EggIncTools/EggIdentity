@@ -50,6 +50,29 @@ public class TtlSnapshotTests {
     }
 
     [Fact]
+    public void SyncLoaderServesCachedThenStaleOnFailure() {
+        var time = new FakeTimeProvider();
+        var errors = new List<Exception>();
+        var loads = 0;
+        using var snap = new TtlSnapshot<int>(TimeSpan.FromMinutes(1), () => ++loads == 1 ? 7 : throw new InvalidOperationException("down"), time, errors.Add);
+
+        Assert.Equal(7, snap.Get());
+        Assert.Equal(7, snap.Get());
+        time.Advance(TimeSpan.FromMinutes(1));
+
+        Assert.Equal(7, snap.Get());
+        Assert.Single(errors);
+        Assert.Equal(2, loads);
+    }
+
+    [Fact]
+    public void SyncGetOnAsyncLoaderThrows() {
+        using var snap = new TtlSnapshot<int>(TimeSpan.FromMinutes(1), _ => Task.FromResult(1), new FakeTimeProvider());
+
+        Assert.Throws<InvalidOperationException>(() => snap.Get());
+    }
+
+    [Fact]
     public async Task ConcurrentCallersShareOneLoad() {
         var loads = 0;
         var gate = new TaskCompletionSource<int>();

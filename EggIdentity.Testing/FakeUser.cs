@@ -37,6 +37,8 @@ public sealed record FakeUser(
     public static ClaimsPrincipal Anonymous() => new(new ClaimsIdentity());
 
     private sealed class FixedCurrentUser(CurrentUser user) : ICurrentUser {
+        public CurrentUser Current => user;
+
         public Task<CurrentUser> GetAsync() => Task.FromResult(user);
     }
 }
