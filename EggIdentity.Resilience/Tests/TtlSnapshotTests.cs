@@ -66,6 +66,34 @@ public class TtlSnapshotTests {
     }
 
     [Fact]
+    public void FirstLoadFailureWithoutFallbackRetriesOnTheNextCall() {
+        var loads = 0;
+        using var snap = new TtlSnapshot<int>(TimeSpan.FromMinutes(1), () => ++loads == 1 ? throw new InvalidOperationException("down") : 5, new FakeTimeProvider());
+
+        Assert.Throws<InvalidOperationException>(() => snap.Get());
+        Assert.Equal(5, snap.Get());
+        Assert.Equal(2, loads);
+    }
+
+    [Fact]
+    public void FirstLoadFailureWithFallbackServesItAndBacksOffATtl() {
+        var time = new FakeTimeProvider();
+        var errors = new List<Exception>();
+        var loads = 0;
+        using var snap = new TtlSnapshot<int>(TimeSpan.FromMinutes(1), () => ++loads < 3 ? throw new InvalidOperationException("down") : 9, time, errors.Add) { Fallback = -1 };
+
+        Assert.Equal(-1, snap.Get());
+        Assert.Equal(-1, snap.Get());
+        Assert.Equal(1, loads);
+        time.Advance(TimeSpan.FromMinutes(1));
+        Assert.Equal(-1, snap.Get());
+        time.Advance(TimeSpan.FromMinutes(1));
+
+        Assert.Equal(9, snap.Get());
+        Assert.Equal(2, errors.Count);
+    }
+
+    [Fact]
     public void SyncGetOnAsyncLoaderThrows() {
         using var snap = new TtlSnapshot<int>(TimeSpan.FromMinutes(1), _ => Task.FromResult(1), new FakeTimeProvider());
 

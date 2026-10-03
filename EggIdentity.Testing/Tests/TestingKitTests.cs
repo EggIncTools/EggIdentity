@@ -24,6 +24,19 @@ public class TestingKitTests {
         Assert.Equal(fake.Current(), await fake.Accessor().GetAsync());
     }
 
+    [Theory]
+    [InlineData("/avatars/1", "https://id.test/", "https://id.test/avatars/1")]
+    [InlineData("/avatars/1", "https://id.test", "https://id.test/avatars/1")]
+    [InlineData("/avatars/1", null, "/avatars/1")]
+    [InlineData("https://cdn.test/a.png", "https://id.test", "https://cdn.test/a.png")]
+    [InlineData("//cdn.test/a.png", "https://id.test", "//cdn.test/a.png")]
+    [InlineData(null, "https://id.test", null)]
+    public void AvatarUrl_ResolvesRootRelativeAgainstIdentityHost(string? avatar, string? host, string? expected) {
+        var user = new FakeUser(Guid.NewGuid(), Avatar: avatar).Current();
+
+        Assert.Equal(expected, user.AvatarUrl(host));
+    }
+
     [Fact]
     public void Anonymous_IsNotAuthenticatedAndHasNoRole() {
         var user = FakeUser.Anonymous().ToCurrentUser();
@@ -64,6 +77,20 @@ public class TestingKitTests {
         Assert.True(Directory.Exists(sub));
         Assert.Equal(Path.Combine(dir.Path, "a", "b"), dir.File("a", "b"));
         Assert.True(Directory.Exists(dir.CreateSubdir()));
+    }
+
+    [Fact]
+    public async Task StubResponses_CarryStatusBodyAndContentType() {
+        using var raw = StubResponses.Json(HttpStatusCode.BadRequest, "{not json");
+        using var typed = StubResponses.Json(HttpStatusCode.OK, new { UserId = 7 });
+        using var bytes = StubResponses.Bytes(HttpStatusCode.OK, [1, 2, 3], "image/png");
+
+        Assert.Equal(HttpStatusCode.BadRequest, raw.StatusCode);
+        Assert.Equal("{not json", await raw.Content.ReadAsStringAsync());
+        Assert.Equal("application/json", raw.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("{\"userId\":7}", await typed.Content.ReadAsStringAsync());
+        Assert.Equal([1, 2, 3], await bytes.Content.ReadAsByteArrayAsync());
+        Assert.Equal("image/png", bytes.Content.Headers.ContentType?.MediaType);
     }
 
     [Fact]

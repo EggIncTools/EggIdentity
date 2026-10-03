@@ -15,6 +15,11 @@ public sealed record CurrentUser(
 
     public bool IsAtLeast(UserRole need) => IsAuthenticated && UserRoles.IsAtLeast(Role, need);
 
+    public string? AvatarUrl(string? identityHost) {
+        if (string.IsNullOrEmpty(Avatar) || !Avatar.StartsWith('/') || Avatar.StartsWith("//", StringComparison.Ordinal)) return Avatar;
+        return string.IsNullOrWhiteSpace(identityHost) ? Avatar : identityHost.TrimEnd('/') + Avatar;
+    }
+
     public static CurrentUser From(ClaimsPrincipal? principal) {
         if (principal?.Identity?.IsAuthenticated != true) return Anonymous;
         return new CurrentUser(

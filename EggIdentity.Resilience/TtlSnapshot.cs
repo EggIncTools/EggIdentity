@@ -28,6 +28,16 @@ public sealed class TtlSnapshot<T> : IDisposable {
 
     public DateTimeOffset? LoadedAt { get; private set; }
 
+    public bool HasFallback { get; private init; }
+
+    public T Fallback {
+        get;
+        init {
+            field = value;
+            HasFallback = true;
+        }
+    } = default!;
+
     public T Get() {
         if (_load is null) throw new InvalidOperationException("TtlSnapshot was built with an async loader; call GetAsync.");
         if (Fresh()) return _value;
@@ -36,8 +46,8 @@ public sealed class TtlSnapshot<T> : IDisposable {
             if (Fresh()) return _value;
             try {
                 Store(_load());
-            } catch (Exception e) when (Volatile.Read(ref _hasValue)) {
-                _onError?.Invoke(e);
+            } catch (Exception e) when (Recoverable()) {
+                Recover(e);
             }
             LoadedAt = _time.GetUtcNow();
             return _value;
@@ -53,8 +63,8 @@ public sealed class TtlSnapshot<T> : IDisposable {
             if (Fresh()) return _value;
             try {
                 Store(_loadAsync is not null ? await _loadAsync(ct) : (_load ?? throw new InvalidOperationException("TtlSnapshot has no loader."))());
-            } catch (Exception e) when (e is not OperationCanceledException && Volatile.Read(ref _hasValue)) {
-                _onError?.Invoke(e);
+            } catch (Exception e) when (e is not OperationCanceledException && Recoverable()) {
+                Recover(e);
             }
             LoadedAt = _time.GetUtcNow();
             return _value;
@@ -68,6 +78,13 @@ public sealed class TtlSnapshot<T> : IDisposable {
     }
 
     public void Dispose() => _gate.Dispose();
+
+    private bool Recoverable() => Volatile.Read(ref _hasValue) || HasFallback;
+
+    private void Recover(Exception e) {
+        if (!Volatile.Read(ref _hasValue)) Store(Fallback);
+        _onError?.Invoke(e);
+    }
 
     private void Store(T value) {
         _value = value;
