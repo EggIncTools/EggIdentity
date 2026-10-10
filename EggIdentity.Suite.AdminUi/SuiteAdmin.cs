@@ -20,6 +20,8 @@ public sealed class SuiteAdmin(
 
     public string? LocalApp { get; set; }
 
+    public IBotConfigAdmin? LocalBot { get; set; }
+
     public async Task<IReadOnlyList<SuiteApp>> AppsAsync(CancellationToken ct = default) {
         var rows = await settings.GetRowsAsync(SuiteApps.Key, ct);
         return [.. rows.Select(r => CollectionBinder.Bind<SuiteApp>(r.Values))
@@ -55,6 +57,7 @@ public sealed class SuiteAdmin(
     public IBotConfigAdmin? BotFor(SuiteAppView view, IReadOnlyList<SuiteAppView> all) {
         ArgumentNullException.ThrowIfNull(view);
         ArgumentNullException.ThrowIfNull(all);
+        if (view.IsLocal && !view.App.ServedBySuiteBot) return LocalBot;
         if (http is null) return null;
         if (view.App.ServedBySuiteBot) {
             var host = all.FirstOrDefault(v => string.Equals(v.App.Name, IdentityHostApp, StringComparison.OrdinalIgnoreCase));

@@ -28,6 +28,7 @@ public sealed partial class SuitePanel : ComponentBase {
     private bool _hasFleet;
 
     [Parameter] public string? LocalApp { get; set; }
+    [Parameter] public IBotConfigAdmin? LocalBot { get; set; }
     [Parameter] public string IdentityHostApp { get; set; } = "eggidentity";
     [Parameter] public string? UpdatedBy { get; set; }
     [Parameter] public IReadOnlyList<SuiteExtraView> Extras { get; set; } = [];
@@ -75,6 +76,7 @@ public sealed partial class SuitePanel : ComponentBase {
         _hasFleet = Services.GetService<FleetClient>() is not null;
         if (_admin is null) return;
         _admin.LocalApp = LocalApp;
+        _admin.LocalBot = LocalBot;
         _admin.IdentityHostApp = IdentityHostApp;
         await LoadAsync();
     }
