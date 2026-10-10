@@ -1184,17 +1184,6 @@
     font-size: var(--text-xs);
     line-height: var(--tw-leading, var(--text-xs--line-height));
   }
-  .popover.popover-combo:popover-open {
-    position: fixed;
-    margin: calc(var(--spacing) * 0);
-    top: anchor(bottom);
-    left: anchor(left);
-    right: auto;
-    bottom: auto;
-    opacity: 100%;
-    pointer-events: auto;
-    transform: none;
-  }
   .filter-bucket {
     display: flex;
     flex-direction: column;
@@ -1579,14 +1568,23 @@
     font-size: 0.7rem;
   }
   .popover.popover-combo {
+    position: fixed;
+    margin: calc(var(--spacing) * 0);
     max-height: 240px;
     overflow: auto;
     background-color: var(--color-panel0);
     padding: calc(var(--spacing) * 0);
     padding-block: calc(var(--spacing) * 1);
     position-anchor: var(--combo-anchor);
+    top: anchor(bottom);
+    left: anchor(left);
+    right: auto;
+    bottom: auto;
     width: anchor-size(width);
     position-try-fallbacks: flip-block;
+    opacity: 100%;
+    pointer-events: auto;
+    transform: none;
     box-shadow: 0 8px 24px rgba(0,0,0,.55);
   }
   .wb-seg-count {

@@ -1,19 +1,19 @@
-@inject IJSRuntime JS
-
 <div class="combo-wrap" style="@AnchorStyle">
     <input type="text" class="form-input combo-anchor" placeholder="@Placeholder" value="@_query"
            @oninput="OnInput" @onfocus="OnFocus" @onfocusout="OnFocusOut" @onkeydown="OnKeyDown" @onkeydown:preventDefault="@_preventDefault"
            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-    <div popover="manual" class="popover popover-combo" @ref="_listbox">
-        @if (_filtered.Count == 0) {
-            <div class="popover-combo-opt">No matches</div>
-        } else {
-            @foreach (var index in Enumerable.Range(0, _filtered.Count)) {
-                var option = _filtered[index];
-                <button type="button" class="@OptionCss(index)" @onmousedown:preventDefault="true" @onclick="() => SelectAsync(option)">@option.Label</button>
+    @if (_open) {
+        <div class="popover popover-combo">
+            @if (_filtered.Count == 0) {
+                <div class="popover-combo-opt">No matches</div>
+            } else {
+                @foreach (var index in Enumerable.Range(0, _filtered.Count)) {
+                    var option = _filtered[index];
+                    <button type="button" class="@OptionCss(index)" @onmousedown:preventDefault="true" @onclick="() => SelectAsync(option)">@option.Label</button>
+                }
             }
-        }
-    </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -29,9 +29,6 @@
     bool _open;
     bool _preventDefault;
     int _highlight;
-
-    ElementReference _listbox;
-    bool _shown;
 
     string AnchorStyle => $"--combo-anchor: {_anchor}";
 
@@ -104,14 +101,5 @@
 
     string OptionCss(int index) {
         return index == _highlight ? "popover-combo-opt combo-highlighted" : "popover-combo-opt";
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender) {
-        if (_open == _shown) return;
-        _shown = _open;
-        try {
-            await JS.InvokeVoidAsync(_open ? "comboBoxPickerShow" : "comboBoxPickerHide", _listbox);
-        } catch (JSDisconnectedException) {
-        }
     }
 }

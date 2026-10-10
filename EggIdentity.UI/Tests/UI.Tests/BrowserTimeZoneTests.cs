@@ -1,8 +1,13 @@
+using System.Text.Json;
+
 namespace EggIdentity.UI.Tests;
 
 public class BrowserTimeZoneTests {
     private static ViewerCookies Cookies() =>
         new(new ViewerCookieOptions().Allow(BrowserTimeZone.CookieName, TimeSpan.FromDays(1)));
+
+    private static FakeJSRuntime Browser(string zone) =>
+        new(new FakeJSObjectReference(JsonElement.Parse($$"""{"timeZone":"{{zone}}"}""")));
 
     [Theory]
     [InlineData(null)]
@@ -29,21 +34,21 @@ public class BrowserTimeZoneTests {
 
     [Fact]
     public async Task SyncAsync_BrowserZoneIsReadAndQueuedForCookie() {
-        var js = new FakeJSRuntime("Europe/Berlin");
+        var js = Browser("Europe/Berlin");
         var cookies = Cookies();
         var tz = new BrowserTimeZone(js, cookies);
 
         await tz.SyncAsync();
 
         Assert.Equal("Europe/Berlin", tz.Zone.Id);
-        Assert.Equal("eggTimeZoneBrowser", Assert.Single(js.Calls).Identifier);
+        Assert.Equal("Intl.DateTimeFormat", Assert.Single(js.Calls).Identifier);
         Assert.Equal("Europe/Berlin", cookies.Get(BrowserTimeZone.CookieName));
         Assert.Contains("Europe%2FBerlin", Assert.Single(cookies.Pending));
     }
 
     [Fact]
     public async Task SyncAsync_PreferredZoneWinsWithoutBrowserCall() {
-        var js = new FakeJSRuntime("Europe/Berlin");
+        var js = Browser("Europe/Berlin");
         var cookies = Cookies();
         var tz = new BrowserTimeZone(js, cookies);
 

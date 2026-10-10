@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.JSInterop;
 
 namespace EggIdentity.UI;
@@ -15,7 +16,9 @@ public sealed class BrowserTimeZone(IJSRuntime js, ViewerCookies cookies) {
             return;
         }
         try {
-            Apply(await js.InvokeAsync<string?>("eggTimeZoneBrowser"));
+            await using var format = await js.InvokeAsync<IJSObjectReference>("Intl.DateTimeFormat");
+            var options = await format.InvokeAsync<JsonElement>("resolvedOptions");
+            Apply(options.TryGetProperty("timeZone", out var id) && id.ValueKind == JsonValueKind.String ? id.GetString() : null);
         } catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException) {
         }
     }
