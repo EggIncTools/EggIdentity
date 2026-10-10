@@ -2,7 +2,8 @@
 @if (Open && !UseNativeDialog) {
     <div class="modal-backdrop" @ref="_root" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="@TitleId"
          @onkeydown="HandleKeyDown" @onkeydown:preventDefault="PreventKeyDefault" @onclick="OnBackdropClick">
-        <div class="@CardCss" tabindex="-1" @onclick:stopPropagation="true">
+        <span class="modal-sentinel" tabindex="0" @onfocus="() => _card.FocusAsync()" aria-hidden="true"></span>
+        <div class="@CardCss" tabindex="-1" @ref="_card" @onclick:stopPropagation="true">
             <div class="modal-head">
                 <h3 class="modal-title" id="@TitleId">@Title</h3>
                 @HeadTools
@@ -14,12 +15,14 @@
             </div>
             @ChildContent
         </div>
+        <span class="modal-sentinel" tabindex="0" @onfocus="() => _card.FocusAsync()" aria-hidden="true"></span>
     </div>
 }
 @if (Open && UseNativeDialog) {
     <dialog class="modal-backdrop" @ref="_root" tabindex="-1" open aria-labelledby="@TitleId"
             @onkeydown="HandleKeyDown" @onkeydown:preventDefault="PreventKeyDefault" @onclick="OnBackdropClick">
-        <div class="@CardCss" tabindex="-1" @onclick:stopPropagation="true">
+        <span class="modal-sentinel" tabindex="0" @onfocus="() => _card.FocusAsync()" aria-hidden="true"></span>
+        <div class="@CardCss" tabindex="-1" @ref="_card" @onclick:stopPropagation="true">
             <div class="modal-head">
                 <h3 class="modal-title" id="@TitleId">@Title</h3>
                 @HeadTools
@@ -31,6 +34,7 @@
             </div>
             @ChildContent
         </div>
+        <span class="modal-sentinel" tabindex="0" @onfocus="() => _card.FocusAsync()" aria-hidden="true"></span>
     </dialog>
 }
 
@@ -45,14 +49,17 @@
     [Parameter] public bool HideClose { get; set; }
     [Parameter] public bool UseNativeDialog { get; set; }
     [Parameter] public bool PreventKeyDefault { get; set; }
+    [Parameter] public ElementReference? ReturnFocusTo { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
     [Parameter] public RenderFragment? HeadTools { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     ElementReference _root;
+    ElementReference _card;
     bool _wasOpen;
     bool _pendingFocus;
+    bool _pendingReturn;
 
     string CardCss {
         get {
@@ -67,13 +74,19 @@
 
     protected override void OnParametersSet() {
         if (Open && !_wasOpen) _pendingFocus = true;
+        if (!Open && _wasOpen) _pendingReturn = true;
         _wasOpen = Open;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) {
-        if (!_pendingFocus) return;
-        _pendingFocus = false;
-        await _root.FocusAsync();
+        if (_pendingFocus) {
+            _pendingFocus = false;
+            await _root.FocusAsync();
+        }
+        if (_pendingReturn) {
+            _pendingReturn = false;
+            if (ReturnFocusTo is { } opener) await opener.FocusAsync();
+        }
     }
 
     Task OnBackdropClick() => CloseOnBackdrop ? OnClose.InvokeAsync() : Task.CompletedTask;

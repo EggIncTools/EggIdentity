@@ -567,6 +567,14 @@
     overflow: hidden;
     border-collapse: collapse;
   }
+  .modal-sentinel {
+    position: fixed;
+    width: calc(var(--spacing) * 0);
+    height: calc(var(--spacing) * 0);
+    overflow: hidden;
+    opacity: 0%;
+    pointer-events: none;
+  }
   .pane-in {
     animation: pane-in var(--motion-morph,220ms) var(--ease-standard,cubic-bezier(.2,0,0,1)) backwards;
   }
@@ -1251,6 +1259,10 @@
     color: var(--color-muted);
     cursor: pointer;
   }
+  .drop-zone.drop-zone-active {
+    border-color: var(--color-accent);
+    background-color: color-mix(in oklab,var(--color-accent) 12%,transparent);
+  }
   .wb-scroll {
     overflow-y: auto;
     scrollbar-gutter: stable;
@@ -1330,6 +1342,14 @@
   }
   .wb-entry.tone-bad {
     --wb-entry-border: var(--color-err);
+  }
+  .drop-zone {
+    border-style: dashed;
+    border-width: 1px;
+    --tw-border-style: dashed;
+    border-color: var(--color-border);
+    border-radius: var(--radius-md);
+    transition: border-color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,0,0,1)),background-color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,0,0,1));
   }
   .cal-hour-tick {
     position: absolute;
@@ -1871,8 +1891,41 @@ body:has(.modal-backdrop) {
     border-bottom-color: var(--tooltip-bg,rgba(33,37,41,.95));
   }
 }
+@supports (anchor-name: --m) {
+  .menu-wrap {
+    anchor-name: --menu;
+    anchor-scope: --menu;
+  }
+  .menu, .menu.open {
+    position: fixed;
+    position-anchor: --menu;
+    position-area: bottom span-left;
+    position-try-fallbacks: flip-block;
+    inset: auto;
+    margin: 6px 0 0;
+  }
+  .menu.menu-start {
+    position-area: bottom span-right;
+  }
+}
+@supports not (anchor-name: --tt) {
+  .tooltip-trigger, .tooltip-point {
+    position: relative;
+  }
+  .tooltip-point {
+    position: absolute;
+  }
+  .tooltip-floating.tooltip-fixed {
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    top: auto;
+    margin: 0;
+    transform: translateX(calc(-50% + var(--tt-shift-x,0px))) translateY(-10px) scale(var(--tt-scale,1));
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .modal-card, .modal-card.wb-card, .wb-rail, .wb-main, .wb-drawer, .wb-drawer.wb-drawer-open, .wb-drawer-tab, .tooltip-floating, .popover, .toast, .cal-period, .cal-row, .cal-range-trigger, .fab-bubble, .progress-fill, .caret, .mask, .menu, .menu.open {
+  .modal-card, .modal-card.wb-card, .wb-rail, .wb-main, .wb-drawer, .wb-drawer.wb-drawer-open, .wb-drawer-tab, .tooltip-floating, .popover, .toast, .cal-period, .cal-row, .cal-range-trigger, .fab-bubble, .progress-fill, .caret, .mask, .menu, .menu.open, .drop-zone {
     transition: none;
   }
   .pulse, .pane-in, .pane-in-reverse, .wb-pane-in {

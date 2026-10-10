@@ -8,6 +8,7 @@ internal static class Modals {
         { ".modal-card", $"bg-panel border border-border rounded-lg flex flex-col overflow-hidden shadow-[0_20px_25px_-5px_rgba(0,0,0,.4)] [width:var(--modal-card-w,100%)] [max-width:var(--modal-card-max,48rem)] [max-height:var(--modal-card-max-h,calc(100dvh_-_2rem))] [transition:width_{Motion.Morph}_{Motion.Standard},max-width_{Motion.Morph}_{Motion.Standard},max-height_{Motion.Morph}_{Motion.Standard}]" },
         { ".modal-backdrop:focus", "[outline:none]" },
         { ".modal-card:focus", "[outline:none]" },
+        { ".modal-sentinel", "fixed w-0 h-0 overflow-hidden opacity-0 pointer-events-none" },
         { ".modal-card.modal-card-sm", "max-w-lg" },
         { ".modal-card.modal-card-lg", "max-w-5xl" },
         { ".modal-head", "flex items-center justify-between gap-3 px-5 py-3 border-b border-border shrink-0 bg-panel0" },

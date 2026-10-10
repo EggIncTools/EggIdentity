@@ -1,0 +1,16 @@
+<div class="@Css" @ondragenter="() => Enter(1)" @ondragleave="() => Enter(-1)" @ondrop="() => _depth = 0"
+     @ondragover:preventDefault="true" @ondragenter:preventDefault="true">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string ActiveClass { get; set; } = "drop-zone-active";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    int _depth;
+
+    string Css => _depth > 0 ? $"drop-zone {Class} {ActiveClass}".Trim() : $"drop-zone {Class}".Trim();
+
+    void Enter(int delta) => _depth = Math.Max(0, _depth + delta);
+}

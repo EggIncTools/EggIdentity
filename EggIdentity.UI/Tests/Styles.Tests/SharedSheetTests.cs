@@ -60,6 +60,13 @@ public partial class SharedSheetTests {
     }
 
     [Fact]
+    public void AnchoredTooltipsHaveAStaticFallbackWithoutAnchorSupport() {
+        var fallback = Sheet.Within("@supports not (anchor-name").Single(r => r.Selector == ".tooltip-floating.tooltip-fixed");
+        Assert.Equal("absolute", fallback["position"]);
+        Assert.NotNull(fallback["bottom"]);
+    }
+
+    [Fact]
     public void PassesTheMotionGuard() {
         Assert.Empty(MotionGuard.Check(Sheet, ["pulse", "pane-in", "pane-in-reverse", "scroll-marker"]));
     }
