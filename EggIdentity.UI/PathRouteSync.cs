@@ -1,44 +1,44 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
+using Microsoft.AspNetCore.Components.Routing;
 
 namespace EggIdentity.UI;
 
-public sealed class PathRouteSync(IJSRuntime js, NavigationManager nav, string prefix) : IAsyncDisposable {
-    private DotNetObjectReference<PathRouteSync>? _dotNetRef;
+public sealed class PathRouteSync(NavigationManager nav, string prefix) : IDisposable {
+    private readonly string _prefix = Normalize(prefix);
     private string _currentPath = string.Empty;
+    private bool _listening;
 
     public IReadOnlyList<string> Segments { get; private set; } = [];
 
     public event Action? Changed;
 
-    public async Task StartAsync() {
+    public void Start() {
         SetPath(nav.ToBaseRelativePath(nav.Uri));
-        _dotNetRef = DotNetObjectReference.Create(this);
-        try {
-            await js.InvokeVoidAsync("pathRouteSyncListen", prefix, _dotNetRef);
-        } catch (JSDisconnectedException) {
-        }
+        if (_listening) return;
+        nav.LocationChanged += OnLocationChanged;
+        _listening = true;
     }
 
-    public async Task Push(string path) => await Navigate(path, replace: false);
+    public void Push(string path) => Navigate(path, replace: false);
 
-    public async Task Replace(string path) => await Navigate(path, replace: true);
+    public void Replace(string path) => Navigate(path, replace: true);
 
-    private async Task Navigate(string path, bool replace) {
+    private void Navigate(string path, bool replace) {
         if (Normalize(path) == _currentPath) return;
-        try {
-            await js.InvokeVoidAsync("pathRouteSyncPush", path, replace);
-        } catch (JSDisconnectedException) {
-        }
-
         SetPath(path);
+        nav.NavigateTo(path, new NavigationOptions { ReplaceHistoryEntry = replace });
     }
 
-    [JSInvokable]
-    public void OnPathChanged(string path) {
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) {
+        var path = Normalize(nav.ToBaseRelativePath(e.Location));
+        if (path == _currentPath || !Owns(path)) return;
         SetPath(path);
         Changed?.Invoke();
     }
+
+    private bool Owns(string path) =>
+        _prefix.Length == 0 || path.Equals(_prefix, StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith(_prefix + "/", StringComparison.OrdinalIgnoreCase);
 
     private void SetPath(string path) {
         _currentPath = Normalize(path);
@@ -47,12 +47,8 @@ public sealed class PathRouteSync(IJSRuntime js, NavigationManager nav, string p
 
     private static string Normalize(string raw) => raw.Split('?', '#')[0].Trim('/');
 
-    public async ValueTask DisposeAsync() {
-        try {
-            await js.InvokeVoidAsync("pathRouteSyncUnlisten", prefix);
-        } catch (JSDisconnectedException) {
-        }
-
-        _dotNetRef?.Dispose();
+    public void Dispose() {
+        if (_listening) nav.LocationChanged -= OnLocationChanged;
+        _listening = false;
     }
 }

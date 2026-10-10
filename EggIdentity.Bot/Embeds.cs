@@ -3,14 +3,15 @@ using Discord;
 namespace EggIdentity.Bot;
 
 public static class DefaultEmbeds {
-    public static Embed Verify(BotConfig cfg) =>
-        new EmbedBuilder()
+    public static Embed Verify(BotConfig cfg) {
+        var builder = new EmbedBuilder()
             .WithTitle(cfg.Name + " Sync Server")
             .WithColor(new Color(0x5865F2))
             .AddField("SHA256", $"[{cfg.Build.Sha256}]({cfg.CommitUrl(cfg.Build.Version)})")
-            .AddField("Version", $"[{cfg.Build.Version}]({cfg.CommitUrl(cfg.Build.Version)})", inline: true)
-            .AddField("Built", string.IsNullOrEmpty(cfg.Build.Date) ? "unknown" : cfg.Build.Date, inline: true)
-            .Build();
+            .AddField("Version", $"[{cfg.Build.Version}]({cfg.CommitUrl(cfg.Build.Version)})", inline: true);
+        if (!string.IsNullOrEmpty(cfg.Build.Date)) builder.AddField("Built", cfg.Build.Date, inline: true);
+        return builder.Build();
+    }
 }
 
 public sealed record EmbedOptions {

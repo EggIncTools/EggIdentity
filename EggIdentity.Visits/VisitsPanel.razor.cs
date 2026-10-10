@@ -63,7 +63,7 @@ public sealed partial class VisitsPanel {
     private static string N(long value) => value.ToString("N0", CultureInfo.InvariantCulture);
 
     private string AverageVisit() {
-        if (_summary is null || _summary.Visits == 0) return "-";
+        if (_summary is null || _summary.Visits == 0) return "";
         var seconds = _summary.DurationSeconds / _summary.Visits;
         return seconds >= 60
             ? $"{seconds / 60}m {seconds % 60:00}s"

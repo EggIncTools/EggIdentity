@@ -91,7 +91,7 @@ internal static class HostServices {
         var registry = SettingsRegistry.Compose(
             [HostSettings.Provider, SessionSettings.Provider, FleetSettings.Provider], [SuiteApps.Provider]);
         var store = new SettingsStore(dataSource, SecretProtector.FromEnvironment());
-        var cache = new SettingsCache(registry, store, config.SharedFileLookup);
+        var cache = new SettingsCache(registry, store, config.SharedFileValues.GetValueOrDefault);
 
         builder.Services.AddSingleton(registry);
         builder.Services.AddSingleton(store);

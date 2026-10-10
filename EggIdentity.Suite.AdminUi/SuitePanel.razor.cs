@@ -2,7 +2,6 @@ using EggIdentity.Bot;
 using EggIdentity.Contract;
 using EggIdentity.Deploy;
 using EggIdentity.Deploy.AdminUi;
-using EggIdentity.Settings.Store;
 using EggIdentity.UI;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
@@ -113,8 +112,6 @@ public sealed partial class SuitePanel : ComponentBase {
         _selected = null;
         await LoadAsync();
     }
-
-    private ISettingsAdmin? SettingsAdmin(SuiteAppView view) => _admin?.SettingsFor(view);
 
     private IBotConfigAdmin? BotAdmin(SuiteAppView view) => _admin?.BotFor(view, _views ?? []);
 

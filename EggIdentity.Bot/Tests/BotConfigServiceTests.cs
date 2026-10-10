@@ -84,8 +84,8 @@ public class BotConfigServiceTests {
         if (string.IsNullOrEmpty(ConnString)) return;
         await using var db = await MakeDbAsync();
         var stateStore = new ChannelStateStore(db);
-        await stateStore.UpsertAsync("guild-bcs-prefill", "eggledger", $"thread:{ThreadKinds.ToName(ThreadKind.GithubFeed)}", "999", null, CancellationToken.None);
-        await stateStore.UpsertAsync("guild-bcs-prefill", "eggledger", $"thread:{ThreadKinds.ToName(ThreadKind.DeployNotifications)}", "888", null, CancellationToken.None);
+        await stateStore.UpsertAsync("guild-bcs-prefill", "eggledger", $"thread:{ThreadKind.GithubFeed}", "999", null, CancellationToken.None);
+        await stateStore.UpsertAsync("guild-bcs-prefill", "eggledger", $"thread:{ThreadKind.DeployNotifications}", "888", null, CancellationToken.None);
 
         var (svc, _) = MakeDbService(db, "guild-bcs-prefill");
         var view = await svc.GetAsync(CancellationToken.None);

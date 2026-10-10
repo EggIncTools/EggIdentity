@@ -105,12 +105,11 @@ public class IdentityApiClientTests {
         };
         var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(expected) });
 
-        var result = await client.GetLoginSourcesAsync("https://app.example.com/return", "modal", CancellationToken.None);
+        var result = await client.GetLoginSourcesAsync("https://app.example.com/return", CancellationToken.None);
 
         Assert.Single(result.Sources);
         Assert.Equal("Discord", result.Sources[0].Name);
         Assert.Equal("/auth/sources", handler.LastRequest!.RequestUri!.AbsolutePath);
-        Assert.Contains("mode=modal", handler.LastRequest.RequestUri.Query);
         Assert.Contains("https%3A%2F%2Fapp.example.com%2Freturn", handler.LastRequest.RequestUri.Query);
     }
 

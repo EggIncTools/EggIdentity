@@ -1,6 +1,5 @@
-@inject IJSRuntime JS
-
-<span class="@Class" data-tt tabindex="@(Focusable ? "0" : null)" aria-describedby="@_id">@ChildContent<span popover="manual" id="@_id" role="tooltip" class="@PopCss" data-tt-pop>@if (Content is not null) {
+<span class="@TriggerCss" style="--tt-anchor: --@_id" tabindex="@(Focusable ? "0" : null)" aria-describedby="@_id"
+      @onkeydown="OnKeyDown" @onmouseleave="Rearm" @onfocusout="Rearm">@ChildContent<span id="@_id" role="tooltip" class="@PopCss">@if (Content is not null) {
             @Content
         } else {
             @Text
@@ -16,6 +15,14 @@
     [Parameter] public bool Focusable { get; set; }
 
     readonly string _id = "tt-" + Guid.NewGuid().ToString("N");
+    bool _dismissed;
+
+    string TriggerCss {
+        get {
+            var css = _dismissed ? "tooltip-trigger tt-dismissed" : "tooltip-trigger";
+            return string.IsNullOrEmpty(Class) ? css : $"{css} {Class}";
+        }
+    }
 
     string PopCss {
         get {
@@ -24,7 +31,7 @@
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) {
-        if (firstRender) await UiScript.EnsureAsync(JS, UiScript.Tooltip);
-    }
+    void OnKeyDown(KeyboardEventArgs e) => _dismissed |= e.Key == "Escape";
+
+    void Rearm() => _dismissed = false;
 }

@@ -182,11 +182,11 @@
     static string Serialize(MessageSpec spec) => JsonSerializer.Serialize(spec, JsonOpts);
     static string Serialize(EmbedSpec spec) => JsonSerializer.Serialize(spec, JsonOpts);
 
-    static string ColorValue(string hex) {
+    static string? ColorValue(string hex) {
         var h = (hex ?? "").TrimStart('#');
         return h.Length == 6 && uint.TryParse(h, NumberStyles.HexNumber, null, out _)
             ? $"#{h.ToUpperInvariant()}"
-            : "#5865F2";
+            : null;
     }
 
     static string HexOf(ChangeEventArgs e) => (e.Value?.ToString() ?? "").TrimStart('#').ToUpperInvariant();

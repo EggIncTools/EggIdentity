@@ -46,7 +46,7 @@
                                     @r.Candidate.ExistingApp
                                 }
                             </td>
-                            <td class="suite-import-image">@(r.Candidate.Service.Image ?? "no image")</td>
+                            <td class="suite-import-image">@r.Candidate.Service.Image</td>
                             <td>
                                 <span class="badge @StateBadge(r)">@StateText(r)</span>
                             </td>

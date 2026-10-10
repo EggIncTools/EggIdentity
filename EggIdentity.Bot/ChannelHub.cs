@@ -7,7 +7,7 @@ namespace EggIdentity.Bot;
 public sealed class ChannelHub(
     SocketGuild guild, string appName, ChannelStateStore store, ChannelConfigStore configStore, string? fallbackDashboardChannelId = null) {
     private const string DashboardKind = "dashboard";
-    private static string ThreadStateKind(ThreadKind kind) => $"thread:{ThreadKinds.ToName(kind)}";
+    private static string ThreadStateKind(ThreadKind kind) => $"thread:{kind}";
 
     private string? _lastSignature;
 
@@ -52,7 +52,7 @@ public sealed class ChannelHub(
         if (existing is { WebhookToken: { Length: > 0 } token })
             return $"https://discord.com/api/webhooks/{existing.DiscordId}/{token}?thread_id={threadId}";
 
-        var webhook = await parent.CreateWebhookAsync($"{appName}-{ThreadKinds.ToName(kind)}");
+        var webhook = await parent.CreateWebhookAsync($"{appName}-{kind}");
         await store.UpsertAsync(guild.Id.ToString(), appName, webhookKind, webhook.Id.ToString(), webhook.Token, ct);
         return $"https://discord.com/api/webhooks/{webhook.Id}/{webhook.Token}?thread_id={threadId}";
     }

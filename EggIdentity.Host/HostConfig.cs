@@ -29,8 +29,6 @@ internal sealed class HostConfig {
     public required IReadOnlyDictionary<string, string> SharedFileValues { get; init; }
     public bool BotEnabled { get; init; }
 
-    public string? SharedFileLookup(string key) => SharedFileValues.GetValueOrDefault(key);
-
     private static string? ReadPemOrFile(string envKey, string? value) {
         if (string.IsNullOrWhiteSpace(value)) return null;
         if (value.Contains("-----BEGIN", StringComparison.Ordinal)) return value;

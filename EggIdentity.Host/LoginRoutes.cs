@@ -1,5 +1,4 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Text.Json;
 using EggIdentity.Auth;
 using EggIdentity.Contract;
 using Microsoft.IdentityModel.Protocols;
@@ -10,7 +9,7 @@ namespace EggIdentity.Host;
 
 internal static class LoginRoutes {
     private const string LinkPrefix = "link:";
-    private const string HtmlContentType = "text/html";
+    private const string LoginMode = "redirect";
 
     public static void Map(WebApplication app, HostConfig config, SponsorSyncService? sponsorSync) {
         var routes = app.MapGroup("/auth");
@@ -37,11 +36,10 @@ internal static class LoginRoutes {
         var appConfigs = await AppsAsync(apps, ctx.RequestAborted);
         if (Program.ResolveApp(returnUrl, appConfigs) is null) return Results.BadRequest("returnUrl not allowed");
 
-        var mode = Program.ValidateMode(ctx.Request.Query["mode"].ToString());
         var sources = IdentityWire.KnownProviders.Select(provider => new LoginSourceResponse {
             Name = char.ToUpperInvariant(provider[0]) + provider[1..],
             IconUrl = $"/auth/icons/{provider}",
-            Url = $"/auth/go/{provider}?returnUrl={Uri.EscapeDataString(returnUrl)}&mode={Uri.EscapeDataString(mode)}",
+            Url = $"/auth/go/{provider}?returnUrl={Uri.EscapeDataString(returnUrl)}",
         }).ToList();
         return Results.Ok(new LoginSourcesResponse { Sources = sources });
     }
@@ -70,9 +68,8 @@ internal static class LoginRoutes {
         if (!isLocal && !IdentityWire.KnownProviders.Contains(provider))
             return Results.BadRequest("unknown provider");
 
-        var mode = Program.ValidateMode(ctx.Request.Query["mode"].ToString());
         var (query, state, verifier) = appConfig.OAuth.BuildAuthParams();
-        await states.SaveAsync(state, verifier, returnUrl, mode, ctx.RequestAborted);
+        await states.SaveAsync(state, verifier, returnUrl, LoginMode, ctx.RequestAborted);
 
         var authorizeUrl = $"/application/o/authorize/?{query}";
         return Results.Redirect(Program.BuildFlowUrl(appConfig.OAuth.Authority, provider, authorizeUrl));
@@ -104,14 +101,10 @@ internal static class LoginRoutes {
 
             loginCode = await CompleteLoginAsync(ctx, resolver, codes, users, time, token, config, sponsorSync);
         } catch (Exception exc) {
-            return CallbackFailure(exc, saved, appConfig);
+            return CallbackFailure(exc, saved);
         }
 
-        if (saved.Mode == "redirect")
-            return Results.Redirect(Program.BuildRedirectCallbackUrl(saved.ReturnUrl, code: loginCode, error: null));
-
-        var payloadJson = JsonSerializer.Serialize(new { source = "eggidentity-auth", code = loginCode });
-        return Results.Content(PostMessageHtml(payloadJson, appConfig.Origin, saved.Mode), HtmlContentType);
+        return Results.Redirect(Program.BuildRedirectCallbackUrl(saved.ReturnUrl, code: loginCode, error: null));
     }
 
     private static async Task<IResult> CompleteLinkAsync(
@@ -194,28 +187,13 @@ internal static class LoginRoutes {
         });
     }
 
-    private static IResult CallbackFailure(Exception exc, OAuthState saved, AppAuthConfig appConfig) {
+    private static IResult CallbackFailure(Exception exc, OAuthState saved) {
         Console.Error.WriteLine($"{saved.Mode}: {exc}");
 
         if (saved.Mode.StartsWith(LinkPrefix, StringComparison.Ordinal))
             return Results.Redirect(Program.AppendQuery(saved.ReturnUrl, "linkError=1"));
 
-        if (saved.Mode == "redirect")
-            return Results.Redirect(Program.BuildRedirectCallbackUrl(saved.ReturnUrl, code: null, error: "login_failed"));
-
-        var errorPayloadJson = JsonSerializer.Serialize(new { source = "eggidentity-auth", error = "login_failed" });
-        return Results.Content(PostMessageHtml(errorPayloadJson, appConfig.Origin, saved.Mode), HtmlContentType);
-    }
-
-    private static string PostMessageHtml(string payloadJson, string origin, string mode) {
-        var originJson = JsonSerializer.Serialize(origin);
-        return $"""
-            <!DOCTYPE html><html><body><script>
-            var target = window.opener || window.parent;
-            target && target.postMessage({payloadJson}, {originJson});
-            {(mode == "inline" ? "" : "window.close();")}
-            </script></body></html>
-            """;
+        return Results.Redirect(Program.BuildRedirectCallbackUrl(saved.ReturnUrl, code: null, error: "login_failed"));
     }
 
     private static async Task<IResult> BackchannelLogout(HttpContext ctx, RevocationStore revocations, HostConfig config) {

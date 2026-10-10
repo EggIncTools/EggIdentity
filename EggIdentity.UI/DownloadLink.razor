@@ -1,0 +1,12 @@
+<a class="@Class" href="@Href" download="@FileName" rel="noopener">@ChildContent</a>
+
+@code {
+    [Parameter, EditorRequired] public string FileName { get; set; } = "";
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public byte[]? Bytes { get; set; }
+    [Parameter] public string ContentType { get; set; } = "application/octet-stream";
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    string Href => $"data:{ContentType};base64,{Convert.ToBase64String(Bytes ?? System.Text.Encoding.UTF8.GetBytes(Text ?? ""))}";
+}

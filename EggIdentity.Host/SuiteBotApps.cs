@@ -32,11 +32,11 @@ public sealed class SuiteBotApps(SettingsCache cache, DeployService fleet) {
     }
 
     public static string DeployText(DeployStatus? status) {
-        if (status is null) return "unknown";
+        if (status is null) return "";
         if (status.Problem is { } problem) return problem;
         if (status.Busy) return "deploying";
         if (status.Running == false) return "stopped";
         if (status.UpdateAvailable) return "update available";
-        return status.LastEvent?.Phase.ToString() ?? (status.Running == true ? "running" : "unknown");
+        return status.LastEvent?.Phase.ToString() ?? (status.Running == true ? "running" : "");
     }
 }

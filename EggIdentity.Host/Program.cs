@@ -128,9 +128,6 @@ public static class Program {
         }
     }
 
-    public static string ValidateMode(string? raw) =>
-        raw is "inline" or "redirect" ? raw : "popup";
-
     public static AppAuthConfig? ResolveApp(string returnUrl, Dictionary<string, AppAuthConfig> appConfigs) {
         if (string.IsNullOrEmpty(returnUrl) || !Uri.TryCreate(returnUrl, UriKind.Absolute, out var parsed))
             return null;

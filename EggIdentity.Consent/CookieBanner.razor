@@ -1,5 +1,7 @@
 @namespace EggIdentity.Consent
 
+<ViewerCookieSink/>
+
 @if (Visible) {
     <div class="consent-banner" role="dialog" aria-label="Cookie consent">
         @if (Body is not null) {
@@ -27,10 +29,10 @@
         } else {
             <div class="consent-actions">
                 @if (Configuring) {
-                    <button type="button" class="btn-primary" @onclick="SaveAsync">Save</button>
+                    <button type="button" class="btn-primary" @onclick="() => DecideAsync(_functional, _analytics)">Save</button>
                 } else {
-                    <button type="button" class="btn-primary" @onclick="AcceptAllAsync">Accept all</button>
-                    <button type="button" class="btn-secondary" @onclick="NecessaryOnlyAsync">Necessary only</button>
+                    <button type="button" class="btn-primary" @onclick="() => DecideAsync(true, true)">Accept all</button>
+                    <button type="button" class="btn-secondary" @onclick="() => DecideAsync(false, false)">Necessary only</button>
                     <button type="button" class="btn-secondary" @onclick="Configure">Configure</button>
                 }
             </div>

@@ -1,0 +1,32 @@
+@implements IDisposable
+@inject ViewerCookies Cookies
+@inject PersistentComponentState State
+
+@foreach (var url in Cookies.Pending) {
+    <iframe @key="url" src="@url" hidden aria-hidden="true" tabindex="-1" title="" @onload="() => Cookies.Written(url)"></iframe>
+}
+
+@code {
+    const string StateKey = "eggidentity-viewer-cookies";
+    PersistingComponentStateSubscription _persisting;
+
+    protected override void OnInitialized() {
+        Cookies.Changed += Refresh;
+        if (!Cookies.ClaimPersistence()) return;
+        if (State.TryTakeFromJson<Dictionary<string, string>>(StateKey, out var restored) && restored is not null) {
+            Cookies.Restore(restored);
+            return;
+        }
+        _persisting = State.RegisterOnPersisting(() => {
+            State.PersistAsJson(StateKey, new Dictionary<string, string>(Cookies.Values));
+            return Task.CompletedTask;
+        });
+    }
+
+    void Refresh() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() {
+        Cookies.Changed -= Refresh;
+        _persisting.Dispose();
+    }
+}

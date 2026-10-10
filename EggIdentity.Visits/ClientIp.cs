@@ -14,6 +14,6 @@ internal static class ClientIp {
                 if (first.Length > 0) return first;
             }
         }
-        return ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return ctx.Connection.RemoteIpAddress?.ToString() ?? "";
     }
 }

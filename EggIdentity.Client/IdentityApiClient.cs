@@ -100,9 +100,8 @@ public sealed class IdentityApiClient(HttpClient http) {
         return (await resp.Content.ReadFromJsonAsync<RedeemLoginCodeResponse>(cancellationToken: ct))!;
     }
 
-    public async Task<LoginSourcesResponse> GetLoginSourcesAsync(string returnUrl, string mode, CancellationToken ct) {
-        var url = $"/auth/sources?returnUrl={Uri.EscapeDataString(returnUrl)}&mode={Uri.EscapeDataString(mode)}";
-        var resp = await http.GetAsync(url, ct);
+    public async Task<LoginSourcesResponse> GetLoginSourcesAsync(string returnUrl, CancellationToken ct) {
+        var resp = await http.GetAsync($"/auth/sources?returnUrl={Uri.EscapeDataString(returnUrl)}", ct);
         resp.EnsureSuccessStatusCode();
         return (await resp.Content.ReadFromJsonAsync<LoginSourcesResponse>(cancellationToken: ct))!;
     }

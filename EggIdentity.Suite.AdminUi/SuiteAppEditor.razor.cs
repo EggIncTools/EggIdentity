@@ -67,8 +67,8 @@ public sealed partial class SuiteAppEditor : ComponentBase {
 
     private static string InputType(FieldDescriptor field) => field.IsSecret ? "password" : "text";
 
-    private string Placeholder(FieldDescriptor field) =>
-        field.IsSecret && Value(field) == Mask ? "set, leave blank to keep" : field.Default ?? "not set";
+    private string? Placeholder(FieldDescriptor field) =>
+        field.IsSecret && Value(field) == Mask ? "set, leave blank to keep" : field.Default;
 
     private async Task SaveAsync() {
         if (_busy) return;

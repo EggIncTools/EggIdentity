@@ -1,9 +1,8 @@
-@implements IAsyncDisposable
 @inject IJSRuntime JS
 
-<div @ref="_root">
-    <input @ref="_input" type="text" class="form-input" placeholder="@Placeholder" value="@_query"
-           @oninput="OnInput" @onfocus="OnFocus" @onkeydown="OnKeyDown" @onkeydown:preventDefault="@_preventDefault"
+<div class="combo-wrap" style="@AnchorStyle">
+    <input type="text" class="form-input combo-anchor" placeholder="@Placeholder" value="@_query"
+           @oninput="OnInput" @onfocus="OnFocus" @onfocusout="OnFocusOut" @onkeydown="OnKeyDown" @onkeydown:preventDefault="@_preventDefault"
            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
     <div popover="manual" class="popover popover-combo" @ref="_listbox">
         @if (_filtered.Count == 0) {
@@ -23,30 +22,37 @@
     [Parameter] [EditorRequired] public IReadOnlyList<ComboOption> Options { get; set; } = [];
     [Parameter] public string? Placeholder { get; set; }
 
-    readonly string _id = Guid.NewGuid().ToString("N");
-    ElementReference _root;
-    ElementReference _input;
-    ElementReference _listbox;
-    OutsideClickInterop? _outsideClick;
-    DotNetObjectReference<ComboBoxPicker>? _selfRef;
+    readonly string _anchor = "--combo-" + Guid.NewGuid().ToString("N");
     List<ComboOption> _filtered = [];
     string _query = "";
     string? _selectedValue;
     bool _open;
-    bool _wasOpen;
     bool _preventDefault;
     int _highlight;
+
+    ElementReference _listbox;
+    bool _shown;
+
+    string AnchorStyle => $"--combo-anchor: {_anchor}";
 
     protected override void OnParametersSet() {
         if (Value == _selectedValue) return;
         _selectedValue = Value;
-        _query = Options.FirstOrDefault(o => o.Value == Value)?.Label ?? "";
+        _query = SelectedLabel;
     }
+
+    string SelectedLabel => Options.FirstOrDefault(o => o.Value == Value)?.Label ?? "";
 
     void OnFocus() {
         _filtered = FilterOptions(_query);
         _highlight = 0;
         _open = true;
+    }
+
+    void OnFocusOut() {
+        if (!_open) return;
+        _query = SelectedLabel;
+        _open = false;
     }
 
     void OnInput(ChangeEventArgs e) {
@@ -83,7 +89,7 @@
                 break;
             case "Escape":
                 _preventDefault = true;
-                _query = Options.FirstOrDefault(o => o.Value == Value)?.Label ?? "";
+                _query = SelectedLabel;
                 _open = false;
                 break;
         }
@@ -101,42 +107,11 @@
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) {
-        if (firstRender) {
-            _selfRef = DotNetObjectReference.Create(this);
-            _outsideClick = new OutsideClickInterop(JS);
-            await _outsideClick.RegisterAsync(_id, _root, _selfRef);
-        }
-
-        if (_open && !_wasOpen) {
-            try {
-                await JS.InvokeVoidAsync("comboBoxPickerPosition", _listbox, _input);
-                await JS.InvokeVoidAsync("comboBoxPickerShow", _listbox);
-            } catch (JSDisconnectedException) {
-            }
-        } else if (!_open && _wasOpen) {
-            await HidePopoverAsync();
-        }
-
-        _wasOpen = _open;
-    }
-
-    async Task HidePopoverAsync() {
+        if (_open == _shown) return;
+        _shown = _open;
         try {
-            await JS.InvokeVoidAsync("comboBoxPickerHide", _listbox);
+            await JS.InvokeVoidAsync(_open ? "comboBoxPickerShow" : "comboBoxPickerHide", _listbox);
         } catch (JSDisconnectedException) {
         }
-    }
-
-    [JSInvokable]
-    public void OnOutsideClick() {
-        if (!_open) return;
-        _query = Options.FirstOrDefault(o => o.Value == Value)?.Label ?? "";
-        _open = false;
-        StateHasChanged();
-    }
-
-    public async ValueTask DisposeAsync() {
-        if (_outsideClick is not null) await _outsideClick.UnregisterAsync(_id);
-        _selfRef?.Dispose();
     }
 }

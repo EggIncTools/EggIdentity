@@ -78,7 +78,7 @@
                         case "settings":
                             @if (view.IsLocal) {
                                 <SettingsPanel UpdatedBy="@UpdatedBy"/>
-                            } else if (SettingsAdmin(view) is { } remote) {
+                            } else if (_admin?.SettingsFor(view) is { } remote) {
                                 <SettingsPanel @key="view.App.Name" Admin="remote" UpdatedBy="@UpdatedBy"/>
                             }
                             break;

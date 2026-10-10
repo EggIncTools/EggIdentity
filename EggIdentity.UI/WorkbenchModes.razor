@@ -1,7 +1,7 @@
 @if (Modes.Count > 0) {
     <div class="segmented" role="group" aria-label="@Label">
         @foreach (var mode in Modes) {
-            <button type="button" class="@BtnCss(mode.Key)" disabled="@IsDisabled(mode.Key)"
+            <button type="button" class="@BtnCss(mode.Key)" disabled="@(Disabled?.Invoke(mode.Key) ?? false)"
                     aria-pressed="@(Current == mode.Key ? "true" : "false")"
                     @onclick="@(() => CurrentChanged.InvokeAsync(mode.Key))">
                 @mode.Label
@@ -22,9 +22,4 @@
 
     string BtnCss(string key) {
         return Current == key ? "segmented-opt active" : "segmented-opt";
-    }
-
-    bool IsDisabled(string key) {
-        return Disabled?.Invoke(key) ?? false;
-    }
-}
+    }}

@@ -4,7 +4,7 @@
     <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Description>Anonymous, cookieless site-visit counting for eggidentity: daily-salted visitor hashes, beacon endpoint and script, per-day Postgres aggregates with embedded migrations, admin panel.</Description>
+    <Description>Anonymous, cookieless site-visit counting for eggidentity: daily-salted visitor hashes, server-side VisitCounter component (no script), per-day Postgres aggregates with embedded migrations, admin panel.</Description>
   </PropertyGroup>
 
   <ItemGroup>

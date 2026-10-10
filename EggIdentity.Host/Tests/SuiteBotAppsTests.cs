@@ -29,8 +29,8 @@ public class SuiteBotAppsTests {
     }
 
     [Fact]
-    public void Snapshot_WithoutStatus_IsUnknown() =>
-        Assert.Equal("unknown", SuiteBotApps.Snapshot(new SuiteApp { Name = "x" }, null).DeployStatus);
+    public void Snapshot_WithoutStatus_IsEmpty() =>
+        Assert.Equal("", SuiteBotApps.Snapshot(new SuiteApp { Name = "x" }, null).DeployStatus);
 
     [Fact]
     public void DeployText_PrefersProblemThenBusyThenStoppedThenUpdate() {

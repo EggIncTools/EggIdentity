@@ -169,7 +169,7 @@ public sealed class BotConfigService(
     }
 
     private async Task<string?> ResolveThreadIdAsync(ThreadKind kind, CancellationToken ct) {
-        var state = await stateStore.GetAsync(guildId, appName, $"thread:{ThreadKinds.ToName(kind)}", ct);
+        var state = await stateStore.GetAsync(guildId, appName, $"thread:{kind}", ct);
         return state?.DiscordId;
     }
 

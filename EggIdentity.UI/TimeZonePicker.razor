@@ -1,9 +1,9 @@
-<ComboBoxPicker Value="@Value" ValueChanged="ValueChanged" Options="Zones" Placeholder="@(Placeholder ?? "Search timezone...")"/>
+<ComboBoxPicker Value="@Value" ValueChanged="ValueChanged" Options="Zones" Placeholder="@Placeholder"/>
 
 @code {
     [Parameter] public string? Value { get; set; }
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
-    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? Placeholder { get; set; } = "Search timezone...";
 
     static readonly IReadOnlyList<ComboOption> Zones = BuildZones();
 

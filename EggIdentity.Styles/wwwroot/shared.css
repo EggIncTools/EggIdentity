@@ -27,6 +27,15 @@
   .empty.empty-tall {
     min-height: 16rem;
   }
+  .tooltip-floating.tooltip-fixed {
+    position-anchor: var(--tt-anchor);
+    position-area: top span-all;
+    justify-self: anchor-center;
+    margin: 0 0 10px;
+    position-try-fallbacks: flip-block;
+    transform: scale(var(--tt-scale,1));
+    container-type: anchored;
+  }
   .table-scroll {
     overflow: auto;
     max-height: var(--table-scroll-max-h,none);
@@ -380,10 +389,6 @@
     flex-shrink: 0;
     background-color: var(--color-panel0);
   }
-  .tooltip-toggle.show {
-    opacity: 100%;
-    --tt-scale: 1;
-  }
   .disclosure-body {
     display: flex;
     flex-direction: column;
@@ -404,14 +409,11 @@
   .wb-entry.tone-muted {
     opacity: 0.6;
   }
-  .tooltip-floating:popover-open {
-    right: auto;
-    bottom: auto;
-    margin: calc(var(--spacing) * 0);
-    overflow: visible;
-  }
   .filter-add-btn.filter-add-outer {
     border-style: dashed;
+  }
+  .tooltip-trigger {
+    anchor-name: var(--tt-anchor);
   }
   .wb-drawer-tab.wb-drawer-tab-open {
     right: var(--wb-drawer-w,min(100%, 40rem));
@@ -524,6 +526,10 @@
     opacity: 0%;
     transform: translateX(100%);
   }
+  .tooltip-trigger:hover > .tooltip-toggle {
+    opacity: 100%;
+    --tt-scale: 1;
+  }
   .menu-item:disabled {
     opacity: 40%;
     cursor: not-allowed;
@@ -556,6 +562,10 @@
     align-items: center;
     gap: calc(var(--spacing) * 2);
     min-width: calc(var(--spacing) * 0);
+  }
+  .tooltip-trigger:focus-within > .tooltip-toggle {
+    opacity: 100%;
+    --tt-scale: 1;
   }
   .icon-btn.active {
     color: var(--color-accent);
@@ -735,10 +745,6 @@
   .menu-item:hover {
     background-color: var(--color-panel);
   }
-  .tooltip-fixed {
-    left: var(--tt-left,50%);
-    top: var(--tt-top,50%);
-  }
   .popover-combo-opt:hover {
     background-color: var(--color-accent);
     color: var(--color-bg);
@@ -759,6 +765,9 @@
     border-color: var(--color-border);
     --tw-leading: 1;
     cursor: default;
+  }
+  .tooltip-trigger.tt-dismissed > .tooltip-toggle.tooltip-floating {
+    opacity: 0%;
   }
   .status-note {
     display: flex;
@@ -1139,8 +1148,12 @@
     line-height: var(--tw-leading, var(--text-xs--line-height));
   }
   .popover.popover-combo:popover-open {
-    inset: auto;
+    position: fixed;
     margin: calc(var(--spacing) * 0);
+    top: anchor(bottom);
+    left: anchor(left);
+    right: auto;
+    bottom: auto;
     opacity: 100%;
     pointer-events: auto;
     transform: none;
@@ -1177,6 +1190,9 @@
   .btn-accent:disabled {
     cursor: not-allowed;
     opacity: 40%;
+  }
+  .combo-anchor {
+    anchor-name: var(--combo-anchor);
   }
   .mask.revealed {
     filter: none;
@@ -1269,6 +1285,10 @@
     font-size: var(--text-xs);
     line-height: var(--tw-leading, var(--text-xs--line-height));
     appearance: none;
+  }
+  .combo-wrap {
+    position: relative;
+    display: block;
   }
   .tooltip-floating.tooltip-err * {
     color: var(--color-err);
@@ -1375,6 +1395,12 @@
     padding-block: calc(var(--spacing) * 1);
     padding-inline: calc(var(--spacing) * 2);
     white-space: nowrap;
+  }
+  .menu-scrim {
+    position: fixed;
+    inset: calc(var(--spacing) * 0);
+    z-index: 1099;
+    background-color: transparent;
   }
   .table-scroll > .data-table {
     overflow: clip;
@@ -1516,12 +1542,14 @@
     font-size: 0.7rem;
   }
   .popover.popover-combo {
-    width: 100%;
     max-height: 240px;
     overflow: auto;
     background-color: var(--color-panel0);
     padding: calc(var(--spacing) * 0);
     padding-block: calc(var(--spacing) * 1);
+    position-anchor: var(--combo-anchor);
+    width: anchor-size(width);
+    position-try-fallbacks: flip-block;
     box-shadow: 0 8px 24px rgba(0,0,0,.55);
   }
   .wb-seg-count {
@@ -1770,6 +1798,22 @@
   from {
     opacity: 0;
     transform: translateX(calc(-1 * var(--pane-shift,-0.75rem)));
+  }
+}
+body:has(.modal-backdrop) {
+  overflow: hidden;
+}
+@container anchored(fallback: flip-block) {
+  .tooltip-floating.tooltip-fixed::before, .tooltip-floating.tooltip-fixed::after {
+    top: auto;
+    bottom: 100%;
+    border-top-color: transparent;
+  }
+  .tooltip-floating.tooltip-fixed::before {
+    border-bottom-color: var(--tooltip-border,var(--color-border));
+  }
+  .tooltip-floating.tooltip-fixed::after {
+    border-bottom-color: var(--tooltip-bg,rgba(33,37,41,.95));
   }
 }
 @media (prefers-reduced-motion: reduce) {

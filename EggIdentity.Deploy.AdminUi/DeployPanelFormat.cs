@@ -46,7 +46,7 @@ public static class DeployPanelFormat {
             var dig = ShortDigest(digest);
             if (dig.Length > 0) parts.Add(dig);
         }
-        return parts.Count == 0 ? "unknown" : string.Join(" ", parts);
+        return string.Join(" ", parts);
     }
 
     public static string PhaseClass(DeployPhase phase) => "dp-phase-" + phase.ToString().ToLowerInvariant();

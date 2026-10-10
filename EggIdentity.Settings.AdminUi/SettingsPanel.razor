@@ -287,10 +287,10 @@
             }
         } else if (IsSecret(row.Descriptor)) {
             <span class="@(row.Display is null ? "badge badge-muted sks-badge" : "badge badge-ok sks-badge")">@(row.Display is null ? "not set" : "set")</span>
-            @if (IsRevealed(row)) {
+            @if (_revealed.Contains(row.Descriptor.Key)) {
                 @ControlView(SettingSpec(row))
             } else {
-                <button type="button" class="btn-mini" @onclick="() => Reveal(row)">Reveal to edit</button>
+                <button type="button" class="btn-mini" @onclick="() => { _revealed.Add(row.Descriptor.Key); }">Reveal to edit</button>
             }
         } else {
             @ControlView(SettingSpec(row))

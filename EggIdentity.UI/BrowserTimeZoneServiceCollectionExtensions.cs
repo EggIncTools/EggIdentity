@@ -4,7 +4,7 @@ namespace EggIdentity.UI;
 
 public static class BrowserTimeZoneServiceCollectionExtensions {
     public static IServiceCollection AddEggIdentityBrowserTimeZone(this IServiceCollection services) {
-        services.AddHttpContextAccessor();
+        ViewerCookieOptions.In(services).Allow(BrowserTimeZone.CookieName, TimeSpan.FromDays(365));
         services.AddScoped<BrowserTimeZone>();
         return services;
     }

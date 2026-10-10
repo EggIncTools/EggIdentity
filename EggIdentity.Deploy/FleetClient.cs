@@ -157,7 +157,7 @@ public sealed class FleetClient {
         if (!response.IsSuccessStatusCode) return Describe(response, body);
         try {
             var outcome = JsonSerializer.Deserialize<AdminSaveResponse>(body, Json);
-            return outcome is { Ok: false } ? outcome.Error ?? "the fleet refused the request" : null;
+            return outcome is { Ok: false } ? outcome.Error ?? Describe(response, body) : null;
         } catch (JsonException) {
             return null;
         }

@@ -1,5 +1,3 @@
-@implements IAsyncDisposable
-@inject IJSRuntime JS
 
 @if (Open && !UseNativeDialog) {
     <div class="modal-backdrop" @ref="_root" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="@TitleId"
@@ -9,7 +7,7 @@
                 <h3 class="modal-title" id="@TitleId">@Title</h3>
                 @HeadTools
                 @if (!HideClose) {
-                    <button type="button" class="icon-btn" aria-label="Close" @onclick="Close">
+                    <button type="button" class="icon-btn" aria-label="Close" @onclick="OnClose">
                         <Icon Name="close"/>
                     </button>
                 }
@@ -26,7 +24,7 @@
                 <h3 class="modal-title" id="@TitleId">@Title</h3>
                 @HeadTools
                 @if (!HideClose) {
-                    <button type="button" class="icon-btn" aria-label="Close" @onclick="Close">
+                    <button type="button" class="icon-btn" aria-label="Close" @onclick="OnClose">
                         <Icon Name="close"/>
                     </button>
                 }
@@ -69,7 +67,6 @@
 
     protected override void OnParametersSet() {
         if (Open && !_wasOpen) _pendingFocus = true;
-        if (!Open && _wasOpen) _ = SetScrollLockAsync(false);
         _wasOpen = Open;
     }
 
@@ -77,41 +74,10 @@
         if (!_pendingFocus) return;
         _pendingFocus = false;
         await _root.FocusAsync();
-        await SetScrollLockAsync(true);
     }
 
-    const string ScrollLockScript = "./_content/EggIdentity.UI/scrollLock.js";
-    bool _scriptLoaded;
+    Task OnBackdropClick() => CloseOnBackdrop ? OnClose.InvokeAsync() : Task.CompletedTask;
 
-    async Task SetScrollLockAsync(bool locked) {
-        try {
-            if (!_scriptLoaded) {
-                await using var module = await JS.InvokeAsync<IJSObjectReference>("import", ScrollLockScript);
-                _scriptLoaded = true;
-            }
-            await JS.InvokeVoidAsync(locked ? "modalScrollLock" : "modalScrollUnlock");
-        } catch (Exception ex) when (ex is JSDisconnectedException or JSException) {
-        }
-    }
-
-    Task OnBackdropClick() {
-        return CloseOnBackdrop ? Close() : Task.CompletedTask;
-    }
-
-    async Task HandleKeyDown(KeyboardEventArgs e) {
-        if (CloseOnEscape && e.Key == "Escape") {
-            await Close();
-            return;
-        }
-        await OnKeyDown.InvokeAsync(e);
-    }
-
-    Task Close() {
-        return OnClose.InvokeAsync();
-    }
-
-    public async ValueTask DisposeAsync() {
-        if (!_wasOpen) return;
-        await SetScrollLockAsync(false);
-    }
+    Task HandleKeyDown(KeyboardEventArgs e) =>
+        CloseOnEscape && e.Key == "Escape" ? OnClose.InvokeAsync() : OnKeyDown.InvokeAsync(e);
 }

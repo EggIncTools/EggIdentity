@@ -43,7 +43,7 @@
                                 @if (row.Error is not null) {
                                     <span class="dp-error" title="@row.Error">unavailable</span>
                                 } else {
-                                    @(row.Clone?.State ?? "-")
+                                    @row.Clone?.State
                                 }
                             </td>
                             <td class="dp-row-actions">

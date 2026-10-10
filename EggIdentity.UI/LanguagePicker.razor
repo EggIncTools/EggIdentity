@@ -1,9 +1,9 @@
-<ComboBoxPicker Value="@Value" ValueChanged="ValueChanged" Options="Languages" Placeholder="@(Placeholder ?? "Search language...")"/>
+<ComboBoxPicker Value="@Value" ValueChanged="ValueChanged" Options="Languages" Placeholder="@Placeholder"/>
 
 @code {
     [Parameter] public string? Value { get; set; }
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
-    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? Placeholder { get; set; } = "Search language...";
 
     static readonly IReadOnlyList<ComboOption> Languages = BuildLanguages();
 

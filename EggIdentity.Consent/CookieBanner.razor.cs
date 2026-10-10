@@ -1,9 +1,9 @@
 using EggIdentity.Client;
 using EggIdentity.Contract;
+using EggIdentity.UI;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.JSInterop;
 
 namespace EggIdentity.Consent;
 
@@ -20,7 +20,7 @@ public sealed partial class CookieBanner : IDisposable {
     private bool _userDecided;
     private PersistingComponentStateSubscription _persisting;
 
-    [Inject] private IJSRuntime Js { get; set; } = default!;
+    [Inject] private ViewerCookies Cookies { get; set; } = default!;
     [Inject] private ConsentOptions Config { get; set; } = default!;
     [Inject] private ConsentReader Reader { get; set; } = default!;
     [Inject] private IServiceProvider Services { get; set; } = default!;
@@ -39,7 +39,7 @@ public sealed partial class CookieBanner : IDisposable {
 
     private ConsentBannerContext Context => new(
         _functional, _analytics, Configuring, PrivacyUrl,
-        AcceptAllAsync, NecessaryOnlyAsync, Configure, SaveAsync,
+        () => DecideAsync(true, true), () => DecideAsync(false, false), Configure, () => DecideAsync(_functional, _analytics),
         v => _functional = v, v => _analytics = v);
 
     protected override async Task OnInitializedAsync() {
@@ -63,13 +63,7 @@ public sealed partial class CookieBanner : IDisposable {
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (!firstRender) return;
 
-        ConsentState? cookie;
-        try {
-            cookie = ConsentCookie.Parse(await Js.InvokeAsync<string?>("eggConsentRead"), EffectiveVersion);
-        } catch (JSException) {
-            return;
-        }
-
+        var cookie = ConsentCookie.Parse(Cookies.Get(ConsentCookie.Name), EffectiveVersion);
         var winner = cookie;
         if (SessionToken is { } token && Services.GetService<IdentityApiClient>() is { } api)
             winner = await ReconcileAsync(api, token, cookie);
@@ -102,16 +96,10 @@ public sealed partial class CookieBanner : IDisposable {
 
         var result = ConsentReconciler.Reconcile(cookie, server);
         if (result.Winner is null) return null;
-        if (result.WriteCookie) await WriteCookieAsync(result.Winner);
+        if (result.WriteCookie) WriteCookie(result.Winner);
         if (result.WriteServer) await api.SetConsentAsync(token, ToRequest(result.Winner), CancellationToken.None);
         return result.Winner;
     }
-
-    private Task AcceptAllAsync() => DecideAsync(true, true);
-
-    private Task NecessaryOnlyAsync() => DecideAsync(false, false);
-
-    private Task SaveAsync() => DecideAsync(_functional, _analytics);
 
     private void Configure() => _phase = Phase.Configure;
 
@@ -119,7 +107,7 @@ public sealed partial class CookieBanner : IDisposable {
         _userDecided = true;
         var now = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
         var state = new ConsentState(functional, analytics, EffectiveVersion, now);
-        await WriteCookieAsync(state);
+        WriteCookie(state);
         if (SessionToken is not null && Services.GetService<IdentityApiClient>() is { } api) {
             await api.SetConsentAsync(SessionToken, ToRequest(state), CancellationToken.None);
         }
@@ -127,12 +115,7 @@ public sealed partial class CookieBanner : IDisposable {
         _phase = Phase.Hidden;
     }
 
-    private async Task WriteCookieAsync(ConsentState state) {
-        try {
-            await Js.InvokeVoidAsync("eggConsentWrite", ConsentCookie.Format(state), Config.CookieDomain, (int)Config.CookieLifetime.TotalDays);
-        } catch (JSException) {
-        }
-    }
+    private void WriteCookie(ConsentState state) => Cookies.Set(ConsentCookie.Name, ConsentCookie.Format(state));
 
     private ConsentState? ToState(ConsentResponse? resp) =>
         resp is null || resp.PolicyVersion < EffectiveVersion

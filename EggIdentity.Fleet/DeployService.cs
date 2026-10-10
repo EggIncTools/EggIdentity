@@ -207,7 +207,7 @@ public sealed class DeployService(
         var stacks = await portainer.ListStacksAsync(ct);
         return [.. names.Select(n => StackLookup.Find(stacks, n) switch {
             ({ } stack, _) => StackLookup.Describe(stack),
-            (_, var refusal) => StackLookup.Missing(n, refusal ?? "not found"),
+            (_, var refusal) => StackLookup.Missing(n, refusal!),
         })];
     }
 

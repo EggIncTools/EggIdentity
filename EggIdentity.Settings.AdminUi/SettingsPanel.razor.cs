@@ -242,13 +242,10 @@ public sealed partial class SettingsPanel : IDisposable {
         }
     }
 
-    private IReadOnlyCollection<CollectionRow>? CollectionRows(string key) =>
-        _collectionRows.GetValueOrDefault(key);
-
-    private int CollectionCount(string key) => CollectionRows(key)?.Count ?? 0;
+    private int CollectionCount(string key) => _collectionRows.GetValueOrDefault(key)?.Count ?? 0;
 
     private IReadOnlyCollection<CollectionRow>? FilteredRows(CollectionDescriptor descriptor) {
-        var rows = CollectionRows(descriptor.Key);
+        var rows = _collectionRows.GetValueOrDefault(descriptor.Key);
         if (rows is null) return null;
         var q = _rowQuery.Trim();
         if (q.Length == 0) return rows;
@@ -274,7 +271,7 @@ public sealed partial class SettingsPanel : IDisposable {
         [.. edit.Descriptor.Fields.Where(f => (!f.Legacy || !string.IsNullOrEmpty(edit.Values.GetValueOrDefault(f.Name))) && f.IsVisible(edit.Values))];
 
     private bool IsCarryingValue(CollectionDescriptor descriptor, FieldDescriptor field) =>
-        CollectionRows(descriptor.Key)?.Any(r => !string.IsNullOrEmpty(r.Get(field.Name))) == true;
+        _collectionRows.GetValueOrDefault(descriptor.Key)?.Any(r => !string.IsNullOrEmpty(r.Get(field.Name))) == true;
 
     private static bool IsSecret(SettingDescriptor d) => d.IsSecret || d.Kind == SettingKind.Secret;
 
@@ -316,10 +313,6 @@ public sealed partial class SettingsPanel : IDisposable {
         _drafts[row.Descriptor.Key] = value;
         _rowErrors.Remove(row.Descriptor.Key);
     }
-
-    private bool IsRevealed(SettingRow row) => _revealed.Contains(row.Descriptor.Key);
-
-    private void Reveal(SettingRow row) => _revealed.Add(row.Descriptor.Key);
 
     private static string ControlId(string key) => "sks-" + key.Replace('.', '-');
 
