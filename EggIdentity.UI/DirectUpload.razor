@@ -1,0 +1,42 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<input type="file" class="@Class" accept="@Accept" disabled="@(Disabled || _busy)" @ref="_input" @onchange="SendAsync" />
+
+@code {
+    const string Module = "./_content/EggIdentity.UI/directUpload.js";
+
+    [Parameter, EditorRequired] public string Url { get; set; } = "";
+    [Parameter] public string? Accept { get; set; }
+    [Parameter] public int TimeoutMs { get; set; } = 120_000;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public EventCallback OnStart { get; set; }
+    [Parameter] public EventCallback<UploadResult> OnResult { get; set; }
+
+    ElementReference _input;
+    IJSObjectReference? _module;
+    bool _busy;
+
+    async Task SendAsync() {
+        _busy = true;
+        await OnStart.InvokeAsync();
+        UploadResult? result;
+        try {
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", Module);
+            result = await _module.InvokeAsync<UploadResult?>("send", _input, Url, TimeoutMs);
+        } catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException) {
+            result = new UploadResult(0, ex.Message);
+        } finally {
+            _busy = false;
+        }
+        if (result is not null) await OnResult.InvokeAsync(result);
+    }
+
+    public async ValueTask DisposeAsync() {
+        try {
+            if (_module is not null) await _module.DisposeAsync();
+        } catch (JSDisconnectedException) {
+        }
+    }
+}

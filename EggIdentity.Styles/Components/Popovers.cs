@@ -9,6 +9,8 @@ internal static class Popovers {
         { ".popover.open", "opacity-100 pointer-events-auto [transform:scale(1)_translateY(0)]" },
         { ".popover.popover-sm", "w-[240px]" },
         { ".popover.popover-lg", "w-[320px]" },
+        { ".drag-panel", "fixed z-[1100] flex flex-col overflow-auto bg-panel2 border border-border rounded-md min-w-[160px] min-h-[80px] max-w-[100vw] max-h-[100vh] [resize:both] shadow-[0_6px_18px_rgba(0,0,0,.4)]" },
+        { ".drag-handle", "cursor-move select-none [touch-action:none]" },
         { ".combo-wrap", "relative block" },
         { ".combo-anchor", "[anchor-name:var(--combo-anchor)]" },
         { ".popover.popover-combo", "max-h-[240px] overflow-auto bg-panel0 p-0 py-1 [position-anchor:var(--combo-anchor)] [width:anchor-size(width)] [position-try-fallbacks:flip-block] [box-shadow:0_8px_24px_rgba(0,0,0,.55)]" },

@@ -1,0 +1,58 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div class="@PanelCss" style="@PanelStyle" @ref="_panel" role="dialog" aria-label="@Label">
+    <div class="drag-handle">@Handle</div>
+    @ChildContent
+</div>
+
+@code {
+    const string Module = "./_content/EggIdentity.UI/dragPanel.js";
+
+    [Parameter] public PanelPlacement Placement { get; set; } = new(24, 24, 360, 280);
+    [Parameter] public EventCallback<PanelPlacement> PlacementChanged { get; set; }
+    [Parameter] public RenderFragment? Handle { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    ElementReference _panel;
+    DotNetObjectReference<DragPanel>? _self;
+    IJSObjectReference? _module;
+    IJSObjectReference? _drag;
+
+    string PanelCss => string.IsNullOrEmpty(Class) ? "drag-panel" : $"drag-panel {Class}";
+
+    string PanelStyle => string.Create(CultureInfo.InvariantCulture,
+        $"left:{Placement.X}px;top:{Placement.Y}px;width:{Placement.Width}px;height:{Placement.Height}px");
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (!firstRender) return;
+        try {
+            _self = DotNetObjectReference.Create(this);
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", Module);
+            _drag = await _module.InvokeAsync<IJSObjectReference>("attach", _panel, _self);
+        } catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException) {
+        }
+    }
+
+    [JSInvokable]
+    public Task OnPlaced(int x, int y, int width, int height) {
+        var placed = new PanelPlacement(x, y, width, height);
+        if (placed == Placement) return Task.CompletedTask;
+        Placement = placed;
+        return PlacementChanged.InvokeAsync(placed);
+    }
+
+    public async ValueTask DisposeAsync() {
+        try {
+            if (_drag is not null) {
+                await _drag.InvokeVoidAsync("stop");
+                await _drag.DisposeAsync();
+            }
+            if (_module is not null) await _module.DisposeAsync();
+        } catch (JSDisconnectedException) {
+        }
+        _self?.Dispose();
+    }
+}

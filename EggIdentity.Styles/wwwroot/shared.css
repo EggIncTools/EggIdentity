@@ -320,6 +320,12 @@
     border-radius: var(--radius-lg);
     overflow: hidden;
   }
+  .drag-handle {
+    cursor: move;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+  }
   .icon-md {
     --icon-size: 1.25rem;
   }
@@ -734,6 +740,25 @@
     border-top-style: var(--tw-border-style);
     border-top-width: 1px;
     border-color: var(--color-border);
+  }
+  .drag-panel {
+    position: fixed;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    background-color: var(--color-panel2);
+    border-style: var(--tw-border-style);
+    border-width: 1px;
+    border-color: var(--color-border);
+    border-radius: var(--radius-md);
+    min-width: 160px;
+    min-height: 80px;
+    max-width: 100vw;
+    max-height: 100vh;
+    resize: both;
+    --tw-shadow: 0 6px 18px rgba(0,0,0,.4);
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
   .wb-entry.selected {
     border-color: var(--color-accent);
