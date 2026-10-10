@@ -37,7 +37,7 @@ public sealed class PathRouteSync(NavigationManager nav, IJSRuntime js, string p
     private void Navigate(string path, bool replace) {
         if (Normalize(path) == _currentPath && FragmentOf(path) == Fragment) return;
         SetLocation(path);
-        _ = WriteHistoryAsync(nav.ToAbsoluteUri(path).ToString(), replace);
+        _ = WriteHistoryAsync(nav.ToAbsoluteUri(path).AbsoluteUri, replace);
     }
 
     private async Task WriteHistoryAsync(string url, bool replace) {
