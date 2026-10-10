@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
+using Microsoft.JSInterop;
 
 namespace EggIdentity.UI;
 
-public sealed class PathRouteSync(NavigationManager nav, string prefix) : IDisposable {
+public sealed class PathRouteSync(NavigationManager nav, IJSRuntime js, string prefix) : IDisposable {
     private readonly string _prefix = Normalize(prefix);
     private string _currentPath = string.Empty;
+    private string _query = string.Empty;
     private bool _listening;
 
     public IReadOnlyList<string> Segments { get; private set; } = [];
@@ -29,15 +31,20 @@ public sealed class PathRouteSync(NavigationManager nav, string prefix) : IDispo
 
     public void ReplaceFragment(string fragment) => Navigate(WithFragment(fragment), replace: true);
 
-    private string WithFragment(string fragment) {
-        var query = new Uri(nav.Uri).Query;
-        return fragment.Length == 0 ? $"/{_currentPath}{query}" : $"/{_currentPath}{query}#{Uri.EscapeDataString(fragment)}";
-    }
+    private string WithFragment(string fragment) =>
+        fragment.Length == 0 ? $"/{_currentPath}{_query}" : $"/{_currentPath}{_query}#{Uri.EscapeDataString(fragment)}";
 
     private void Navigate(string path, bool replace) {
         if (Normalize(path) == _currentPath && FragmentOf(path) == Fragment) return;
         SetLocation(path);
-        nav.NavigateTo(path, new NavigationOptions { ReplaceHistoryEntry = replace });
+        _ = WriteHistoryAsync(nav.ToAbsoluteUri(path).ToString(), replace);
+    }
+
+    private async Task WriteHistoryAsync(string url, bool replace) {
+        try {
+            await js.InvokeVoidAsync(replace ? "history.replaceState" : "history.pushState", null, "", url);
+        } catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException) {
+        }
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e) {
@@ -54,11 +61,15 @@ public sealed class PathRouteSync(NavigationManager nav, string prefix) : IDispo
 
     private void SetLocation(string relative) {
         _currentPath = Normalize(relative);
+        _query = QueryOf(relative);
         Segments = _currentPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
         Fragment = FragmentOf(relative);
     }
 
     private static string Normalize(string raw) => raw.Split('?', '#')[0].Trim('/');
+
+    private static string QueryOf(string raw) =>
+        raw.Split('#')[0] is var head && head.IndexOf('?') is var i and >= 0 ? head[i..] : string.Empty;
 
     private static string FragmentOf(string raw) => raw.IndexOf('#') is var i and >= 0 ? Uri.UnescapeDataString(raw[(i + 1)..]) : string.Empty;
 

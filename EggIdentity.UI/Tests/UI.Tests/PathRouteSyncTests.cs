@@ -37,11 +37,19 @@ internal sealed class FakeJSRuntime(object? result = null) : IJSRuntime {
 }
 
 public class PathRouteSyncTests {
-    private static (FakeNavigationManager nav, PathRouteSync sync) Start(string path, string prefix) {
-        var nav = new FakeNavigationManager("https://example.test/", $"https://example.test{path}");
-        var sync = new PathRouteSync(nav, prefix);
+    private const string Base = "https://example.test";
+
+    private static (FakeNavigationManager nav, FakeJSRuntime js, PathRouteSync sync) Start(string path, string prefix) {
+        var nav = new FakeNavigationManager(Base + "/", Base + path);
+        var js = new FakeJSRuntime();
+        var sync = new PathRouteSync(nav, js, prefix);
         sync.Start();
-        return (nav, sync);
+        return (nav, js, sync);
+    }
+
+    private static (string Method, string Url) History(FakeJSRuntime js) {
+        var call = Assert.Single(js.Calls);
+        return (call.Identifier, (string)call.Args![2]!);
     }
 
     [Fact]
@@ -53,34 +61,36 @@ public class PathRouteSyncTests {
 
     [Fact]
     public void Push_NoOpsWhenPathMatchesIgnoringTrailingSlashAndQuery() {
-        var (nav, sync) = Start("/missions/list/all", "/missions");
+        var (_, js, sync) = Start("/missions/list/all", "/missions");
         sync.Push("/missions/list/all/?x=1");
-        Assert.Empty(nav.Navigations);
+        Assert.Empty(js.Calls);
     }
 
     [Fact]
-    public void Push_NavigatesWithoutRaisingChanged() {
-        var (nav, sync) = Start("/missions/list/all", "/missions");
+    public void Push_WritesHistoryWithoutNavigatingOrRaisingChanged() {
+        var (nav, js, sync) = Start("/missions/list/all", "/missions");
         var fired = 0;
         sync.Changed += () => fired++;
 
         sync.Push("/missions/calendar/home");
 
-        Assert.Equal(("/missions/calendar/home", false), Assert.Single(nav.Navigations));
+        Assert.Equal(("history.pushState", Base + "/missions/calendar/home"), History(js));
+        Assert.Empty(nav.Navigations);
         Assert.Equal(["missions", "calendar", "home"], sync.Segments);
         Assert.Equal(0, fired);
     }
 
     [Fact]
-    public void Replace_PassesReplaceFlag() {
-        var (nav, sync) = Start("/protos", "/protos");
+    public void Replace_UsesReplaceState() {
+        var (nav, js, sync) = Start("/protos", "/protos");
         sync.Replace("/protos/terms");
-        Assert.True(Assert.Single(nav.Navigations).Replace);
+        Assert.Equal(("history.replaceState", Base + "/protos/terms"), History(js));
+        Assert.Empty(nav.Navigations);
     }
 
     [Fact]
     public void ExternalNavigationUnderPrefix_UpdatesSegmentsAndRaisesChangedOnce() {
-        var (nav, sync) = Start("/protos", "/protos");
+        var (nav, _, sync) = Start("/protos", "/protos");
         var fired = 0;
         sync.Changed += () => fired++;
 
@@ -92,7 +102,7 @@ public class PathRouteSyncTests {
 
     [Fact]
     public void ExternalNavigationOutsidePrefix_IsIgnored() {
-        var (nav, sync) = Start("/protos", "/protos");
+        var (nav, _, sync) = Start("/protos", "/protos");
         var fired = 0;
         sync.Changed += () => fired++;
 
@@ -104,7 +114,7 @@ public class PathRouteSyncTests {
 
     [Fact]
     public void FragmentOnlyChange_UpdatesFragmentAndRaisesChanged() {
-        var (nav, sync) = Start("/protos#a", "/protos");
+        var (nav, _, sync) = Start("/protos#a", "/protos");
         var fired = 0;
         sync.Changed += () => fired++;
 
@@ -116,40 +126,53 @@ public class PathRouteSyncTests {
     }
 
     [Fact]
-    public void Push_FragmentOnly_NavigatesAndUpdatesFragment() {
-        var (nav, sync) = Start("/protos#a", "/protos");
+    public void ExternalNavigationAfterPush_BackToPreviousPathRaisesChanged() {
+        var (nav, _, sync) = Start("/protos", "/protos");
+        var fired = 0;
+        sync.Changed += () => fired++;
+
+        sync.Push("/protos/terms");
+        nav.External("/protos");
+
+        Assert.Equal(["protos"], sync.Segments);
+        Assert.Equal(1, fired);
+    }
+
+    [Fact]
+    public void Push_FragmentOnly_WritesHistoryAndUpdatesFragment() {
+        var (_, js, sync) = Start("/protos#a", "/protos");
         sync.Push("/protos#b");
-        Assert.Equal("/protos#b", Assert.Single(nav.Navigations).Uri);
+        Assert.Equal(Base + "/protos#b", History(js).Url);
         Assert.Equal("b", sync.Fragment);
     }
 
     [Fact]
     public void PushFragment_KeepsPathAndEscapes() {
-        var (nav, sync) = Start("/protos/terms", "/protos");
+        var (_, js, sync) = Start("/protos/terms", "/protos");
         sync.PushFragment("b c");
-        Assert.Equal("/protos/terms#b%20c", Assert.Single(nav.Navigations).Uri);
+        Assert.Equal(Base + "/protos/terms#b%20c", History(js).Url);
         Assert.Equal("b c", sync.Fragment);
         Assert.Equal(["protos", "terms"], sync.Segments);
     }
 
     [Fact]
     public void PushFragment_KeepsTheCurrentQuery() {
-        var (nav, sync) = Start("/protos/terms?x=1&y=2#old", "/protos");
+        var (_, js, sync) = Start("/protos/terms?x=1&y=2#old", "/protos");
         sync.PushFragment("new");
-        Assert.Equal("/protos/terms?x=1&y=2#new", Assert.Single(nav.Navigations).Uri);
+        Assert.Equal(Base + "/protos/terms?x=1&y=2#new", History(js).Url);
     }
 
     [Fact]
     public void ReplaceFragment_EmptyClearsFragmentWithReplace() {
-        var (nav, sync) = Start("/protos#a", "/protos");
+        var (_, js, sync) = Start("/protos#a", "/protos");
         sync.ReplaceFragment("");
-        Assert.Equal(("/protos", true), Assert.Single(nav.Navigations));
+        Assert.Equal(("history.replaceState", Base + "/protos"), History(js));
         Assert.Equal("", sync.Fragment);
     }
 
     [Fact]
     public void Dispose_StopsListening() {
-        var (nav, sync) = Start("/protos", "/protos");
+        var (nav, _, sync) = Start("/protos", "/protos");
         var fired = 0;
         sync.Changed += () => fired++;
 
