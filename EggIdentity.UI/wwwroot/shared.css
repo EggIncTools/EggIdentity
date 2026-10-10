@@ -1611,6 +1611,7 @@
     right: auto;
     bottom: auto;
     width: anchor-size(width);
+    min-width: max-content;
     position-try-fallbacks: flip-block;
     opacity: 100%;
     pointer-events: auto;

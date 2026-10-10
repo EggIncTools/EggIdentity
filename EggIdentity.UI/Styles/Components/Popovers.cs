@@ -13,7 +13,7 @@ internal static class Popovers {
         { ".drag-handle", "cursor-move select-none [touch-action:none]" },
         { ".combo-wrap", "relative block" },
         { ".combo-anchor", "[anchor-name:var(--combo-anchor)]" },
-        { ".popover.popover-combo", "fixed m-0 max-h-[240px] overflow-auto bg-panel0 p-0 py-1 [position-anchor:var(--combo-anchor)] [top:anchor(bottom)] [left:anchor(left)] [right:auto] [bottom:auto] [width:anchor-size(width)] [position-try-fallbacks:flip-block] opacity-100 pointer-events-auto [transform:none] [box-shadow:0_8px_24px_rgba(0,0,0,.55)]" },
+        { ".popover.popover-combo", "fixed m-0 max-h-[240px] overflow-auto bg-panel0 p-0 py-1 [position-anchor:var(--combo-anchor)] [top:anchor(bottom)] [left:anchor(left)] [right:auto] [bottom:auto] [width:anchor-size(width)] [min-width:max-content] [position-try-fallbacks:flip-block] opacity-100 pointer-events-auto [transform:none] [box-shadow:0_8px_24px_rgba(0,0,0,.55)]" },
         { ".popover-combo-opt", "block w-full text-left px-2.5 py-1.5 text-xs text-fg bg-transparent border-0 cursor-pointer truncate [font-family:inherit]" },
         { ".popover-combo-opt:hover", "bg-accent text-bg" },
         { ".popover-combo-opt.combo-highlighted", "bg-accent text-bg" },
