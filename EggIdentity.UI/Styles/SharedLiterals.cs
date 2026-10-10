@@ -19,6 +19,16 @@ public static class SharedLiterals {
             transform: translateX(calc(-1 * var(--pane-shift,-0.75rem)));
           }
         }
+        @keyframes scroll-marker {
+          to {
+            top: calc(100% - var(--scroll-marker-h,12%));
+          }
+        }
+        @supports not (animation-timeline: scroll()) {
+          .scroll-marker {
+            animation: none;
+          }
+        }
         body:has(.modal-backdrop) {
           overflow: hidden;
         }
@@ -41,6 +51,9 @@ public static class SharedLiterals {
           }
           .pulse, .pane-in, .pane-in-reverse, .wb-pane-in {
             animation: none;
+          }
+          .scroll-marker {
+            animation-timing-function: step-end;
           }
         }
         """;

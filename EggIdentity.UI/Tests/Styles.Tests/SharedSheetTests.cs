@@ -61,7 +61,7 @@ public partial class SharedSheetTests {
 
     [Fact]
     public void PassesTheMotionGuard() {
-        Assert.Empty(MotionGuard.Check(Sheet, ["pulse", "pane-in", "pane-in-reverse"]));
+        Assert.Empty(MotionGuard.Check(Sheet, ["pulse", "pane-in", "pane-in-reverse", "scroll-marker"]));
     }
 
     [Fact]
