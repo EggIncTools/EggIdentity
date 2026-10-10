@@ -29,8 +29,10 @@ public sealed class PathRouteSync(NavigationManager nav, string prefix) : IDispo
 
     public void ReplaceFragment(string fragment) => Navigate(WithFragment(fragment), replace: true);
 
-    private string WithFragment(string fragment) =>
-        fragment.Length == 0 ? "/" + _currentPath : $"/{_currentPath}#{Uri.EscapeDataString(fragment)}";
+    private string WithFragment(string fragment) {
+        var query = new Uri(nav.Uri).Query;
+        return fragment.Length == 0 ? $"/{_currentPath}{query}" : $"/{_currentPath}{query}#{Uri.EscapeDataString(fragment)}";
+    }
 
     private void Navigate(string path, bool replace) {
         if (Normalize(path) == _currentPath && FragmentOf(path) == Fragment) return;

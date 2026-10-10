@@ -133,6 +133,13 @@ public class PathRouteSyncTests {
     }
 
     [Fact]
+    public void PushFragment_KeepsTheCurrentQuery() {
+        var (nav, sync) = Start("/protos/terms?x=1&y=2#old", "/protos");
+        sync.PushFragment("new");
+        Assert.Equal("/protos/terms?x=1&y=2#new", Assert.Single(nav.Navigations).Uri);
+    }
+
+    [Fact]
     public void ReplaceFragment_EmptyClearsFragmentWithReplace() {
         var (nav, sync) = Start("/protos#a", "/protos");
         sync.ReplaceFragment("");
