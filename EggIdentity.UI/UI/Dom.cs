@@ -17,11 +17,13 @@ public sealed class Dom(IJSRuntime js) : IAsyncDisposable {
         }
     }
 
-    public async Task ScrollToAsync(ElementReference element, double top, double left = 0, bool smooth = false) {
+    public async Task<bool> ScrollToAsync(ElementReference element, double top, double left = 0, bool smooth = false) {
         try {
             _module ??= await js.InvokeAsync<IJSObjectReference>("import", Module);
             await _module.InvokeVoidAsync("scrollTo", element, top, left, smooth);
+            return true;
         } catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException) {
+            return false;
         }
     }
 
@@ -29,6 +31,7 @@ public sealed class Dom(IJSRuntime js) : IAsyncDisposable {
         try {
             if (_module is not null) await _module.DisposeAsync();
         } catch (JSDisconnectedException) {
+            _module = null;
         }
     }
 }

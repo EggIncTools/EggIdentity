@@ -1,4 +1,4 @@
-<div class="@Css" @ondragenter="() => Enter(1)" @ondragleave="() => Enter(-1)" @ondrop="() => _depth = 0"
+<div class="@Css" @ondragenter="() => SetDepth(_depth + 1)" @ondragleave="() => SetDepth(_depth - 1)" @ondrop="() => SetDepth(0)"
      @ondragover:preventDefault="true" @ondragenter:preventDefault="true">
     @ChildContent
 </div>
@@ -6,11 +6,19 @@
 @code {
     [Parameter] public string? Class { get; set; }
     [Parameter] public string ActiveClass { get; set; } = "drop-zone-active";
+    [Parameter] public bool Active { get; set; }
+    [Parameter] public EventCallback<bool> ActiveChanged { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     int _depth;
 
-    string Css => _depth > 0 ? $"drop-zone {Class} {ActiveClass}".Trim() : $"drop-zone {Class}".Trim();
+    string Css => Active ? $"drop-zone {Class} {ActiveClass}".Trim() : $"drop-zone {Class}".Trim();
 
-    void Enter(int delta) => _depth = Math.Max(0, _depth + delta);
+    async Task SetDepth(int depth) {
+        _depth = Math.Max(0, depth);
+        var active = _depth > 0;
+        if (active == Active) return;
+        Active = active;
+        await ActiveChanged.InvokeAsync(active);
+    }
 }

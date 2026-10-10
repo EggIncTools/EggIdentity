@@ -28,6 +28,12 @@ public static class ViewerCookieRoutes {
         if (!options.Cookies.TryGetValue(name, out var rule) || value.Length > ViewerCookieOptions.MaxValueLength)
             return Results.BadRequest();
 
+        ctx.Response.Headers.CacheControl = "no-store";
+        if (ctx.Request.Query["remove"].ToString() == "1") {
+            ctx.Response.Cookies.Delete(name, new CookieOptions { Path = "/", Domain = rule.Domain, Secure = true });
+            return Results.NoContent();
+        }
+
         ctx.Response.Cookies.Append(name, value, new CookieOptions {
             Path = "/",
             Domain = rule.Domain,
@@ -36,7 +42,6 @@ public static class ViewerCookieRoutes {
             Secure = true,
             IsEssential = true,
         });
-        ctx.Response.Headers.CacheControl = "no-store";
         return Results.NoContent();
     }
 }

@@ -29,6 +29,23 @@ public class ViewerCookiesTests {
     }
 
     [Fact]
+    public void RemoveQueuesADeleteOnlyWhenTheCookieWasSet() {
+        var cookies = new ViewerCookies(new ViewerCookieOptions().Allow("tz", TimeSpan.FromDays(1)));
+        var changed = new List<string>();
+        cookies.ValueChanged += changed.Add;
+
+        cookies.Remove("tz");
+        Assert.Empty(cookies.Pending);
+
+        cookies.Set("tz", "UTC");
+        cookies.Remove("tz");
+
+        Assert.Null(cookies.Get("tz"));
+        Assert.Contains("remove=1", cookies.Pending[^1]);
+        Assert.Equal(["tz", "tz"], changed);
+    }
+
+    [Fact]
     public void ValueChangedNamesTheCookieOnlyOnRealChange() {
         var cookies = new ViewerCookies(Options());
         var names = new List<string>();

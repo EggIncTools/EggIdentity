@@ -29,6 +29,15 @@ public sealed class ViewerCookies(ViewerCookieOptions options, IHttpContextAcces
         ValueChanged?.Invoke(name);
     }
 
+    public void Remove(string name) {
+        if (!options.Cookies.ContainsKey(name))
+            throw new ArgumentException($"Cookie '{name}' is not allowed by ViewerCookieOptions.", nameof(name));
+        if (!_values.Remove(name)) return;
+        _pending.Add($"{options.Path}?name={Uri.EscapeDataString(name)}&remove=1");
+        Changed?.Invoke();
+        ValueChanged?.Invoke(name);
+    }
+
     private bool _persistClaimed;
 
     internal bool ClaimPersistence() {

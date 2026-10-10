@@ -11,6 +11,8 @@ public static class VisitRequest {
         ArgumentNullException.ThrowIfNull(request);
         if (request.Headers["DNT"].ToString().Trim() == "1") return true;
         if (request.Headers["Sec-GPC"].ToString().Trim() == "1") return true;
+        if (request.Headers["Sec-Purpose"].ToString().Contains("prefetch", StringComparison.OrdinalIgnoreCase)) return true;
+        if (request.Headers["Sec-Fetch-Dest"].ToString() is { Length: > 0 } dest && dest is not ("document" or "empty")) return true;
         var ua = request.Headers.UserAgent.ToString();
         return Array.Exists(BotMarkers, m => ua.Contains(m, StringComparison.OrdinalIgnoreCase))
             || (request.Cookies.TryGetValue(ConsentCookie, out var consent) && AnalyticsDeclined(consent));
