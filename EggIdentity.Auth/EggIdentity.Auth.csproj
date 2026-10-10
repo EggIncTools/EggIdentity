@@ -4,7 +4,8 @@
     <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Description>Authentik OAuth, ASP.NET auth scheme, bearer-session middleware and the cross-site SSO session cookie. No DB access.</Description>
+    <RootNamespace>EggIdentity</RootNamespace>
+    <Description>EggIdentity auth: Authentik OAuth helpers, the ASP.NET scheme, bearer-session middleware, the cross-site SSO session cookie and CurrentUser (Auth), plus the typed identity API client for consuming apps (Client).</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,8 +17,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EggIdentity.Client\EggIdentity.Client.csproj" />
-    <ProjectReference Include="..\EggIdentity.Settings\EggIdentity.Settings.csproj" />
+    <ProjectReference Include="..\EggIdentity.Core\EggIdentity.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EggIdentity.Auth.Tests" />
   </ItemGroup>
 
 </Project>

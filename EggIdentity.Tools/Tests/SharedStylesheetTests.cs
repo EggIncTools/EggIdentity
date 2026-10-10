@@ -4,7 +4,7 @@ public class SharedStylesheetTests {
     private const string Regenerate = "run: dotnet run --project EggIdentity.Tools -- css emit";
 
     private static string Committed(string file) =>
-        File.ReadAllText(Path.Combine(SharedStylesheet.RepoRoot(), "EggIdentity.Styles", "wwwroot", file)).Replace("\r\n", "\n");
+        File.ReadAllText(Path.Combine(SharedStylesheet.RepoRoot(), "EggIdentity.UI", "wwwroot", file)).Replace("\r\n", "\n");
 
     [Fact]
     public void Shared_CommittedMatchesRender() {

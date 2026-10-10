@@ -14,8 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EggIdentity.Contract\EggIdentity.Contract.csproj" />
-    <ProjectReference Include="..\EggIdentity.Db\EggIdentity.Db.csproj" />
+    <ProjectReference Include="..\EggIdentity.Data\EggIdentity.Data.csproj" />
     <ProjectReference Include="..\EggIdentity.Auth\EggIdentity.Auth.csproj" />
   </ItemGroup>
 

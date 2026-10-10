@@ -15,7 +15,7 @@ internal static class SharedStylesheet {
             Console.Error.WriteLine("usage: css emit [output-dir]");
             return 1;
         }
-        var dir = args.Length > 1 ? args[1] : Path.Combine(RepoRoot(), "EggIdentity.Styles", "wwwroot");
+        var dir = args.Length > 1 ? args[1] : Path.Combine(RepoRoot(), "EggIdentity.UI", "wwwroot");
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, SharedFile), RenderShared());
         File.WriteAllText(Path.Combine(dir, PreflightFile), RenderPreflight());

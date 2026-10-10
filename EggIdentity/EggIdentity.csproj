@@ -5,16 +5,25 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <Description>Shared identity/auth data model and resolver for eggidentity: users, identities, role, revoked sessions. Raw Npgsql, migrated via EggIdentity.Db.Migrator (no EF Core, matching the rest of the solution).</Description>
+    <Description>Shared identity/auth data model and resolver for eggidentity: users, identities, role, revoked sessions. Raw Npgsql, migrated via EggIdentity.Db.Migrator (no EF Core, matching the rest of the solution). Also hosts Fleet: fleet control over Portainer for the Host.</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Npgsql" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EggIdentity.Contract\EggIdentity.Contract.csproj" />
-    <ProjectReference Include="..\EggIdentity.Db\EggIdentity.Db.csproj" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EggIdentity.Data\EggIdentity.Data.csproj" />
+    <ProjectReference Include="..\EggIdentity.Admin\EggIdentity.Admin.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EggIdentity.Tests" />
   </ItemGroup>
 
   <ItemGroup>

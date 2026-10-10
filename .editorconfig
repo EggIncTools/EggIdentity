@@ -103,7 +103,7 @@ dotnet_code_quality.CA1711.allowed_suffixes = Stack
 dotnet_diagnostic.IDE0005.severity = none
 resharper_razor_always_use_end_of_line_brace_style = true
 
-[*/Tests/*.cs]
+[*/Tests/**.cs]
 # Test conventions: underscore method names, instance methods, inline arrays, per-call options fine.
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1822.severity = none

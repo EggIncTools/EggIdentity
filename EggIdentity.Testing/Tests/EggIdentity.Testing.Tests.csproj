@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EggIdentity.Testing.csproj" />
-    <ProjectReference Include="..\..\EggIdentity.Hosting\EggIdentity.Hosting.csproj" />
+    <ProjectReference Include="..\..\EggIdentity.Core\EggIdentity.Core.csproj" />
   </ItemGroup>
 
 </Project>

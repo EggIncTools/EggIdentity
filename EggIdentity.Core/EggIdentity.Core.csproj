@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>EggIdentity</RootNamespace>
+    <Description>EggIdentity core: frozen wire DTOs and UserRole (Contract), the OR-of-AND filter engine (Filtering), retry/backoff/circuit-breaker and TtlSnapshot (Resilience), PeriodicScopedService (Hosting), and the declarative settings model (Settings).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EggIdentity.Core.Tests" />
+  </ItemGroup>
+
+</Project>

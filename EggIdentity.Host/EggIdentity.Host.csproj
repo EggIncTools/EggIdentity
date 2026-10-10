@@ -16,17 +16,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EggIdentity\EggIdentity.csproj" />
-    <ProjectReference Include="..\EggIdentity.Db\EggIdentity.Db.csproj" />
-    <ProjectReference Include="..\EggIdentity.Contract\EggIdentity.Contract.csproj" />
-    <ProjectReference Include="..\EggIdentity.Auth\EggIdentity.Auth.csproj" />
     <ProjectReference Include="..\EggIdentity.Bot\EggIdentity.Bot.csproj" />
     <ProjectReference Include="..\EggIdentity.Brand\EggIdentity.Brand.csproj" />
-    <ProjectReference Include="..\EggIdentity.Deploy\EggIdentity.Deploy.csproj" />
-    <ProjectReference Include="..\EggIdentity.Fallback\EggIdentity.Fallback.csproj" />
-    <ProjectReference Include="..\EggIdentity.Fleet\EggIdentity.Fleet.csproj" />
-    <ProjectReference Include="..\EggIdentity.Settings\EggIdentity.Settings.csproj" />
-    <ProjectReference Include="..\EggIdentity.Settings.Store\EggIdentity.Settings.Store.csproj" />
-    <ProjectReference Include="..\EggIdentity.Settings.Api\EggIdentity.Settings.Api.csproj" />
+    <ProjectReference Include="..\EggIdentity.Web\EggIdentity.Web.csproj" />
+    <ProjectReference Include="..\EggIdentity.Admin\EggIdentity.Admin.csproj" />
   </ItemGroup>
 
   <ItemGroup>

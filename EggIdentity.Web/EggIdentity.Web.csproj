@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>EggIdentity</RootNamespace>
+    <Description>EggIdentity web surface: suite cookie consent (Consent), anonymous cookieless visit counting (Visits), in-memory request-rate and traffic audit (Metrics), and the shared exception/maintenance/404/down pages (Fallback).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EggIdentity.Data\EggIdentity.Data.csproj" />
+    <ProjectReference Include="..\EggIdentity.Auth\EggIdentity.Auth.csproj" />
+    <ProjectReference Include="..\EggIdentity.UI\EggIdentity.UI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Visits\Migrations\*.up.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EggIdentity.Web.Tests" />
+  </ItemGroup>
+
+</Project>

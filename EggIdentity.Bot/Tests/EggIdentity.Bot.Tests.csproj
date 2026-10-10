@@ -24,8 +24,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EggIdentity.Bot.csproj" />
-    <ProjectReference Include="..\..\EggIdentity.Contract\EggIdentity.Contract.csproj" />
-    <ProjectReference Include="..\..\EggIdentity.Db\EggIdentity.Db.csproj" />
   </ItemGroup>
 
   <ItemGroup>
