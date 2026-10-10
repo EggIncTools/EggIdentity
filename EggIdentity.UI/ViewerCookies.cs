@@ -8,6 +8,8 @@ public sealed class ViewerCookies(ViewerCookieOptions options, IHttpContextAcces
 
     public event Action? Changed;
 
+    public event Action<string>? ValueChanged;
+
     public IReadOnlyList<string> Pending => _pending;
 
     internal IReadOnlyDictionary<string, string> Values => _values;
@@ -24,6 +26,7 @@ public sealed class ViewerCookies(ViewerCookieOptions options, IHttpContextAcces
         _values[name] = value;
         _pending.Add($"{options.Path}?name={Uri.EscapeDataString(name)}&value={Uri.EscapeDataString(value)}");
         Changed?.Invoke();
+        ValueChanged?.Invoke(name);
     }
 
     private bool _persistClaimed;

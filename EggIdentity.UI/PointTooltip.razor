@@ -1,0 +1,24 @@
+@if (Visible) {
+    <span class="tooltip-point" style="@PointStyle" aria-hidden="true"><span role="tooltip" class="@PopCss">@if (Content is not null) {
+                @Content
+            } else if (Lines is not null) {
+                @foreach (var line in Lines) {
+                    <span class="@line.Css">@line.Text</span>
+                }
+            }</span></span>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public double X { get; set; }
+    [Parameter] public double Y { get; set; }
+    [Parameter] public IReadOnlyList<TooltipLine>? Lines { get; set; }
+    [Parameter] public RenderFragment? Content { get; set; }
+    [Parameter] public string? PopClass { get; set; }
+
+    readonly string _id = "--tp-" + Guid.NewGuid().ToString("N");
+
+    string PointStyle => string.Create(CultureInfo.InvariantCulture, $"left:{X:0.###}%;top:{Y:0.###}%;--tt-anchor:{_id}");
+
+    string PopCss => string.IsNullOrEmpty(PopClass) ? "tooltip-floating tooltip-fixed" : $"tooltip-floating tooltip-fixed {PopClass}";
+}

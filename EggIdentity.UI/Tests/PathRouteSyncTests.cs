@@ -103,6 +103,27 @@ public class PathRouteSyncTests {
     }
 
     [Fact]
+    public void FragmentOnlyChange_UpdatesFragmentAndRaisesChanged() {
+        var (nav, sync) = Start("/protos#a", "/protos");
+        var fired = 0;
+        sync.Changed += () => fired++;
+
+        nav.External("/protos#b%20c");
+
+        Assert.Equal("b c", sync.Fragment);
+        Assert.Equal(["protos"], sync.Segments);
+        Assert.Equal(1, fired);
+    }
+
+    [Fact]
+    public void Push_FragmentOnly_NavigatesAndUpdatesFragment() {
+        var (nav, sync) = Start("/protos#a", "/protos");
+        sync.Push("/protos#b");
+        Assert.Equal("/protos#b", Assert.Single(nav.Navigations).Uri);
+        Assert.Equal("b", sync.Fragment);
+    }
+
+    [Fact]
     public void Dispose_StopsListening() {
         var (nav, sync) = Start("/protos", "/protos");
         var fired = 0;

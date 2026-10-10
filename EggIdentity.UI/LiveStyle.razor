@@ -1,0 +1,8 @@
+@if (!string.IsNullOrEmpty(Css)) {
+    <style nonce="@Nonce">@((MarkupString)Css)</style>
+}
+
+@code {
+    [Parameter] public string? Css { get; set; }
+    [Parameter] public string? Nonce { get; set; }
+}

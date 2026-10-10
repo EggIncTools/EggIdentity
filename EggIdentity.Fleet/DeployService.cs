@@ -124,6 +124,8 @@ public sealed class DeployService(
         if (!state.Gate.TryEnter()) return Snapshot(app);
         try {
             await DeployCoreAsync(app, state, reason, ct);
+        } catch (OperationCanceledException) when (ct.IsCancellationRequested) {
+            events.Publish(app.Name, DeployPhase.Restarting, "deploy interrupted: host shutting down");
         } catch (Exception e) {
             events.Publish(app.Name, DeployPhase.Failed, $"deploy failed: {e.Message}");
         } finally {

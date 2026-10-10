@@ -29,6 +29,16 @@ public class ViewerCookiesTests {
     }
 
     [Fact]
+    public void ValueChangedNamesTheCookieOnlyOnRealChange() {
+        var cookies = new ViewerCookies(Options());
+        var names = new List<string>();
+        cookies.ValueChanged += names.Add;
+        cookies.Set("tz", "UTC");
+        cookies.Set("tz", "UTC");
+        Assert.Equal(["tz"], names);
+    }
+
+    [Fact]
     public void SnapshotReadsOnlyListedRequestCookies() {
         var ctx = new DefaultHttpContext();
         ctx.Request.Headers.Cookie = "tz=Asia%2FTokyo; other=1";

@@ -1,15 +1,21 @@
-<span class="@TriggerCss" style="--tt-anchor: --@_id" tabindex="@(Focusable ? "0" : null)" aria-describedby="@_id"
+<span class="@TriggerCss" style="--tt-anchor: --@_id;@Style" tabindex="@(Focusable ? "0" : null)" aria-describedby="@_id"
       @onkeydown="OnKeyDown" @onmouseleave="Rearm" @onfocusout="Rearm">@ChildContent<span id="@_id" role="tooltip" class="@PopCss">@if (Content is not null) {
             @Content
+        } else if (Lines is not null) {
+            @foreach (var line in Lines) {
+                <span class="@line.Css">@line.Text</span>
+            }
         } else {
             @Text
         }</span></span>
 
 @code {
     [Parameter] public string? Text { get; set; }
+    [Parameter] public IReadOnlyList<TooltipLine>? Lines { get; set; }
     [Parameter] public RenderFragment? Content { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public string? Class { get; set; }
+    [Parameter] public string? Style { get; set; }
     [Parameter] public string? PopClass { get; set; }
     [Parameter] public bool Error { get; set; }
     [Parameter] public bool Focusable { get; set; }

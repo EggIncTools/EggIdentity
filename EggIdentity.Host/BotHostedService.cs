@@ -59,7 +59,7 @@ public sealed class BotHostedService(
         var deployStateStore = new DeployStateStore(dataSource);
         var tracker = new DeployVersionTracker(deployStateStore, notifier);
         try {
-            await tracker.CheckAndNotifyAsync(cfg.Name, Environment.GetEnvironmentVariable("GIT_SHA") ?? "", cfg.Build.Version, cancellationToken);
+            await tracker.CheckAndNotifyAsync(HostServices.AppName, Environment.GetEnvironmentVariable("GIT_SHA") ?? "", cfg.Build.Version, cancellationToken);
         } catch (Exception ex) {
             Console.Error.WriteLine($"eggidentity: deploy self-report failed, continuing: {ex.Message}");
         }

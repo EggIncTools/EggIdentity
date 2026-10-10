@@ -172,6 +172,19 @@ public class DeployServiceTests {
     }
 
     [Fact]
+    public async Task Deploy_HostShutdownCancellation_IsRestartingNotFailed() {
+        var rig = Build();
+        using var stopping = new CancellationTokenSource();
+        rig.Portainer.Failure = new TaskCanceledException();
+        await stopping.CancelAsync();
+
+        await rig.Service.DeployAsync(App, "manual", stopping.Token);
+
+        Assert.DoesNotContain(DeployPhase.Failed, Phases(rig.Ring));
+        Assert.Equal(DeployPhase.Restarting, rig.Ring.Latest(App)!.Phase);
+    }
+
+    [Fact]
     public async Task Deploy_ContainerNeverComesUp_FailsWithTimeout() {
         var rig = Build(redeployTimeout: () => TimeSpan.FromMilliseconds(1));
         rig.Portainer.UpdatesContainer = false;

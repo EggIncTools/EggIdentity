@@ -1,0 +1,14 @@
+@implements IDisposable
+@inject Downloads Downloads
+
+@foreach (var url in Downloads.Pending) {
+    <iframe @key="url" src="@url" hidden aria-hidden="true" tabindex="-1" title=""></iframe>
+}
+
+@code {
+    protected override void OnInitialized() => Downloads.Changed += Refresh;
+
+    void Refresh() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Downloads.Changed -= Refresh;
+}
