@@ -128,14 +128,29 @@ public class SuiteProfileModalTests {
         Assert.DoesNotContain("suite-profile-body", html);
     }
 
+    private static readonly System.Reflection.FieldInfo ProfileOpen =
+        typeof(SuiteAccount).GetField("_profileOpen", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
     [Fact]
-    public void ProfileButtonOpensTheModal() {
+    public async Task ProfileButtonOpensTheModal() {
         var account = new SuiteAccount();
-        var modal = typeof(SuiteAccount).GetField("_profileOpen", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
 
-        account.OpenProfile();
+        await account.OpenProfile();
 
-        Assert.True((bool)modal.GetValue(account)!);
+        Assert.True((bool)ProfileOpen.GetValue(account)!);
+    }
+
+    [Fact]
+    public async Task HostProfileHandlerReplacesTheBuiltInModal() {
+        var opened = false;
+        var account = new SuiteAccount();
+        typeof(SuiteAccount).GetProperty(nameof(SuiteAccount.OnOpenProfile))!
+            .SetValue(account, EventCallback.Factory.Create(this, () => opened = true));
+
+        await account.OpenProfile();
+
+        Assert.True(opened);
+        Assert.False((bool)ProfileOpen.GetValue(account)!);
     }
 
     [Fact]

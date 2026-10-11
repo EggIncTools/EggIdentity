@@ -911,6 +911,10 @@
     gap: calc(var(--spacing) * 1.5);
     flex-shrink: 0;
   }
+  .consent-links {
+    display: var(--suite-consent-links-display,inline);
+    margin-top: var(--suite-consent-links-gap,0);
+  }
   .suite-provider {
     display: flex;
     width: 100%;
@@ -2171,6 +2175,9 @@
   }
   .prose-legal a:hover {
     text-decoration-line: underline;
+  }
+  .consent-links > a + a {
+    margin-left: var(--suite-consent-link-spacing,0.75em);
   }
   .cal-cell-label {
     position: absolute;

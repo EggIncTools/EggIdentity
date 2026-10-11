@@ -39,6 +39,8 @@ public sealed partial class CookieBanner : IDisposable {
     [Parameter] public string FunctionalLabel { get; set; } = "Functional";
     [Parameter] public string AnalyticsLabel { get; set; } = "Analytics";
     [Parameter] public string PrivacyLabel { get; set; } = "Privacy policy";
+    [Parameter] public string? TermsUrl { get; set; }
+    [Parameter] public string TermsLabel { get; set; } = "Terms";
     [Parameter] public string Message { get; set; } = "This site uses strictly necessary cookies. Optional functional and analytics cookies are off until you choose.";
 
     private bool Visible => _phase is Phase.Prompt or Phase.Configure;

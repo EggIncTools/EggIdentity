@@ -38,6 +38,7 @@
     [Parameter] public string ProfileLabel { get; set; } = "Profile";
     [Parameter] public string SignOutLabel { get; set; } = "Sign out";
     [Parameter] public IReadOnlyDictionary<string, string>? ProviderIcons { get; set; }
+    [Parameter] public EventCallback OnOpenProfile { get; set; }
 
     readonly string _panelId = "suite-account-" + Guid.NewGuid().ToString("N");
     readonly string _anchor = "--suite-account-" + Guid.NewGuid().ToString("N");
@@ -48,8 +49,10 @@
 
     protected override Task OnInitializedAsync() => Suite.LoadAsync();
 
-    internal void OpenProfile() {
+    internal Task OpenProfile() {
+        if (OnOpenProfile.HasDelegate) return OnOpenProfile.InvokeAsync();
         _profileOpen = true;
+        return Task.CompletedTask;
     }
 
     void CloseProfile() => _profileOpen = false;

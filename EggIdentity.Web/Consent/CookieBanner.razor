@@ -10,8 +10,15 @@
         } else {
             <p class="consent-text">
                 @Message
-                @if (!string.IsNullOrEmpty(PrivacyUrl)) {
-                    <a href="@PrivacyUrl">@PrivacyLabel</a>
+                @if (!string.IsNullOrEmpty(PrivacyUrl) || !string.IsNullOrEmpty(TermsUrl)) {
+                    <span class="consent-links">
+                        @if (!string.IsNullOrEmpty(PrivacyUrl)) {
+                            <a href="@PrivacyUrl">@PrivacyLabel</a>
+                        }
+                        @if (!string.IsNullOrEmpty(TermsUrl)) {
+                            <a href="@TermsUrl">@TermsLabel</a>
+                        }
+                    </span>
                 }
             </p>
         }
