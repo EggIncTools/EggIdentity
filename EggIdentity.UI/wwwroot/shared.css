@@ -807,6 +807,15 @@
     white-space: nowrap;
     font-family: inherit;
   }
+  .consent-actions > .btn-primary {
+    flex: 1;
+    min-width: calc(var(--spacing) * 0);
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-inline: calc(var(--spacing) * 2);
+  }
   .toast-host .toast {
     min-width: 220px;
     max-width: 320px;
@@ -1916,7 +1925,7 @@
   }
   .consent-actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: calc(var(--spacing) * 2);
     justify-content: flex-end;
   }
@@ -2074,6 +2083,15 @@
   .suite-profile-providers {
     display: flex;
     flex-direction: column;
+  }
+  .consent-actions > .btn-secondary {
+    flex: 1;
+    min-width: calc(var(--spacing) * 0);
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-inline: calc(var(--spacing) * 2);
   }
   .text-rarity-1 {
     color: var(--rarity-fg-1,#6ab6ff);
