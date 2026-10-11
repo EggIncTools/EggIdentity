@@ -21,9 +21,9 @@ internal static class Calendar {
         { ".cal-lane-group + .cal-lane-group", "mt-2" },
         { ".cal-lane-group:last-child", "flex-1 min-h-0" },
         { ".cal-lane", "relative flex-1 min-h-0" },
-        { ".cal-range-trigger", $"inline-flex items-center gap-1.5 px-3 py-[0.2rem] border border-border rounded-full bg-panel2 text-muted text-[0.85rem] font-medium cursor-pointer [transition:border-color_{Motion.Fast}_{Motion.Standard},background-color_{Motion.Fast}_{Motion.Standard},color_{Motion.Fast}_{Motion.Standard}]" },
-        { ".cal-range-trigger:hover", "border-accent2 text-fg" },
-        { ".cal-range-panel", "fixed inset-auto top-24 left-1/2 -translate-x-1/2 m-0 w-60 max-w-[90vw] px-3 py-3 text-sm text-muted bg-panel2 border border-border rounded-md flex-col gap-2 shadow-[0_6px_18px_rgba(0,0,0,.4)]" },
-        { ".cal-range-panel:popover-open", "flex" },
+        { ".cal-range", "flex flex-wrap items-center gap-2 min-w-0" },
+        { ".cal-range-label", "text-[0.85rem] font-medium text-muted whitespace-nowrap" },
+        { ".cal-range-nav", "inline-flex items-center gap-1" },
+        { ".cal-range-date", "w-auto" },
     }.ToImmutableDictionary();
 }

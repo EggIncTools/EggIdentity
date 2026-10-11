@@ -1,4 +1,4 @@
-<div class="combo-wrap" style="@AnchorStyle">
+<div class="@(string.IsNullOrEmpty(Class) ? "combo-wrap" : $"combo-wrap {Class}")" style="@AnchorStyle">
     <input type="text" class="form-input combo-anchor" placeholder="@Placeholder" value="@_query"
            @oninput="OnInput" @onfocus="OnFocus" @onfocusout="OnFocusOut" @onkeydown="OnKeyDown" @onkeydown:preventDefault="@_preventDefault"
            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
@@ -21,6 +21,7 @@
     [Parameter] public EventCallback<string?> ValueChanged { get; set; }
     [Parameter] [EditorRequired] public IReadOnlyList<ComboOption> Options { get; set; } = [];
     [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? Class { get; set; }
 
     readonly string _anchor = "--combo-" + Guid.NewGuid().ToString("N");
     List<ComboOption> _filtered = [];
