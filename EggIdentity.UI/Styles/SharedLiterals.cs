@@ -108,6 +108,44 @@ public static class SharedLiterals {
             transform: translateX(calc(-50% + var(--tt-shift-x,0px))) translateY(-10px) scale(var(--tt-scale,1));
           }
         }
+        @media (max-width: 44rem) {
+          .suite-switcher.suite-bar {
+            flex-wrap: wrap;
+            gap: 0;
+            padding: 0;
+          }
+          .suite-bar .suite-wordmark {
+            order: 1;
+            padding: 0.5rem 0.6rem;
+          }
+          .suite-account.suite-bar {
+            order: 2;
+            margin-left: auto;
+            padding-left: 0.5rem;
+          }
+          .suite-bar .suite-tools-nav {
+            order: 3;
+            flex-basis: 100%;
+          }
+          .suite-bar .suite-tools {
+            flex: 1;
+            justify-content: space-evenly;
+            border-inline: 0;
+            border-top: 1px solid var(--color-border);
+          }
+          .suite-bar .suite-tool-item {
+            flex: 1;
+          }
+          .suite-bar .suite-tool {
+            flex: 1;
+            padding-inline: 0.4rem;
+            padding-block: 0.45rem;
+            font-size: 0.85em;
+          }
+          .suite-bar .suite-tool.suite-tool-soon {
+            margin-left: 0;
+          }
+        }
         @media (prefers-reduced-motion: reduce) {
           .modal-card, .modal-card.wb-card, .wb-rail, .wb-main, .wb-drawer, .wb-drawer.wb-drawer-open, .wb-drawer-tab, .tooltip-floating, .popover, .toast, .cal-period, .cal-row, .suite-tool, .fab-bubble, .progress-fill, .caret, .mask, .menu, .menu.open, .drop-zone {
             transition: none;

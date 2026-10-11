@@ -7,19 +7,21 @@
         <nav class="suite-drawer-panel" aria-label="Suite tools">@Items</nav>
     </details>
 } else {
-    <nav class="@($"suite-switcher {SuitePlacements.Css(Placement)}")" aria-label="Suite tools">
+    <div class="@($"suite-switcher {SuitePlacements.Css(Placement)}")">
         @if (Placement is SuitePlacement.Bar or SuitePlacement.Rail) {
             <a class="suite-wordmark" href="@SuiteCatalog.HubUrl">
-                <img class="suite-mark" src="@Brands.IconPath("tools", 64)" alt="" width="24" height="24"/>
-                <span class="suite-wordmark-text">EggIncTools</span>
+                <img class="suite-mark" src="@Brands.IconPath("tools", 512)" alt="" width="512" height="512"/>
+                <span class="suite-wordmark-text">EggInc<span class="suite-wordmark-dot">.</span>tools</span>
             </a>
         }
-        @Items
-    </nav>
+        <nav class="suite-tools-nav" aria-label="Suite tools">@Items</nav>
+        @ChildContent
+    </div>
 }
 
 @code {
     [Parameter] public SuitePlacement Placement { get; set; } = SuitePlacement.Bar;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 
     protected override Task OnInitializedAsync() => Suite.LoadAsync();
 
@@ -30,13 +32,15 @@
                 @if (tool.Live) {
                     <a class="@(current ? "suite-tool suite-tool-current" : "suite-tool")" style="@tool.ToolStyle" href="@(current ? "/" : tool.Url + "/")"
                        aria-current="@(current ? "page" : null)">
-                        <img class="suite-tool-mark" src="@tool.IconUrl()" style="@tool.MarkStyle" alt="" width="20" height="20"/>
+                        <img class="suite-tool-mark" src="@tool.IconUrl(128)" style="@tool.MarkStyle" alt="" width="128" height="128"/>
                         <span class="suite-tool-name">@tool.Name</span>
                     </a>
                 } else {
-                    <span class="suite-tool suite-tool-soon" style="@tool.ToolStyle" aria-disabled="true">
-                        <img class="suite-tool-mark" src="@tool.IconUrl()" style="@tool.MarkStyle" alt="" width="20" height="20"/>
+                    <span class="suite-tool suite-tool-soon" style="@tool.ToolStyle" role="link" aria-disabled="true">
+                        <img class="suite-tool-mark" src="@tool.IconUrl(128)" style="@tool.MarkStyle" alt="" width="128" height="128"/>
                         <span class="suite-tool-name">@tool.Name</span>
+                        <span class="suite-tool-said">, coming soon</span>
+                        <span class="suite-tool-tip" aria-hidden="true">Coming soon</span>
                     </span>
                 }
             </li>
