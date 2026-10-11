@@ -1,23 +1,25 @@
 @using EggIdentity.Contract
 @inject SuiteContext Suite
 
-@if (Placement == SuitePlacement.Drawer) {
-    <details class="suite-switcher suite-drawer">
-        <summary class="suite-drawer-toggle" aria-label="Suite tools"><Icon Name="menu"/></summary>
-        <nav class="suite-drawer-panel" aria-label="Suite tools">@Items</nav>
-    </details>
-} else {
-    <div class="@($"suite-switcher {SuitePlacements.Css(Placement)}")">
-        @if (Placement is SuitePlacement.Bar or SuitePlacement.Rail or SuitePlacement.Inline) {
-            <a class="suite-wordmark" href="@SuiteCatalog.HubUrl" style="@HubStyle">
-                <img class="suite-mark" src="@Brands.IconPath("tools", 512)" alt="" width="512" height="512"/>
-                <span class="suite-wordmark-text">EggInc<span class="suite-wordmark-dot">.</span>tools</span>
-            </a>
-        }
-        <nav class="suite-tools-nav" aria-label="Suite tools">@Items</nav>
-        @ChildContent
-    </div>
-}
+<CircuitGuard Name="SuiteSwitcher">
+    @if (Placement == SuitePlacement.Drawer) {
+        <details class="suite-switcher suite-drawer">
+            <summary class="suite-drawer-toggle" aria-label="Suite tools"><Icon Name="menu"/></summary>
+            <nav class="suite-drawer-panel" aria-label="Suite tools">@Items</nav>
+        </details>
+    } else {
+        <div class="@($"suite-switcher {SuitePlacements.Css(Placement)}")">
+            @if (Placement is SuitePlacement.Bar or SuitePlacement.Rail or SuitePlacement.Inline) {
+                <a class="suite-wordmark" href="@SuiteCatalog.HubUrl" style="@HubStyle">
+                    <img class="suite-mark" src="@Brands.IconPath("tools", 512)" alt="" width="512" height="512"/>
+                    <span class="suite-wordmark-text">EggInc<span class="suite-wordmark-dot">.</span>tools</span>
+                </a>
+            }
+            <nav class="suite-tools-nav" aria-label="Suite tools">@Items</nav>
+            @ChildContent
+        </div>
+    }
+</CircuitGuard>
 
 @code {
     [Parameter] public SuitePlacement Placement { get; set; } = SuitePlacement.Bar;

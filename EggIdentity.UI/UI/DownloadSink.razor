@@ -1,14 +1,21 @@
 @implements IDisposable
 @inject Downloads Downloads
 
-@foreach (var url in Downloads.Pending) {
-    <iframe @key="url" src="@url" hidden aria-hidden="true" tabindex="-1" title=""></iframe>
-}
+<CircuitGuard @ref="_guard" Name="DownloadSink">
+    @foreach (var url in Downloads.Pending) {
+        <iframe @key="url" src="@url" hidden aria-hidden="true" tabindex="-1" title=""></iframe>
+    }
+</CircuitGuard>
 
 @code {
+    CircuitGuard? _guard;
+
     protected override void OnInitialized() => Downloads.Changed += Refresh;
 
-    void Refresh() => _ = InvokeAsync(StateHasChanged);
+    void Refresh() => _ = InvokeAsync(() => {
+        _guard?.Recover();
+        StateHasChanged();
+    });
 
     public void Dispose() => Downloads.Changed -= Refresh;
 }

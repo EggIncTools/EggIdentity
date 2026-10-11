@@ -2,6 +2,7 @@
 
 <ViewerCookieSink/>
 
+<CircuitGuard Name="CookieBanner">
 @if (Visible) {
     <div class="consent-banner" role="dialog" aria-label="Cookie consent">
         @if (Body is not null) {
@@ -39,3 +40,4 @@
         }
     </div>
 }
+</CircuitGuard>

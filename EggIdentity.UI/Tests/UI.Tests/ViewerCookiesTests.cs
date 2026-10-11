@@ -24,8 +24,32 @@ public class ViewerCookiesTests {
         cookies.Set("tz", "UTC");
         cookies.Set("tz", "UTC");
         Assert.Single(cookies.Pending);
-        cookies.Written(cookies.Pending[0]);
+        cookies.Written("tz", cookies.Pending[0]);
         Assert.Empty(cookies.Pending);
+    }
+
+    [Fact]
+    public void RepeatedChangesOnlyEverQueueOneWritePerName() {
+        var cookies = new ViewerCookies(Options());
+        cookies.Set("tz", "A");
+        var firstUrl = cookies.Pending[0];
+        cookies.Set("tz", "B");
+        cookies.Set("tz", "A");
+
+        Assert.Single(cookies.Pending);
+        Assert.Equal(firstUrl, cookies.Pending[0]);
+    }
+
+    [Fact]
+    public void WrittenIgnoresAStaleUrlSupersededByALaterWrite() {
+        var cookies = new ViewerCookies(Options());
+        cookies.Set("tz", "A");
+        var staleUrl = cookies.Pending[0];
+        cookies.Set("tz", "B");
+
+        cookies.Written("tz", staleUrl);
+
+        Assert.Single(cookies.Pending);
     }
 
     [Fact]

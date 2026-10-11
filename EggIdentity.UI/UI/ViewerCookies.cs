@@ -4,13 +4,15 @@ namespace EggIdentity.UI;
 
 public sealed class ViewerCookies(ViewerCookieOptions options, IHttpContextAccessor? accessor = null) {
     private readonly Dictionary<string, string> _values = Snapshot(options, accessor?.HttpContext);
-    private readonly List<string> _pending = [];
+    private readonly Dictionary<string, string> _pending = [with(StringComparer.Ordinal)];
 
     public event Action? Changed;
 
     public event Action<string>? ValueChanged;
 
-    public IReadOnlyList<string> Pending => _pending;
+    public IReadOnlyList<string> Pending => [.. _pending.Values];
+
+    internal IReadOnlyDictionary<string, string> PendingByName => _pending;
 
     internal IReadOnlyDictionary<string, string> Values => _values;
 
@@ -24,7 +26,7 @@ public sealed class ViewerCookies(ViewerCookieOptions options, IHttpContextAcces
             throw new ArgumentException($"Cookie '{name}' value exceeds {ViewerCookieOptions.MaxValueLength} characters.", nameof(value));
         if (_values.GetValueOrDefault(name) == value) return;
         _values[name] = value;
-        _pending.Add($"{options.Path}?name={Uri.EscapeDataString(name)}&value={Uri.EscapeDataString(value)}");
+        _pending[name] = $"{options.Path}?name={Uri.EscapeDataString(name)}&value={Uri.EscapeDataString(value)}";
         Changed?.Invoke();
         ValueChanged?.Invoke(name);
     }
@@ -33,7 +35,7 @@ public sealed class ViewerCookies(ViewerCookieOptions options, IHttpContextAcces
         if (!options.Cookies.ContainsKey(name))
             throw new ArgumentException($"Cookie '{name}' is not allowed by ViewerCookieOptions.", nameof(name));
         if (!_values.Remove(name)) return;
-        _pending.Add($"{options.Path}?name={Uri.EscapeDataString(name)}&remove=1");
+        _pending[name] = $"{options.Path}?name={Uri.EscapeDataString(name)}&remove=1";
         Changed?.Invoke();
         ValueChanged?.Invoke(name);
     }
@@ -51,8 +53,8 @@ public sealed class ViewerCookies(ViewerCookieOptions options, IHttpContextAcces
             if (options.Cookies.ContainsKey(name)) _values.TryAdd(name, value);
     }
 
-    internal void Written(string url) {
-        if (_pending.Remove(url)) Changed?.Invoke();
+    internal void Written(string name, string url) {
+        if (_pending.TryGetValue(name, out var current) && current == url && _pending.Remove(name)) Changed?.Invoke();
     }
 
     private static Dictionary<string, string> Snapshot(ViewerCookieOptions options, HttpContext? ctx) {

@@ -2,13 +2,16 @@
 @inject ViewerCookies Cookies
 @inject PersistentComponentState State
 
-@foreach (var url in Cookies.Pending) {
-    <iframe @key="url" src="@url" hidden aria-hidden="true" tabindex="-1" title="" @onload="() => Cookies.Written(url)"></iframe>
-}
+<CircuitGuard @ref="_guard" Name="ViewerCookieSink">
+    @foreach (var (name, url) in Cookies.PendingByName) {
+        <iframe @key="name" src="@url" hidden aria-hidden="true" tabindex="-1" title="" @onload="() => Cookies.Written(name, url)"></iframe>
+    }
+</CircuitGuard>
 
 @code {
     const string StateKey = "eggidentity-viewer-cookies";
     PersistingComponentStateSubscription _persisting;
+    CircuitGuard? _guard;
 
     protected override void OnInitialized() {
         Cookies.Changed += Refresh;
@@ -23,7 +26,10 @@
         });
     }
 
-    void Refresh() => _ = InvokeAsync(StateHasChanged);
+    void Refresh() => _ = InvokeAsync(() => {
+        _guard?.Recover();
+        StateHasChanged();
+    });
 
     public void Dispose() {
         Cookies.Changed -= Refresh;
