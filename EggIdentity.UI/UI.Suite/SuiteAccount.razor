@@ -13,27 +13,31 @@
                 <span class="suite-user-name">@Suite.Viewer.Name</span>
             </button>
             <div id="@_panelId" popover class="suite-account-panel">
-                <button type="button" class="suite-account-link suite-profile-open" popovertarget="@_panelId" popovertargetaction="hide" @onclick="OpenProfile">Profile</button>
-                <a class="suite-account-link" href="@SuiteCatalog.SignOutUrlFor(Nav.Uri)">Sign out</a>
+                <button type="button" class="suite-account-link suite-profile-open" popovertarget="@_panelId" popovertargetaction="hide" @onclick="OpenProfile">@ProfileLabel</button>
+                <a class="suite-account-link" href="@SuiteCatalog.SignOutUrlFor(Nav.Uri)">@SignOutLabel</a>
             </div>
         } else {
-            <button type="button" class="suite-signin suite-account-anchor" popovertarget="@_panelId">Login</button>
+            <button type="button" class="suite-signin suite-account-anchor" popovertarget="@_panelId">@LoginLabel</button>
             <div id="@_panelId" popover class="suite-account-panel">
                 @foreach (var provider in SuiteCatalog.Providers) {
                     <a class="suite-provider" href="@SuiteCatalog.ProviderSignInUrl(provider, Nav.Uri)">
-                        <Icon Name="@SuiteCatalog.ProviderIcon(provider)"/>
+                        <Icon Name="@SuiteCatalog.ProviderIcon(provider)" Icons="ProviderIcons"/>
                         <span>@ProviderName(provider)</span>
                     </a>
                 }
             </div>
         }
-        <SuiteProfileModal Open="_profileOpen" OnClose="CloseProfile" ReturnFocusTo="_trigger" Templates="ProfileTemplates"/>
+        <SuiteProfileModal Open="_profileOpen" OnClose="CloseProfile" ReturnFocusTo="_trigger" Templates="ProfileTemplates" ProviderIcons="ProviderIcons" LoginLabel="@LoginLabel"/>
     </div>
 </CircuitGuard>
 
 @code {
     [Parameter] public SuitePlacement Placement { get; set; } = SuitePlacement.Bar;
     [Parameter] public SuiteProfileTemplates? ProfileTemplates { get; set; }
+    [Parameter] public string LoginLabel { get; set; } = "Login";
+    [Parameter] public string ProfileLabel { get; set; } = "Profile";
+    [Parameter] public string SignOutLabel { get; set; } = "Sign out";
+    [Parameter] public IReadOnlyDictionary<string, string>? ProviderIcons { get; set; }
 
     readonly string _panelId = "suite-account-" + Guid.NewGuid().ToString("N");
     readonly string _anchor = "--suite-account-" + Guid.NewGuid().ToString("N");

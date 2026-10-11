@@ -32,6 +32,14 @@ public sealed partial class CookieBanner : IDisposable {
     [Parameter] public RenderFragment<ConsentBannerContext>? Body { get; set; }
     [Parameter] public RenderFragment<ConsentBannerContext>? Actions { get; set; }
     [Parameter] public RenderFragment<ConsentBannerContext>? Options { get; set; }
+    [Parameter] public string AcceptAllLabel { get; set; } = "Accept all";
+    [Parameter] public string NecessaryOnlyLabel { get; set; } = "Necessary only";
+    [Parameter] public string ConfigureLabel { get; set; } = "Configure";
+    [Parameter] public string SaveLabel { get; set; } = "Save";
+    [Parameter] public string FunctionalLabel { get; set; } = "Functional";
+    [Parameter] public string AnalyticsLabel { get; set; } = "Analytics";
+    [Parameter] public string PrivacyLabel { get; set; } = "Privacy policy";
+    [Parameter] public string Message { get; set; } = "This site uses strictly necessary cookies. Optional functional and analytics cookies are off until you choose.";
 
     private bool Visible => _phase is Phase.Prompt or Phase.Configure;
     private bool Configuring => _phase == Phase.Configure;

@@ -9,9 +9,9 @@
             @Body(Context)
         } else {
             <p class="consent-text">
-                This site uses strictly necessary cookies. Optional functional and analytics cookies are off until you choose.
+                @Message
                 @if (!string.IsNullOrEmpty(PrivacyUrl)) {
-                    <a href="@PrivacyUrl">Privacy policy</a>
+                    <a href="@PrivacyUrl">@PrivacyLabel</a>
                 }
             </p>
         }
@@ -20,8 +20,8 @@
                 @Options(Context)
             } else {
                 <div class="consent-options">
-                    <label class="consent-option"><input type="checkbox" @bind="_functional" /> Functional</label>
-                    <label class="consent-option"><input type="checkbox" @bind="_analytics" /> Analytics</label>
+                    <label class="consent-option"><input type="checkbox" @bind="_functional" /> @FunctionalLabel</label>
+                    <label class="consent-option"><input type="checkbox" @bind="_analytics" /> @AnalyticsLabel</label>
                 </div>
             }
         }
@@ -30,11 +30,11 @@
         } else {
             <div class="consent-actions">
                 @if (Configuring) {
-                    <button type="button" class="btn-primary" @onclick="() => DecideAsync(_functional, _analytics)">Save</button>
+                    <button type="button" class="btn-primary" @onclick="() => DecideAsync(_functional, _analytics)">@SaveLabel</button>
                 } else {
-                    <button type="button" class="btn-primary" @onclick="() => DecideAsync(true, true)">Accept all</button>
-                    <button type="button" class="btn-secondary" @onclick="() => DecideAsync(false, false)">Necessary only</button>
-                    <button type="button" class="btn-secondary" @onclick="Configure">Configure</button>
+                    <button type="button" class="btn-primary" @onclick="() => DecideAsync(true, true)">@AcceptAllLabel</button>
+                    <button type="button" class="btn-secondary" @onclick="() => DecideAsync(false, false)">@NecessaryOnlyLabel</button>
+                    <button type="button" class="btn-secondary" @onclick="Configure">@ConfigureLabel</button>
                 }
             </div>
         }

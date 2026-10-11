@@ -121,12 +121,12 @@ public static class SharedLiterals {
           }
           .suite-bar .suite-wordmark {
             order: 1;
-            padding: 0.5rem 0.6rem;
+            padding: var(--suite-wordmark-padding-narrow,0.5rem 0.6rem);
           }
           .suite-account.suite-bar {
             order: 2;
             margin-left: auto;
-            padding-left: 0.5rem;
+            padding: var(--suite-account-padding-narrow,0 1.1rem 0 0.5rem);
           }
           .suite-bar .suite-tools-nav {
             order: 3;
@@ -136,16 +136,15 @@ public static class SharedLiterals {
             flex: 1;
             justify-content: space-evenly;
             border-inline: 0;
-            border-top: 1px solid var(--color-border);
+            border-top: var(--suite-tools-border,1px solid var(--color-border));
           }
           .suite-bar .suite-tool-item {
             flex: 1;
           }
           .suite-bar .suite-tool {
             flex: 1;
-            padding-inline: 0.4rem;
-            padding-block: 0.45rem;
-            font-size: 0.85em;
+            padding: var(--suite-tool-padding-narrow,0.45rem 0.4rem);
+            font-size: var(--suite-tool-size-narrow,0.85em);
           }
           .suite-bar .suite-tool.suite-tool-soon {
             margin-left: 0;

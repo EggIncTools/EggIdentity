@@ -6,11 +6,11 @@
            ReturnFocusTo="ReturnFocusTo" OnClose="OnClose" CardClass="@CardCss">
     @if (!Suite.Viewer.IsAuthenticated) {
         <div class="suite-profile-body">
-            <p class="suite-profile-note">Login to manage your profile.</p>
+            <p class="suite-profile-note">@LoginLabel to manage your profile.</p>
             <div class="suite-profile-providers">
                 @foreach (var provider in SuiteCatalog.Providers) {
                     <a class="suite-provider" href="@SuiteCatalog.ProviderSignInUrl(provider, Nav.Uri)">
-                        <Icon Name="@SuiteCatalog.ProviderIcon(provider)"/>
+                        <Icon Name="@SuiteCatalog.ProviderIcon(provider)" Icons="ProviderIcons"/>
                         <span>@SuiteAccount.ProviderName(provider)</span>
                     </a>
                 }
@@ -46,7 +46,7 @@
                     <ul class="suite-profile-identities">
                         @foreach (var item in IdentitiesContext.Items) {
                             <li class="suite-profile-identity">
-                                <Icon Name="@item.ProviderIcon"/>
+                                <Icon Name="@item.ProviderIcon" Icons="ProviderIcons"/>
                                 <span class="suite-profile-identity-name">@(item.Identity.Username ?? item.Identity.Subject)</span>
                                 @if (!string.IsNullOrEmpty(item.Identity.Avatar)) {
                                     <button type="button" class="btn-mini" @onclick="item.OnSelectAvatar">Use avatar</button>
@@ -115,6 +115,8 @@
     [Parameter] public ElementReference? ReturnFocusTo { get; set; }
     [Parameter] public SuiteProfileTemplates? Templates { get; set; }
     [CascadingParameter] public SuiteProfileTemplates? CascadedTemplates { get; set; }
+    [Parameter] public IReadOnlyDictionary<string, string>? ProviderIcons { get; set; }
+    [Parameter] public string LoginLabel { get; set; } = "Login";
 
     readonly string _titleId = "suite-profile-" + Guid.NewGuid().ToString("N");
     ProfileResponse? _profile;
