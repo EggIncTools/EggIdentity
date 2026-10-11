@@ -26,21 +26,83 @@ public sealed class EggIdentityBotBuilder {
     private Func<CancellationToken, Task<IReadOnlyList<BotAppSnapshot>>>? _servedApps;
     private TimeSpan _dashboardRefreshInterval = TimeSpan.FromMinutes(5);
 
-    public EggIdentityBotBuilder WithConfigFile(string path) { _configFilePath = path; return this; }
-    public EggIdentityBotBuilder WithEnvFallback(Func<string, string?> envFallback) { _envFallback = envFallback; return this; }
-    public EggIdentityBotBuilder WithName(string name) { _name = name; return this; }
-    public EggIdentityBotBuilder WithBuild(VerifyInfo build) { _build = build; return this; }
-    public EggIdentityBotBuilder WithGlobalCommands(bool enabled = true) { _globalCommands = enabled; return this; }
-    public EggIdentityBotBuilder WithGuildCommandMirror(bool enabled = true) { _guildCommandMirror = enabled; return this; }
-    public EggIdentityBotBuilder WithCommand(BotCommand command) { _commands.Add(command); return this; }
-    public EggIdentityBotBuilder WithVerifyEmbed(EmbedOptions options) { _verifyOptions = options; return this; }
-    public EggIdentityBotBuilder WithVerifyEmbedBuilder(Func<BotConfig, Embed> build) { _verifyBuilder = build; return this; }
-    public EggIdentityBotBuilder WithDb(string connStr, string migrationsDir) { _dbConnStr = connStr; _dbMigrationsDir = migrationsDir; return this; }
-    public EggIdentityBotBuilder WithMigrationsLocation(string dir, string tableName) { _migrationsDir = dir; _migrationsTableName = tableName; return this; }
-    public EggIdentityBotBuilder WithNewVersionHandler(Func<NewVersionEvent, Task> handler, string eventSecret) { _newVersionHandler = handler; _eventSecret = eventSecret; return this; }
-    public EggIdentityBotBuilder WithDashboardProvider(Func<CancellationToken, Task<DashboardSnapshot>> provider) { _dashboardProvider = provider; return this; }
-    public EggIdentityBotBuilder WithServedApps(Func<CancellationToken, Task<IReadOnlyList<BotAppSnapshot>>> served) { _servedApps = served; return this; }
-    public EggIdentityBotBuilder WithDashboardRefreshInterval(TimeSpan interval) { _dashboardRefreshInterval = interval; return this; }
+    public EggIdentityBotBuilder WithConfigFile(string path) {
+        _configFilePath = path;
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithEnvFallback(Func<string, string?> envFallback) {
+        _envFallback = envFallback;
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithName(string name) {
+        _name = name;
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithBuild(VerifyInfo build) {
+        _build = build;
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithGlobalCommands(bool enabled = true) {
+        _globalCommands = enabled;
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithGuildCommandMirror(bool enabled = true) {
+        _guildCommandMirror = enabled;
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithCommand(BotCommand command) {
+        _commands.Add(command);
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithVerifyEmbed(EmbedOptions options) {
+        _verifyOptions = options;
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithVerifyEmbedBuilder(Func<BotConfig, Embed> build) {
+        _verifyBuilder = build;
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithDb(string connStr, string migrationsDir) {
+        _dbConnStr = connStr;
+        _dbMigrationsDir = migrationsDir;
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithMigrationsLocation(string dir, string tableName) {
+        _migrationsDir = dir;
+        _migrationsTableName = tableName;
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithNewVersionHandler(Func<NewVersionEvent, Task> handler, string eventSecret) {
+        _newVersionHandler = handler;
+        _eventSecret = eventSecret;
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithDashboardProvider(Func<CancellationToken, Task<DashboardSnapshot>> provider) {
+        _dashboardProvider = provider;
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithServedApps(Func<CancellationToken, Task<IReadOnlyList<BotAppSnapshot>>> served) {
+        _servedApps = served;
+        return this;
+    }
+
+    public EggIdentityBotBuilder WithDashboardRefreshInterval(TimeSpan interval) {
+        _dashboardRefreshInterval = interval;
+        return this;
+    }
 
     public BotConfig BuildConfig() {
         var values = BotConfigLoader.Load(_configFilePath, _envFallback);
@@ -131,7 +193,9 @@ public sealed class EggIdentityBotBuilder {
         var urls = addr.StartsWith(':') ? $"http://0.0.0.0{addr}" : $"http://{addr}";
 
         app.Logger.LogInformation("eggidentity: {Name} listening on {Addr}", cfg.Name, addr);
-        try { await app.RunAsync(urls); } finally {
+        try {
+            await app.RunAsync(urls);
+        } finally {
             if (bot is not null) await bot.DisposeAsync();
             if (conn is not null) await conn.DisposeAsync();
         }

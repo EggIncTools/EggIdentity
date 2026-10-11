@@ -5,12 +5,8 @@ namespace EggIdentity.Styles.Tests;
 public class ThemeTokenRegistryTests {
     [Fact]
     public void BaselineSettable_ContainsRequiredAndOptionalComponentTokens() {
-        foreach (var token in ComponentTokens.Required) {
-            Assert.Contains(StripColorPrefix(token), ThemeTokenRegistry.BaselineSettable);
-        }
-        foreach (var token in ComponentTokens.Optional) {
-            Assert.Contains(StripColorPrefix(token), ThemeTokenRegistry.BaselineSettable);
-        }
+        foreach (var token in ComponentTokens.Required) Assert.Contains(StripColorPrefix(token), ThemeTokenRegistry.BaselineSettable);
+        foreach (var token in ComponentTokens.Optional) Assert.Contains(StripColorPrefix(token), ThemeTokenRegistry.BaselineSettable);
         Assert.Equal(ComponentTokens.Required.Length + ComponentTokens.Optional.Length, ThemeTokenRegistry.BaselineSettable.Count);
     }
 

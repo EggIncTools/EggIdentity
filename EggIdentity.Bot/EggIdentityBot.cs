@@ -297,12 +297,18 @@ public sealed class EggIdentityBot : IAsyncDisposable {
 
     private async Task OnAutocompleteAsync(SocketAutocompleteInteraction ac) {
         if (_autocomplete.TryGetValue(ac.Data.CommandName, out var h)) {
-            try { await h(new SocketAutocompleteContext(Client, ac)); } catch (Exception ex) {
+            try {
+                await h(new SocketAutocompleteContext(Client, ac));
+            } catch (Exception ex) {
                 Console.Error.WriteLine($"bot: autocomplete /{ac.Data.CommandName} failed: {ex.Message}");
-                try { await ac.RespondAsync(Array.Empty<AutocompleteResult>()); } catch { /* interaction already acked/expired */ }
+                try {
+                    await ac.RespondAsync(Array.Empty<AutocompleteResult>());
+                } catch { /* interaction already acked/expired */ }
             }
         } else {
-            try { await ac.RespondAsync(Array.Empty<AutocompleteResult>()); } catch { /* interaction already acked/expired */ }
+            try {
+                await ac.RespondAsync(Array.Empty<AutocompleteResult>());
+            } catch { /* interaction already acked/expired */ }
         }
     }
 

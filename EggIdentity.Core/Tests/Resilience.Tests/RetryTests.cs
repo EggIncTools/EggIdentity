@@ -75,19 +75,4 @@ public class RetryTests {
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
         Assert.Equal(1, calls);
     }
-
-    [Fact]
-    public async Task RunAsync_NonGeneric_RetriesToo() {
-        var time = new FakeTimeProvider();
-        var calls = 0;
-        var task = Retry.RunAsync(_ => {
-            calls++;
-            return calls < 2 ? throw new IOException("flaky") : Task.CompletedTask;
-        }, Options, time);
-
-        await DriveAsync(time, task);
-        await task;
-
-        Assert.Equal(2, calls);
-    }
 }

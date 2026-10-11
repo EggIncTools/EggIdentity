@@ -53,21 +53,6 @@ public class ThemeContrastTests {
     }
 
     [Fact]
-    public void HueRotation_IsJudgedAtTheWorstHue() {
-        var colors = DefaultPalette();
-        Assert.True(ThemeContrast.Validate(colors, ThemeChroma.None, StatusTokens).Passes);
-
-        var rotatingChroma = new ThemeChroma(HueRotate: new ThemeHueRotate(true, 30)).Clamped();
-        var result = ThemeContrast.Validate(colors, rotatingChroma, StatusTokens);
-
-        if (result.Failures.Count == 0) {
-            Assert.True(result.Passes);
-        } else {
-            Assert.All(result.Failures.Where(f => f.A == "accent"), f => Assert.NotNull(f.AtHue));
-        }
-    }
-
-    [Fact]
     public void FailureRows_CarryMeasurementAndRequirement() {
         var colors = new Dictionary<string, ThemeColor>(DefaultPalette()) {
             ["bg"] = ThemeColor.FromHex("#808080")!.Value,

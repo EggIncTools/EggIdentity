@@ -38,20 +38,17 @@ public sealed class FilterEvaluator<TItem, TField> where TField : notnull {
 
     public async Task<bool> MatchesAsync(TItem item, Filter<TField> filter) {
         if (filter.IsEmpty) return true;
-        foreach (var group in filter.Groups) {
+        foreach (var group in filter.Groups)
             if (await GroupMatchesAsync(item, group)) return true;
-        }
         return false;
     }
 
     private async Task<bool> GroupMatchesAsync(TItem item, FilterGroup<TField> group) {
         if (group.Conditions.Count == 0) return true;
-        foreach (var c in group.Conditions) {
+        foreach (var c in group.Conditions)
             if (!_async.ContainsKey(c.Field) && !MatchesSync(item, c)) return false;
-        }
-        foreach (var c in group.Conditions) {
+        foreach (var c in group.Conditions)
             if (_async.TryGetValue(c.Field, out var evaluate) && !await evaluate(item, c)) return false;
-        }
         return true;
     }
 

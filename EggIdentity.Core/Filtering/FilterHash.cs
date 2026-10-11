@@ -8,9 +8,7 @@ public static class FilterHash {
         sb.Append('#');
         foreach (var group in filter.Groups) {
             sb.Append('(');
-            foreach (var c in group.Conditions) {
-                sb.Append(c.Field).Append('~').Append(c.Operator).Append('~').Append(c.Value).Append(';');
-            }
+            foreach (var c in group.Conditions) sb.Append(c.Field).Append('~').Append(c.Operator).Append('~').Append(c.Value).Append(';');
             sb.Append(')');
         }
         return sb.ToString();

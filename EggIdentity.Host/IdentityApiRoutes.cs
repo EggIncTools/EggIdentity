@@ -26,9 +26,8 @@ internal static class IdentityApiRoutes {
 
     private static bool IsPublic(PathString path) {
         if (path == "/") return true;
-        foreach (var segment in PublicSegments) {
+        foreach (var segment in PublicSegments)
             if (path.StartsWithSegments(segment)) return true;
-        }
         return false;
     }
 

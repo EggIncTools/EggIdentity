@@ -99,8 +99,14 @@ public class BotConfigServiceTests {
         var calls = new List<(string Op, ulong Id)>();
         var svc = new BotConfigService(guildId, "eggledger",
             new ChannelConfigStore(db), new ChannelStateStore(db),
-            (_, id, _) => { calls.Add(("ensure", id)); return Task.FromResult<string?>("http://hook/stub"); },
-            (_, _) => { calls.Add(("teardown", 0UL)); return Task.CompletedTask; });
+            (_, id, _) => {
+                calls.Add(("ensure", id));
+                return Task.FromResult<string?>("http://hook/stub");
+            },
+            (_, _) => {
+                calls.Add(("teardown", 0UL));
+                return Task.CompletedTask;
+            });
         return (svc, calls);
     }
 }

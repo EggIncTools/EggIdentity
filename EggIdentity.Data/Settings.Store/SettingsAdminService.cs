@@ -61,11 +61,8 @@ public sealed class SettingsAdminService(SettingsRegistry registry, SettingsStor
         if (SettingsValidation.Validate(descriptor, value) is string error)
             return new SettingsSaveResult(false, error, false);
 
-        if (string.IsNullOrWhiteSpace(value)) {
-            await store.DeleteAsync(key, ct);
-        } else {
-            await store.SetAsync(descriptor, value, updatedBy, ct);
-        }
+        if (string.IsNullOrWhiteSpace(value)) await store.DeleteAsync(key, ct);
+        else await store.SetAsync(descriptor, value, updatedBy, ct);
 
         await store.NotifyChangedAsync(ct);
         await cache.RefreshAsync(ct);
@@ -160,9 +157,8 @@ public sealed class SettingsAdminService(SettingsRegistry registry, SettingsStor
     private static CollectionRow Mask(CollectionDescriptor descriptor, CollectionRow row) {
         if (!descriptor.HasSecrets) return row;
         var values = new Dictionary<string, string?>(row.Values, StringComparer.Ordinal);
-        foreach (var field in descriptor.Fields.Where(f => f.IsSecret)) {
+        foreach (var field in descriptor.Fields.Where(f => f.IsSecret))
             if (!string.IsNullOrEmpty(values.GetValueOrDefault(field.Name))) values[field.Name] = SecretMask;
-        }
         return row with { Values = values };
     }
 }

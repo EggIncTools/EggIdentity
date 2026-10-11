@@ -27,10 +27,8 @@ public static class DockerJson {
         var repoDigests = new List<string>();
         if (image is { } imageElement) {
             repoDigests = ReadStringList(imageElement, "RepoDigests");
-            if (imageElement.TryGetProperty("Config", out var ic) && ic.ValueKind == JsonValueKind.Object) {
-                foreach (var (k, v) in ReadStringMap(ic, "Labels"))
-                    labels.TryAdd(k, v);
-            }
+            if (imageElement.TryGetProperty("Config", out var ic) && ic.ValueKind == JsonValueKind.Object)
+                foreach (var (k, v) in ReadStringMap(ic, "Labels")) labels.TryAdd(k, v);
         }
         return new ContainerInfo(id, name.TrimStart('/'), imageRef, imageId, repoDigests, env, labels, running) {
             StartedAt = running ? ReadTime(state, "StartedAt") : null,
@@ -97,9 +95,8 @@ public static class DockerJson {
     private static List<string> ReadStringList(JsonElement element, string name) {
         var list = new List<string>();
         if (!element.TryGetProperty(name, out var array) || array.ValueKind != JsonValueKind.Array) return list;
-        foreach (var item in array.EnumerateArray()) {
+        foreach (var item in array.EnumerateArray())
             if (item.ValueKind == JsonValueKind.String) list.Add(item.GetString() ?? "");
-        }
         return list;
     }
 

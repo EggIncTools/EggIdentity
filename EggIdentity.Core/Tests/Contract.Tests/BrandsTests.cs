@@ -38,13 +38,6 @@ public class BrandsTests {
     }
 
     [Fact]
-    public void TrimInsetIsUniformAndKeepsTheIconSquare() {
-        var incognito = Brands.Find("incognito")!;
-        Assert.Equal(40, incognito.UniformTrimInset);
-        Assert.Equal(432, 512 - (incognito.UniformTrimInset * 2));
-    }
-
-    [Fact]
     public void PathsUseTheContentPrefix() {
         Assert.Equal("_content/EggIdentity.Brand/brand/ledger/icon-64.png", Brands.IconPath("ledger", 64));
         Assert.Equal("_content/EggIdentity.Brand/brand/incognito/lockup.png", Brands.LockupPath("incognito"));

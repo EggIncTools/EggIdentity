@@ -30,9 +30,8 @@ public static class LoadOrder {
         var ready = new Queue<string>(tables.Where(t => indegree[t] == 0));
         while (ready.TryDequeue(out var table)) {
             ordered.Add(table);
-            foreach (var child in children[table]) {
+            foreach (var child in children[table])
                 if (--indegree[child] == 0) ready.Enqueue(child);
-            }
         }
 
         if (ordered.Count == tables.Count) return ordered;

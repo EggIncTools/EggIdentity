@@ -7,9 +7,8 @@ public static class SecretMasking {
     public static bool LooksSecret(string key) {
         if (string.IsNullOrEmpty(key)) return false;
         var upper = key.ToUpperInvariant();
-        foreach (var marker in Markers) {
+        foreach (var marker in Markers)
             if (upper.Contains(marker, StringComparison.Ordinal)) return true;
-        }
         return false;
     }
 

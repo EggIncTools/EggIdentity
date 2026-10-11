@@ -63,15 +63,18 @@ public static class StackLookup {
         var armed = stack.AutoUpdate is { Webhook.Length: > 0 };
         var force = stack.AutoUpdate?.ForceUpdate == true;
         var label = $"stack \"{stack.Name}\" (Portainer #{stack.Id})";
-        var refusal =
-            stack.Type != PortainerStack.ComposeType ? $"{label} is not a compose stack"
-            : !stack.GitBacked ? null
-            : !armed ? $"{label} is git backed but has no GitOps webhook; enable the webhook under GitOps updates in Portainer"
-            : !force ? $"{label} has force redeploy off, so its webhook only fires on a new commit; turn on force redeploy under GitOps updates in Portainer"
-            : null;
+        var refusal = Refusal(stack, label, armed, force);
         return new StackInfo(
             stack.Name, stack.Id, stack.EndpointId, stack.Name, stack.GitBacked,
             stack.GitConfig?.Url, stack.GitConfig?.ReferenceName, armed, force, refusal);
+
+        static string? Refusal(PortainerStack stack, string label, bool armed, bool force) {
+            if (stack.Type != PortainerStack.ComposeType) return $"{label} is not a compose stack";
+            if (!stack.GitBacked) return null;
+            if (!armed) return $"{label} is git backed but has no GitOps webhook; enable the webhook under GitOps updates in Portainer";
+            if (!force) return $"{label} has force redeploy off, so its webhook only fires on a new commit; turn on force redeploy under GitOps updates in Portainer";
+            return null;
+        }
     }
 
     public static StackInfo Missing(string name, string refusal) =>

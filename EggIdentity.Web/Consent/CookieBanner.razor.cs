@@ -108,9 +108,7 @@ public sealed partial class CookieBanner : IDisposable {
         var now = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
         var state = new ConsentState(functional, analytics, EffectiveVersion, now);
         WriteCookie(state);
-        if (SessionToken is not null && Services.GetService<IdentityApiClient>() is { } api) {
-            await api.SetConsentAsync(SessionToken, ToRequest(state), CancellationToken.None);
-        }
+        if (SessionToken is not null && Services.GetService<IdentityApiClient>() is { } api) await api.SetConsentAsync(SessionToken, ToRequest(state), CancellationToken.None);
         Reader.Set(state);
         _phase = Phase.Hidden;
     }

@@ -181,11 +181,8 @@ public static class ThemeCssParser {
                 }
 
                 int unitStart = j;
-                if (j < s.Length && s[j] == '%') {
-                    j++;
-                } else {
-                    while (j < s.Length && char.IsAsciiLetter(s[j])) j++;
-                }
+                if (j < s.Length && s[j] == '%') j++;
+                else while (j < s.Length && char.IsAsciiLetter(s[j])) j++;
 
                 string numText = s[i..unitStart];
                 string unitText = s[unitStart..j].ToLowerInvariant();

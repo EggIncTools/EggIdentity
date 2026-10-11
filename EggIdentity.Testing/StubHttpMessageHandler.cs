@@ -11,7 +11,6 @@ public sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponse
     public IReadOnlyList<HttpRequestMessage> Requests => _requests;
 
     public HttpRequestMessage? LastRequest { get; private set; }
-
     public string? LastRequestBody { get; private set; }
 
     public HttpClient Client(string baseAddress = "https://stub.test/") => new(this, false) { BaseAddress = new Uri(baseAddress) };

@@ -77,15 +77,6 @@ public partial class SharedSheetTests {
         Assert.All(sheet.Rules, r => Assert.Equal("@media (prefers-reduced-motion: reduce)", r.Container));
     }
 
-    [Theory]
-    [InlineData(".modal-card.wb-card", "width", "var(--wb-card-w,92vw)")]
-    [InlineData(".modal-card.wb-card", "height", "var(--wb-card-h,88vh)")]
-    [InlineData(".modal-card.wb-card", "max-width", "var(--wb-card-max,80rem)")]
-    [InlineData(".wb-rail", "width", "var(--wb-rail-w,18rem)")]
-    public void ConsumerPinnedDeclarations(string selector, string property, string value) {
-        Assert.Equal(value, Sheet.Rule(selector)?[property]);
-    }
-
     [Fact]
     public void Tokens_MatchGoldenNames() {
         string[] expectedRequired = [

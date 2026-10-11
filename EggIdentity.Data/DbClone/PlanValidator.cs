@@ -48,9 +48,8 @@ public static class PlanValidator {
             if (t.Truncates && !inTarget) errors.Add($"{t.Table} is {t.Policy} but is missing from the target");
         }
 
-        foreach (var t in target.Order(StringComparer.Ordinal)) {
+        foreach (var t in target.Order(StringComparer.Ordinal))
             if (!planned.Contains(t) && !ignored.Contains(t)) errors.Add($"{t} exists on the target but has no policy");
-        }
         return errors;
     }
 

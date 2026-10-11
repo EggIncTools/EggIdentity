@@ -21,9 +21,7 @@ public static class ThemeContrast {
             Check(failures, "contrast", "fg", surface, ThemeColor.Contrast(colors["fg"], colors[surface]), FgFloor);
             Check(failures, "contrast", "muted", surface, ThemeColor.Contrast(colors["muted"], colors[surface]), MutedFloor);
             Check(failures, "contrast", "border", surface, ThemeColor.Contrast(colors["border"], colors[surface]), BorderFloor);
-            foreach (string status in statusTokens) {
-                Check(failures, "contrast", status, surface, ThemeColor.Contrast(colors[status], colors[surface]), StatusFloor);
-            }
+            foreach (string status in statusTokens) Check(failures, "contrast", status, surface, ThemeColor.Contrast(colors[status], colors[surface]), StatusFloor);
         }
 
         for (int i = 0; i < statusTokens.Count; i++) {

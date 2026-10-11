@@ -16,7 +16,10 @@ public class NewVersionHandlerTests {
     [Fact]
     public async Task WrongSecret_401_HandlerNotCalled() {
         var called = false;
-        var h = NewVersionHandler.Build("right", _ => { called = true; return Task.CompletedTask; });
+        var h = NewVersionHandler.Build("right", _ => {
+            called = true;
+            return Task.CompletedTask;
+        });
         var ctx = CtxWith("Bearer wrong", "{}");
         await h(ctx);
         Assert.Equal(401, ctx.Response.StatusCode);
@@ -34,7 +37,10 @@ public class NewVersionHandlerTests {
     [Fact]
     public async Task GoodSecret_DecodesAndCallsHandler() {
         NewVersionEvent? got = null;
-        var h = NewVersionHandler.Build("s3cr3t", e => { got = e; return Task.CompletedTask; });
+        var h = NewVersionHandler.Build("s3cr3t", e => {
+            got = e;
+            return Task.CompletedTask;
+        });
         var ctx = CtxWith("Bearer s3cr3t",
             "{\"package\":\"com.auxbrain.egginc\",\"version\":\"1.34\",\"apkRef\":\"/x\",\"protoSha\":\"d\",\"detectedAt\":\"t\"}");
         await h(ctx);

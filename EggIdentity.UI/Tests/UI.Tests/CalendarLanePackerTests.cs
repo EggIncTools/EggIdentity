@@ -35,9 +35,7 @@ public class CalendarLanePackerTests {
         };
 
         var assigned = new List<int>();
-        foreach (var (left, right) in intervals) {
-            assigned.Add(CalendarLanePacker.AssignLane(laneRights, left, right, 0.0));
-        }
+        foreach (var (left, right) in intervals) assigned.Add(CalendarLanePacker.AssignLane(laneRights, left, right, 0.0));
 
         Assert.Equal([0, 1, 0, 1, 0], assigned);
         Assert.Equal([0.8, 0.6], laneRights);

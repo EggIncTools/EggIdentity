@@ -14,11 +14,11 @@ public sealed class DeployNotifier(
         var guild = client.GetGuild(guildId);
         if (guild?.GetChannel(threadId) is not IMessageChannel channel) return;
 
-        var (messageJson, embedJson, defaultEmbed) = res.Ok && res.AlreadyUpToDate
-            ? (cfg.UptodateMessageJson, cfg.UptodateEmbedJson, DeployEmbedDefaults.AlreadyUpToDate)
-            : res.Ok
-                ? (cfg.SuccessMessageJson, cfg.SuccessEmbedJson, DeployEmbedDefaults.Success)
-                : (cfg.FailureMessageJson, cfg.FailureEmbedJson, DeployEmbedDefaults.Failure);
+        var (messageJson, embedJson, defaultEmbed) = res switch {
+            { Ok: true, AlreadyUpToDate: true } => (cfg.UptodateMessageJson, cfg.UptodateEmbedJson, DeployEmbedDefaults.AlreadyUpToDate),
+            { Ok: true } => (cfg.SuccessMessageJson, cfg.SuccessEmbedJson, DeployEmbedDefaults.Success),
+            _ => (cfg.FailureMessageJson, cfg.FailureEmbedJson, DeployEmbedDefaults.Failure),
+        };
 
         var spec = MessageSpecs.Resolve(messageJson, embedJson, defaultEmbed);
         var rendered = MessageRenderer.Render(spec, DeployVars.Build(res, appName));

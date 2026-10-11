@@ -9,7 +9,10 @@ public class SessionRevocationCacheTests {
         var cache = new SessionRevocationCache(clock, TimeSpan.FromSeconds(30));
         var calls = 0;
 
-        Task<bool> Fetch(CancellationToken ct) { calls++; return Task.FromResult(false); }
+        Task<bool> Fetch(CancellationToken ct) {
+            calls++;
+            return Task.FromResult(false);
+        }
 
         Assert.False(await cache.IsRevokedAsync("sid", Fetch, default));
         Assert.False(await cache.IsRevokedAsync("sid", Fetch, default));
@@ -23,7 +26,10 @@ public class SessionRevocationCacheTests {
         var cache = new SessionRevocationCache(clock, TimeSpan.FromSeconds(30));
         var calls = 0;
 
-        Task<bool> Fetch(CancellationToken ct) { calls++; return Task.FromResult(false); }
+        Task<bool> Fetch(CancellationToken ct) {
+            calls++;
+            return Task.FromResult(false);
+        }
 
         Assert.False(await cache.IsRevokedAsync("sid", Fetch, default));
         clock.Advance(TimeSpan.FromSeconds(31));
@@ -38,7 +44,10 @@ public class SessionRevocationCacheTests {
         var cache = new SessionRevocationCache(clock, TimeSpan.FromSeconds(30));
         var calls = 0;
 
-        Task<bool> Fetch(CancellationToken ct) { calls++; return Task.FromResult(true); }
+        Task<bool> Fetch(CancellationToken ct) {
+            calls++;
+            return Task.FromResult(true);
+        }
 
         Assert.True(await cache.IsRevokedAsync("sid", Fetch, default));
         clock.Advance(TimeSpan.FromMinutes(5));

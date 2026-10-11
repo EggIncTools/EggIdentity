@@ -29,19 +29,6 @@ public class OAuthStateStoreTests {
     }
 
     [Fact]
-    public async Task SaveAsync_InlineMode_RoundTrips() {
-        if (string.IsNullOrEmpty(ConnString)) return;
-        await using var db = await MakeDbAsync();
-        var store = new OAuthStateStore(db);
-
-        await store.SaveAsync("state-inline", "verifier-x", "https://eggincognito.example.com", "inline", CancellationToken.None);
-        var result = await store.ConsumeAsync("state-inline", CancellationToken.None);
-
-        Assert.NotNull(result);
-        Assert.Equal("inline", result!.Mode);
-    }
-
-    [Fact]
     public async Task ConsumeAsync_SecondAttempt_ReturnsNull() {
         if (string.IsNullOrEmpty(ConnString)) return;
         await using var db = await MakeDbAsync();

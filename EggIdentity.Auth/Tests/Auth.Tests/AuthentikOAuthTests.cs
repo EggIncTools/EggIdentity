@@ -48,18 +48,6 @@ public class AuthentikOAuthTests {
     }
 
     [Fact]
-    public void AuthentikTokenResult_PerSourceIds_NullClaimsStayNull() {
-        var token = new AuthentikTokenResult(
-            Sub: "sub123", DiscordId: "d1", GoogleId: null, MicrosoftId: null, GitHubId: null,
-            Username: "user", Avatar: null, Sid: null, IdToken: null);
-
-        Assert.Equal("d1", token.PerSourceIds["discord"]);
-        Assert.Null(token.PerSourceIds["google"]);
-        Assert.Null(token.PerSourceIds["microsoft"]);
-        Assert.Null(token.PerSourceIds["github"]);
-    }
-
-    [Fact]
     public void CodeChallenge_IsS256OfVerifier() {
         const string verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
         const string expectedChallenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";

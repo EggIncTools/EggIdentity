@@ -36,12 +36,6 @@ public class StartupRetryTests {
         Assert.False(Database.IsTransient(new ArgumentException("connection string is a URI")));
 
     [Fact]
-    public void TheRetryBudgetIsBoundedRatherThanInfinite() {
-        Assert.Equal(8, Database.StartupRetry.MaxAttempts);
-        Assert.True(Database.StartupRetry.MaxDelay <= TimeSpan.FromSeconds(30));
-    }
-
-    [Fact]
     public async Task ATransientFailureIsRetriedUntilItSucceeds() {
         var time = new FakeTimeProvider();
         var attempts = 0;

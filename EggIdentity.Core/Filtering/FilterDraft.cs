@@ -22,9 +22,8 @@ public sealed class FilterGroupDraft<TField> where TField : notnull {
 
     public IReadOnlyList<Condition<TField>> CompleteConditions() {
         List<Condition<TField>> result = [];
-        foreach (var c in Conditions) {
+        foreach (var c in Conditions)
             if (c is { Field: { } field, Operator: { } op, Value: { } value }) result.Add(new Condition<TField>(field, op, value));
-        }
 
         return result;
     }

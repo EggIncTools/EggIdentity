@@ -104,11 +104,8 @@ public sealed class BotConfigService(
         await configStore.UpsertAsync(config, ct);
 
         string? githubWebhookUrl = null;
-        if (githubFeedThreadId is not null && ulong.TryParse(githubFeedThreadId, out var threadId)) {
-            githubWebhookUrl = await ensureWebhook(ThreadKind.GithubFeed, threadId, ct);
-        } else {
-            await teardownWebhook(ThreadKind.GithubFeed, ct);
-        }
+        if (githubFeedThreadId is not null && ulong.TryParse(githubFeedThreadId, out var threadId)) githubWebhookUrl = await ensureWebhook(ThreadKind.GithubFeed, threadId, ct);
+        else await teardownWebhook(ThreadKind.GithubFeed, ct);
 
         return new SaveResult(true, null, githubWebhookUrl);
     }

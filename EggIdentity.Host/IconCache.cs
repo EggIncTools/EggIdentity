@@ -13,9 +13,8 @@ public sealed class IconCache(IHttpClientFactory httpClientFactory, string autho
             if (cache.TryGetValue(provider, out var hit)) return hit;
         }
         var fetched = await FetchAsync(provider, ct);
-        if (fetched is not null) {
-            lock (cache) { cache[provider] = fetched; }
-        }
+        if (fetched is not null)
+            lock (cache) cache[provider] = fetched;
         return fetched;
     }
 

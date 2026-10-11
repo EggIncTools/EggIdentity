@@ -44,9 +44,8 @@ public static class SettingsValidation {
         ArgumentNullException.ThrowIfNull(descriptor);
         ArgumentNullException.ThrowIfNull(values);
 
-        foreach (var name in values.Keys) {
+        foreach (var name in values.Keys)
             if (descriptor.FindField(name) is null) return $"unknown field \"{name}\"";
-        }
 
         var idField = descriptor.FindField(descriptor.IdField)
             ?? throw new InvalidOperationException($"collection \"{descriptor.Key}\" has no field \"{descriptor.IdField}\"");

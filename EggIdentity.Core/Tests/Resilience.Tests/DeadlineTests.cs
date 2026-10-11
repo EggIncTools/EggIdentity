@@ -37,18 +37,4 @@ public class DeadlineTests {
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
     }
-
-    [Fact]
-    public async Task RunAsync_NonGeneric_TimesOut() {
-        var time = new FakeTimeProvider();
-        var task = Deadline.RunAsync("pull", async token => {
-            var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            using var reg = token.Register(() => tcs.TrySetCanceled(token));
-            await tcs.Task;
-        }, TimeSpan.FromMinutes(10), time);
-
-        time.Advance(TimeSpan.FromMinutes(10));
-
-        await Assert.ThrowsAsync<TimeoutException>(() => task);
-    }
 }

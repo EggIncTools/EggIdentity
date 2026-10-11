@@ -14,15 +14,10 @@ public sealed class FakeWebHostEnvironment : IWebHostEnvironment {
     }
 
     public string ApplicationName { get; set; } = "EggIdentity.Testing";
-
     public string EnvironmentName { get; set; }
-
     public string ContentRootPath { get; set; }
-
     public IFileProvider ContentRootFileProvider { get; set; }
-
     public string WebRootPath { get; set; }
-
     public IFileProvider WebRootFileProvider { get; set; }
 
     public bool IsProduction => EnvironmentName == Environments.Production;

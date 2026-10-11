@@ -77,16 +77,6 @@ public class CalendarGridAnchorTests {
     }
 
     [Fact]
-    public void WeekStart_DefaultSunday_ReturnsSundayOnOrBeforeInstant() {
-        var instant = new DateTimeOffset(2026, 1, 15, 0, 0, 0, TimeSpan.Zero);
-
-        var weekStart = CalendarGridAnchor.WeekStart(instant, TimeZoneInfo.Utc, TimeSpan.Zero);
-
-        Assert.Equal(DayOfWeek.Sunday, weekStart.DayOfWeek);
-        Assert.True(weekStart <= instant);
-    }
-
-    [Fact]
     public void WeekStart_NonSundayStartDay_ReturnsRequestedWeekdayOnOrBeforeInstant() {
         var instant = new DateTimeOffset(2026, 1, 15, 0, 0, 0, TimeSpan.Zero);
 

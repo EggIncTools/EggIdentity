@@ -41,9 +41,7 @@ public static partial class MotionGuard {
         foreach (var decl in rule.Declarations.Where(d => TimedProperties.Contains(d.Property))) {
             foreach (var reason in Reasons(decl)) yield return new MotionViolation(rule.Selector, decl.Property, decl.Value, reason);
         }
-        if (rule["transition-property"] is { } props && props.Split(',').Any(p => p.Trim() == "all")) {
-            yield return new MotionViolation(rule.Selector, "transition-property", props, TransitionAll);
-        }
+        if (rule["transition-property"] is { } props && props.Split(',').Any(p => p.Trim() == "all")) yield return new MotionViolation(rule.Selector, "transition-property", props, TransitionAll);
     }
 
     private static IEnumerable<string> Reasons(CssDeclaration decl) {

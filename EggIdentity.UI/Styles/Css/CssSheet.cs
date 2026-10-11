@@ -85,11 +85,8 @@ public sealed partial class CssSheet {
                 continue;
             }
             pos++;
-            if (BodyNests(s, pos)) {
-                ParseBlock(s, ref pos, prelude, rules, statements);
-            } else {
-                rules.Add(new CssRule(prelude, ParseDeclarations(s, ref pos), container));
-            }
+            if (BodyNests(s, pos)) ParseBlock(s, ref pos, prelude, rules, statements);
+            else rules.Add(new CssRule(prelude, ParseDeclarations(s, ref pos), container));
         }
     }
 

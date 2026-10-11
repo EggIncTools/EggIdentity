@@ -24,7 +24,6 @@ public sealed class DeployEventRing {
     private readonly List<Channel<DeployEvent>> _subscribers = [];
     private long _nextId;
 
-
     public DeployEventRing(int capacity = 500, TimeProvider? time = null, long? firstId = null, ILogger? logger = null) {
         Capacity = capacity;
         Logger = logger;

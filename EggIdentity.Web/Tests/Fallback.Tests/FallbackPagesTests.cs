@@ -9,7 +9,11 @@ public class FallbackPagesTests {
     [Fact]
     public void RenderError_AdminSeesStackTrace() {
         Exception exception;
-        try { throw new InvalidOperationException("boom"); } catch (Exception e) { exception = e; }
+        try {
+            throw new InvalidOperationException("boom");
+        } catch (Exception e) {
+            exception = e;
+        }
 
         var html = FallbackPages.RenderError(Branding, exception, showTrace: true, correlationId: "corr-1");
 
@@ -21,7 +25,11 @@ public class FallbackPagesTests {
     [Fact]
     public void RenderError_NonAdminDoesNotSeeStackTrace() {
         Exception exception;
-        try { throw new InvalidOperationException("boom"); } catch (Exception e) { exception = e; }
+        try {
+            throw new InvalidOperationException("boom");
+        } catch (Exception e) {
+            exception = e;
+        }
 
         var html = FallbackPages.RenderError(Branding, exception, showTrace: false, correlationId: "corr-2");
 

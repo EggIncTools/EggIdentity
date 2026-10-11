@@ -151,9 +151,8 @@ public sealed class IdentityResolver(NpgsqlDataSource dataSource, AdminAllowlist
     public static Dictionary<string, string> NormalizeSources(
         string provider, string subject, IReadOnlyDictionary<string, string?> sourceIds) {
         var sources = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var (key, value) in sourceIds) {
+        foreach (var (key, value) in sourceIds)
             if (!string.IsNullOrEmpty(value) && IdentityWire.KnownProviders.Contains(key)) sources[key] = value;
-        }
         if (IdentityWire.KnownProviders.Contains(provider)) sources[provider] = subject;
         return sources;
     }

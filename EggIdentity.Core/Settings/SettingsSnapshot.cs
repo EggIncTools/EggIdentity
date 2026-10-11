@@ -24,9 +24,7 @@ public sealed class SettingsSnapshot : ISettingsSource {
         _values = [with(StringComparer.Ordinal)];
         _collections = [with(StringComparer.Ordinal)];
 
-        foreach (var d in registry.All) {
-            _values[d.Key] = Resolve(d, database, file, env);
-        }
+        foreach (var d in registry.All) _values[d.Key] = Resolve(d, database, file, env);
 
         foreach (var c in registry.Collections) {
             var stored = collections is not null && collections.TryGetValue(c.Key, out var rows) ? rows : [];

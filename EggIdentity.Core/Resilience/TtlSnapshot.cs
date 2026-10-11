@@ -27,7 +27,6 @@ public sealed class TtlSnapshot<T> : IDisposable {
     public bool HasValue => Volatile.Read(ref _hasValue);
 
     public DateTimeOffset? LoadedAt { get; private set; }
-
     public bool HasFallback { get; private init; }
 
     public T Fallback {

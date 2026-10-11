@@ -74,7 +74,7 @@ public class AuthentikAspNetAuthTests {
         new(new HttpClient(new StubIdentityHandler(getResult, revoked)) { BaseAddress = new Uri("http://localhost:8090") });
 
     [Fact]
-    public async Task OnValidatePrincipalCheckRevoked_role_unchanged_does_not_replace_claim() {
+    public async Task OnValidatePrincipalCheckRevoked_role_unchanged_does_not_renew() {
         var userId = Guid.NewGuid();
         var identity = StubIdentityClient(new IdentityUserResponse { UserId = userId, Role = "contributor", Username = "alice" });
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
@@ -84,8 +84,7 @@ public class AuthentikAspNetAuthTests {
 
         await AuthentikAspNetAuth.OnValidatePrincipalCheckRevoked(ctx, identity, "user_id", "role");
 
-        Assert.Single(ctx.Principal!.FindAll("role"));
-        Assert.Equal("contributor", ctx.Principal!.FindFirstValue("role"));
+        Assert.False(ctx.ShouldRenew);
     }
 
     [Fact]
@@ -101,6 +100,7 @@ public class AuthentikAspNetAuthTests {
 
         Assert.Single(ctx.Principal!.FindAll("role"));
         Assert.Equal("admin", ctx.Principal!.FindFirstValue("role"));
+        Assert.True(ctx.ShouldRenew);
     }
 
     [Fact]

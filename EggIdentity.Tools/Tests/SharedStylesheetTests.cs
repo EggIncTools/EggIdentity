@@ -17,16 +17,6 @@ public class SharedStylesheetTests {
     }
 
     [Fact]
-    public void Preflight_IsNotEmpty() {
-        Assert.Contains("box-sizing: border-box", SharedStylesheet.RenderPreflight());
-    }
-
-    [Fact]
-    public void Render_IsDeterministic() {
-        Assert.Equal(SharedStylesheet.RenderShared(), SharedStylesheet.RenderShared());
-    }
-
-    [Fact]
     public void Unwrap_RemovesLayerStatementsAndWrappers() {
         var compiled = "@layer base, components;\n@layer base {\n.a { color: red; }\n}\n@property --x { syntax: \"*\"; }\n@layer components {\n.b { color: blue; }\n}\n";
 

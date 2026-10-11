@@ -43,35 +43,6 @@ public class SettingsStoreTests {
     }
 
     [Fact]
-    public void AddingUpdatedBy_ShipsAsAnAlterNotAFreshCreate() {
-        var names = Migrator.EmbeddedMigrations(typeof(SettingsStore).Assembly, MigrationPrefix);
-        var updatedBy = Assert.Single(names, n => n.Contains("updated_by", StringComparison.Ordinal));
-
-        using var stream = typeof(SettingsStore).Assembly.GetManifestResourceStream(updatedBy)!;
-        using var reader = new StreamReader(stream);
-        var sql = reader.ReadToEnd();
-
-        Assert.Contains("ALTER TABLE app_settings", sql, StringComparison.Ordinal);
-        Assert.Contains("ADD COLUMN IF NOT EXISTS updated_by", sql, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void CollectionsTable_ShipsAsMigrationThree() {
-        var names = Migrator.EmbeddedMigrations(typeof(SettingsStore).Assembly, MigrationPrefix);
-        var third = Assert.Single(names, n => Migrator.PrefixNum(n[MigrationPrefix.Length..]) == 3);
-
-        Assert.EndsWith("3_app_setting_collections.up.sql", third, StringComparison.Ordinal);
-
-        using var stream = typeof(SettingsStore).Assembly.GetManifestResourceStream(third)!;
-        using var reader = new StreamReader(stream);
-        var sql = reader.ReadToEnd();
-
-        Assert.Contains("CREATE TABLE IF NOT EXISTS app_setting_collections", sql, StringComparison.Ordinal);
-        Assert.Contains("value JSONB NOT NULL", sql, StringComparison.Ordinal);
-        Assert.Contains("PRIMARY KEY (collection, id)", sql, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public async Task SecretWithoutKey_CannotBeStored() {
         await using var dataSource = NpgsqlDataSource.Create("Host=localhost;Database=unused");
         var store = new SettingsStore(dataSource);

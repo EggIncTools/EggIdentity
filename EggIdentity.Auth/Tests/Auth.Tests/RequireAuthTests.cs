@@ -14,7 +14,10 @@ public class RequireAuthTests {
     public async Task Invoke_NoToken_Returns401() {
         var ctx = new DefaultHttpContext();
         var called = false;
-        var mw = new RequireAuth(_ => { called = true; return Task.CompletedTask; }, new ThrowingSessionStore());
+        var mw = new RequireAuth(_ => {
+            called = true;
+            return Task.CompletedTask;
+        }, new ThrowingSessionStore());
         await mw.Invoke(ctx);
         Assert.False(called);
         Assert.Equal(401, ctx.Response.StatusCode);
