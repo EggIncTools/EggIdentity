@@ -19,6 +19,21 @@ public sealed class VisitorHasher(TimeProvider time) {
         return Convert.ToHexStringLower(hash);
     }
 
+    internal (DateOnly Day, byte[] Salt) Current() {
+        var salt = CurrentSalt();
+        lock (_gate) return (_saltDay, [.. salt]);
+    }
+
+    internal void Seed(DateOnly day, byte[] salt) {
+        ArgumentNullException.ThrowIfNull(salt);
+        if (salt.Length != SaltBytes) throw new ArgumentException($"salt must be {SaltBytes} bytes", nameof(salt));
+        lock (_gate) {
+            if (day != _saltDay) return;
+            CryptographicOperations.ZeroMemory(_salt);
+            _salt = [.. salt];
+        }
+    }
+
     private byte[] CurrentSalt() {
         var today = DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
         lock (_gate) {

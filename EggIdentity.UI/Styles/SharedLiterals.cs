@@ -32,7 +32,27 @@ public static class SharedLiterals {
         body:has(.modal-backdrop) {
           overflow: hidden;
         }
-        @container anchored(fallback: flip-block) {
+        @position-try --tt-top-right {
+          position-area: top span-right;
+          justify-self: start;
+          margin: 0 0 10px;
+        }
+        @position-try --tt-top-left {
+          position-area: top span-left;
+          justify-self: end;
+          margin: 0 0 10px;
+        }
+        @position-try --tt-bottom-right {
+          position-area: bottom span-right;
+          justify-self: start;
+          margin: 10px 0 0;
+        }
+        @position-try --tt-bottom-left {
+          position-area: bottom span-left;
+          justify-self: end;
+          margin: 10px 0 0;
+        }
+        @container anchored(fallback: flip-block) or anchored(fallback: --tt-bottom-right) or anchored(fallback: --tt-bottom-left) {
           .tooltip-floating.tooltip-fixed::before, .tooltip-floating.tooltip-fixed::after {
             top: auto;
             bottom: 100%;
@@ -43,6 +63,16 @@ public static class SharedLiterals {
           }
           .tooltip-floating.tooltip-fixed::after {
             border-bottom-color: var(--tooltip-bg,rgba(33,37,41,.95));
+          }
+        }
+        @container anchored(fallback: --tt-top-right) or anchored(fallback: --tt-bottom-right) {
+          .tooltip-floating.tooltip-fixed::before, .tooltip-floating.tooltip-fixed::after {
+            left: 16px;
+          }
+        }
+        @container anchored(fallback: --tt-top-left) or anchored(fallback: --tt-bottom-left) {
+          .tooltip-floating.tooltip-fixed::before, .tooltip-floating.tooltip-fixed::after {
+            left: calc(100% - 16px);
           }
         }
         @supports (anchor-name: --m) {

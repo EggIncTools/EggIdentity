@@ -17,11 +17,12 @@ public class VisitsStoreTests {
         var site = "test-" + Guid.NewGuid().ToString("N");
         var today = new DateOnly(2026, 9, 18);
         var paths = new Dictionary<string, long>(StringComparer.Ordinal) { ["/"] = 2, ["/x"] = 1 };
+        var none = new Dictionary<string, long>(StringComparer.Ordinal);
 
         try {
-            await store.UpsertDayAsync(site, new VisitsDaySnapshot(today, 2, 2, 3, 40, false, paths), CancellationToken.None);
-            await store.UpsertDayAsync(site, new VisitsDaySnapshot(today, 1, 0, 1, 5, true, new Dictionary<string, long>(StringComparer.Ordinal) { ["/"] = 1 }), CancellationToken.None);
-            await store.UpsertDayAsync(site, new VisitsDaySnapshot(today.AddDays(-1), 1, 1, 1, 1, false, new Dictionary<string, long>(StringComparer.Ordinal)), CancellationToken.None);
+            await store.UpsertDayAsync(site, new VisitsDaySnapshot(today, 2, 2, 3, 40, false, paths, none), CancellationToken.None);
+            await store.UpsertDayAsync(site, new VisitsDaySnapshot(today, 1, 0, 1, 5, true, new Dictionary<string, long>(StringComparer.Ordinal) { ["/"] = 1 }, none), CancellationToken.None);
+            await store.UpsertDayAsync(site, new VisitsDaySnapshot(today.AddDays(-1), 1, 1, 1, 1, false, none, none), CancellationToken.None);
 
             var summary = await store.QueryAsync(site, 7, CancellationToken.None);
 
@@ -48,6 +49,38 @@ public class VisitsStoreTests {
             await using var pathRows = dataSource.CreateCommand("DELETE FROM site_visit_paths_daily WHERE site = $1");
             pathRows.Parameters.AddWithValue(site);
             await pathRows.ExecuteNonQueryAsync();
+        }
+    }
+
+    [Fact]
+    public async Task ClaimKeepsFirstSaltAndReturnsSeenVisitors() {
+        var conn = Environment.GetEnvironmentVariable("EGGIDENTITY_TEST_PG_CONN");
+        if (string.IsNullOrEmpty(conn)) return;
+
+        await using var dataSource = NpgsqlDataSource.Create(conn);
+        var store = new VisitsStore(dataSource, new FixedClock(Start));
+        await store.MigrateAsync(CancellationToken.None);
+        var site = "test-" + Guid.NewGuid().ToString("N");
+        var today = new DateOnly(2026, 9, 18);
+        var none = new Dictionary<string, long>(StringComparer.Ordinal);
+
+        try {
+            var first = await store.ClaimDayAsync(site, today, new byte[32], CancellationToken.None);
+            await store.UpsertDayAsync(site, new VisitsDaySnapshot(today, 1, 1, 1, 0, false, none,
+                new Dictionary<string, long>(StringComparer.Ordinal) { ["v"] = 10 }), CancellationToken.None);
+            await store.UpsertDayAsync(site, new VisitsDaySnapshot(today, 0, 0, 0, 0, false, none,
+                new Dictionary<string, long>(StringComparer.Ordinal) { ["v"] = 5 }), CancellationToken.None);
+            var second = await store.ClaimDayAsync(site, today, [.. Enumerable.Repeat((byte)7, 32)], CancellationToken.None);
+
+            Assert.Equal(first.Salt, second.Salt);
+            Assert.Empty(first.LastSeen);
+            Assert.Equal(10, second.LastSeen["v"]);
+        } finally {
+            foreach (var table in (string[])["site_visits_daily", "site_visit_salts", "site_visitors_daily"]) {
+                await using var cmd = dataSource.CreateCommand($"DELETE FROM {table} WHERE site = $1");
+                cmd.Parameters.AddWithValue(site);
+                await cmd.ExecuteNonQueryAsync();
+            }
         }
     }
 }

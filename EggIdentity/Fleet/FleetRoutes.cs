@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace EggIdentity.Fleet;
 
@@ -118,7 +119,7 @@ public static class FleetRoutes {
             try {
                 await work(stopping);
             } catch (Exception e) when (e is not OperationCanceledException) {
-                Console.Error.WriteLine($"fleet: background work failed: {e}");
+                services.GetService<DeployService>()?.Logger?.LogError(e, "background work failed");
             }
         }, CancellationToken.None);
     }

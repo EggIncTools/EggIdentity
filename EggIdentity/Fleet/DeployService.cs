@@ -3,6 +3,7 @@ using EggIdentity.Contract;
 using EggIdentity.Deploy;
 using EggIdentity.Resilience;
 using EggIdentity.Settings;
+using Microsoft.Extensions.Logging;
 
 namespace EggIdentity.Fleet;
 
@@ -32,6 +33,8 @@ public sealed class DeployService(
     private static readonly TimeSpan DefaultRedeployTimeout = TimeSpan.FromMinutes(5);
 
     private readonly TimeProvider _clock = time ?? TimeProvider.System;
+
+    public ILogger? Logger => events.Logger;
     private readonly Func<TimeSpan> _redeployTimeout = redeployTimeout ?? (() => DefaultRedeployTimeout);
     private readonly ConcurrentDictionary<string, AppState> _states = new(StringComparer.OrdinalIgnoreCase);
 
@@ -181,7 +184,7 @@ public sealed class DeployService(
         try {
             compose = ComposeEnv.Parse(await portainer!.GetStackFileAsync(target.Stack, ct), app.ContainerName);
         } catch (Exception e) when (e is not OperationCanceledException) {
-            Console.Error.WriteLine($"fleet: compose file for {app.Name} unavailable: {e.Message}");
+            events.Logger?.LogWarning(e, "compose file for {App} unavailable", app.Name);
         }
         return (EnvProvenance.Build(compose, container.Env, imageEnv, target.Stack.Env), null);
     }
@@ -313,7 +316,7 @@ public sealed class DeployService(
             try {
                 running = await target.Docker.InspectContainerAsync(app.ContainerName, ct);
             } catch (Exception e) when (e is not OperationCanceledException) {
-                Console.WriteLine($"fleet: {app.Name}: inspect while Portainer redeploys: {e.Message}");
+                events.Logger?.LogInformation("{App}: inspect while Portainer redeploys: {Message}", app.Name, e.Message);
             }
             if (running is { Running: true } && running.ImageId == pulled.Id) return running;
             if (_clock.GetUtcNow() - started >= timeout)

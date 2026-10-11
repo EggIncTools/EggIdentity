@@ -7,6 +7,7 @@
     --font-sans: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --font-weight-bold: 700;
     --font-weight-medium: 500;
+    --font-weight-normal: 400;
     --font-weight-semibold: 600;
     --leading-relaxed: 1.625;
     --radius-lg: 0.5rem;
@@ -32,7 +33,7 @@
     position-area: top span-all;
     justify-self: anchor-center;
     margin: 0 0 10px;
-    position-try-fallbacks: flip-block;
+    position-try-fallbacks: flip-block,--tt-top-right,--tt-top-left,--tt-bottom-right,--tt-bottom-left;
     transform: scale(var(--tt-scale,1));
     container-type: anchored;
   }
@@ -181,6 +182,13 @@
     white-space: nowrap;
     text-align: center;
     color: var(--color-fg);
+    font-size: 0.75rem;
+    line-height: calc(1 / 0.75);
+    --tw-font-weight: var(--font-weight-normal);
+    font-weight: var(--font-weight-normal);
+    font-style: normal;
+    text-transform: none;
+    letter-spacing: normal;
     position: fixed;
     pointer-events: none;
     padding: 10px;
@@ -767,6 +775,11 @@
     resize: both;
     --tw-shadow: 0 6px 18px rgba(0,0,0,.4);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
+  span.tooltip-trigger {
+    display: inline-block;
+    vertical-align: baseline;
+    max-width: 100%;
   }
   .wb-entry.selected {
     border-color: var(--color-accent);
@@ -1879,7 +1892,27 @@
 body:has(.modal-backdrop) {
   overflow: hidden;
 }
-@container anchored(fallback: flip-block) {
+@position-try --tt-top-right {
+  position-area: top span-right;
+  justify-self: start;
+  margin: 0 0 10px;
+}
+@position-try --tt-top-left {
+  position-area: top span-left;
+  justify-self: end;
+  margin: 0 0 10px;
+}
+@position-try --tt-bottom-right {
+  position-area: bottom span-right;
+  justify-self: start;
+  margin: 10px 0 0;
+}
+@position-try --tt-bottom-left {
+  position-area: bottom span-left;
+  justify-self: end;
+  margin: 10px 0 0;
+}
+@container anchored(fallback: flip-block) or anchored(fallback: --tt-bottom-right) or anchored(fallback: --tt-bottom-left) {
   .tooltip-floating.tooltip-fixed::before, .tooltip-floating.tooltip-fixed::after {
     top: auto;
     bottom: 100%;
@@ -1890,6 +1923,16 @@ body:has(.modal-backdrop) {
   }
   .tooltip-floating.tooltip-fixed::after {
     border-bottom-color: var(--tooltip-bg,rgba(33,37,41,.95));
+  }
+}
+@container anchored(fallback: --tt-top-right) or anchored(fallback: --tt-bottom-right) {
+  .tooltip-floating.tooltip-fixed::before, .tooltip-floating.tooltip-fixed::after {
+    left: 16px;
+  }
+}
+@container anchored(fallback: --tt-top-left) or anchored(fallback: --tt-bottom-left) {
+  .tooltip-floating.tooltip-fixed::before, .tooltip-floating.tooltip-fixed::after {
+    left: calc(100% - 16px);
   }
 }
 @supports (anchor-name: --m) {

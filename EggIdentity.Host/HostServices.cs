@@ -102,7 +102,8 @@ internal static class HostServices {
     }
 
     private static void RegisterFleet(WebApplicationBuilder builder) {
-        builder.Services.AddSingleton(sp => FleetRuntime.Create(sp.GetRequiredService<SettingsCache>()));
+        builder.Services.AddSingleton(sp => FleetRuntime.Create(
+            sp.GetRequiredService<SettingsCache>(), logger: sp.GetRequiredService<ILoggerFactory>().CreateLogger("EggIdentity.Fleet")));
         builder.Services.AddSingleton(sp => sp.GetRequiredService<FleetRuntime>().Service);
         builder.Services.AddTransient<IEnvSource>(sp => new FleetEnvSource(sp.GetRequiredService<DeployService>(), AppName));
         builder.Services.AddTransient<IRestartTrigger>(sp => new FleetRestartTrigger(sp.GetRequiredService<DeployService>(), AppName));

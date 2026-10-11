@@ -12,15 +12,26 @@ public class VisitFlusherTests {
             Writes.Add((site, snapshot));
             return Task.CompletedTask;
         }
+
+        public Task<VisitsDayState> ClaimDayAsync(string site, DateOnly day, byte[] salt, CancellationToken ct = default) {
+            if (Fail) throw new InvalidOperationException("db down");
+            return Task.FromResult(new VisitsDayState(salt, Seeded));
+        }
+
+        public Dictionary<string, long> Seeded { get; } = [with(StringComparer.Ordinal)];
+    }
+
+    private static (VisitTracker, CapturingSink, VisitFlusher) Build(FixedClock clock, bool fail = false) {
+        var options = new VisitsOptions("site");
+        var tracker = new VisitTracker(options, clock);
+        var sink = new CapturingSink { Fail = fail };
+        return (tracker, sink, new VisitFlusher(tracker, new VisitorHasher(clock), sink, options, clock));
     }
 
     [Fact]
     public async Task FlushWritesClosedAndOpenDaysThenClearsClosed() {
         var clock = new FixedClock(Start);
-        var options = new VisitsOptions("site");
-        var tracker = new VisitTracker(options, clock);
-        var sink = new CapturingSink();
-        var flusher = new VisitFlusher(tracker, sink, options, clock);
+        var (tracker, sink, flusher) = Build(clock);
 
         tracker.Record("a", "/", 0);
         clock.Advance(TimeSpan.FromMinutes(1));
@@ -40,15 +51,35 @@ public class VisitFlusherTests {
     }
 
     [Fact]
-    public async Task FlushSwallowsSinkFailure() {
+    public async Task FailedFlushIsRetriedNextInterval() {
         var clock = new FixedClock(Start);
-        var options = new VisitsOptions("site");
-        var tracker = new VisitTracker(options, clock);
-        var sink = new CapturingSink { Fail = true };
-        var flusher = new VisitFlusher(tracker, sink, options, clock);
+        var (tracker, sink, flusher) = Build(clock, fail: true);
 
         tracker.Record("a", "/", 0);
         await flusher.FlushAsync(CancellationToken.None);
         Assert.Empty(sink.Writes);
+
+        sink.Fail = false;
+        await flusher.FlushAsync(CancellationToken.None);
+        var write = Assert.Single(sink.Writes);
+        Assert.Equal(1, write.Snapshot.Visitors);
+        Assert.Equal(1, write.Snapshot.Pageviews);
+        Assert.Contains("a", write.Snapshot.Seen.Keys);
+    }
+
+    [Fact]
+    public async Task ClaimedVisitorsAreNotRecountedAfterRestart() {
+        var clock = new FixedClock(Start.AddHours(-12));
+        var (tracker, sink, flusher) = Build(clock);
+        sink.Seeded["a"] = clock.GetUtcNow().ToUnixTimeSeconds();
+
+        await flusher.ClaimAsync(CancellationToken.None);
+        tracker.Record("a", "/", 0);
+        await flusher.FlushAsync(CancellationToken.None);
+
+        var write = Assert.Single(sink.Writes);
+        Assert.Equal(0, write.Snapshot.Visitors);
+        Assert.Equal(0, write.Snapshot.Visits);
+        Assert.Equal(1, write.Snapshot.Pageviews);
     }
 }

@@ -7,6 +7,7 @@ public sealed record VisitsDaySnapshot(
     long Pageviews,
     long DurationSeconds,
     bool Capped,
-    IReadOnlyDictionary<string, long> Paths) {
+    IReadOnlyDictionary<string, long> Paths,
+    IReadOnlyDictionary<string, long> Seen) {
     public bool IsEmpty => Visits == 0 && Visitors == 0 && Pageviews == 0 && DurationSeconds == 0 && !Capped;
 }

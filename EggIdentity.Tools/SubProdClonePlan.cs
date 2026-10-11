@@ -16,6 +16,8 @@ internal static class SubProdClonePlan {
         new TablePolicy("oauth_states", ClonePolicy.SchemaOnly),
         new TablePolicy("site_visits_daily", ClonePolicy.SchemaOnly),
         new TablePolicy("site_visit_paths_daily", ClonePolicy.SchemaOnly),
+        new TablePolicy("site_visit_salts", ClonePolicy.SchemaOnly),
+        new TablePolicy("site_visitors_daily", ClonePolicy.SchemaOnly),
         new TablePolicy("bot_channel_config", ClonePolicy.SchemaOnly),
         new TablePolicy("bot_channel_state", ClonePolicy.SchemaOnly),
         new TablePolicy("deploy_state", ClonePolicy.SchemaOnly),

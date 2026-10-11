@@ -28,4 +28,12 @@
     <None Include="..\EggIdentity\Migrations\*.up.sql" Link="Migrations\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <Target Name="EmitSharedCss" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true' and '$(CI)' != 'true'">
+    <PropertyGroup>
+      <CssEmitHost>$(DOTNET_HOST_PATH)</CssEmitHost>
+      <CssEmitHost Condition="'$(CssEmitHost)' == ''">dotnet</CssEmitHost>
+    </PropertyGroup>
+    <Exec Command="&quot;$(CssEmitHost)&quot; &quot;$(TargetPath)&quot; css emit" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
 </Project>

@@ -1,5 +1,6 @@
 using EggIdentity.Deploy;
 using EggIdentity.Settings.Store;
+using Microsoft.Extensions.Logging;
 
 namespace EggIdentity.Fleet;
 
@@ -14,7 +15,8 @@ public sealed class FleetRuntime(DeployService service, Func<string?> hookSecret
 
     public string? HookSecret => hookSecret();
 
-    public static FleetRuntime Create(SettingsCache cache, HttpMessageHandler? portainerHandler = null, TimeProvider? time = null) {
+    public static FleetRuntime Create(
+        SettingsCache cache, HttpMessageHandler? portainerHandler = null, TimeProvider? time = null, ILogger? logger = null) {
         ArgumentNullException.ThrowIfNull(cache);
         var snapshot = cache.Current ?? throw new InvalidOperationException("load the settings cache before creating the fleet runtime");
         var config = PortainerConfig.FromSnapshot(snapshot);
@@ -25,7 +27,7 @@ public sealed class FleetRuntime(DeployService service, Func<string?> hookSecret
             async ct => (await cache.GetAsync(ct)).Collection<SuiteApp>(SuiteApps.Key),
             portainer,
             new RegistryClient(new HttpClient { Timeout = RegistryCallTimeout }),
-            new DeployEventRing(time: time),
+            new DeployEventRing(time: time, logger: logger),
             time,
             () => Live(cache, FleetSettings.RedeployTimeout, TimeSpan.FromMinutes(5)));
         return new FleetRuntime(service, () => cache.Current?.GetString(FleetSettings.HookSecret), time);
@@ -45,7 +47,7 @@ public sealed class FleetRuntime(DeployService service, Func<string?> hookSecret
         try {
             await service.TickAsync(autoDeploy: false, ct);
         } catch (Exception e) when (e is not OperationCanceledException) {
-            Console.Error.WriteLine($"fleet: status refresh failed: {e.Message}");
+            service.Logger?.LogWarning(e, "status refresh failed");
         }
     }
 

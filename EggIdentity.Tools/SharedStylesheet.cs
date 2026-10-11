@@ -17,10 +17,18 @@ internal static class SharedStylesheet {
         }
         var dir = args.Length > 1 ? args[1] : Path.Combine(RepoRoot(), "EggIdentity.UI", "wwwroot");
         Directory.CreateDirectory(dir);
-        File.WriteAllText(Path.Combine(dir, SharedFile), RenderShared());
-        File.WriteAllText(Path.Combine(dir, PreflightFile), RenderPreflight());
-        Console.WriteLine($"css: wrote {SharedFile} and {PreflightFile} to {dir}");
+        var written = new[] { (SharedFile, RenderShared()), (PreflightFile, RenderPreflight()) }
+            .Where(f => WriteIfChanged(Path.Combine(dir, f.Item1), f.Item2))
+            .Select(f => f.Item1)
+            .ToList();
+        if (written.Count > 0) Console.WriteLine($"css: wrote {string.Join(" and ", written)} to {dir}");
         return 0;
+    }
+
+    private static bool WriteIfChanged(string path, string content) {
+        if (File.Exists(path) && File.ReadAllText(path).Replace("\r\n", "\n") == content) return false;
+        File.WriteAllText(path, content);
+        return true;
     }
 
     internal static string RenderShared() {

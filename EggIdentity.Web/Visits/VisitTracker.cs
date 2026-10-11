@@ -6,6 +6,7 @@ public sealed class VisitTracker(VisitsOptions options, TimeProvider time) {
 
     private sealed class DayState {
         public Dictionary<string, long> LastSeen { get; } = [with(StringComparer.Ordinal)];
+        public HashSet<string> Dirty { get; } = [with(StringComparer.Ordinal)];
         public HashSet<string> PathsSeen { get; } = [with(StringComparer.Ordinal)];
         public Dictionary<string, long> PathViews { get; } = [with(StringComparer.Ordinal)];
         public long Visits { get; set; }
@@ -42,6 +43,7 @@ public sealed class VisitTracker(VisitsOptions options, TimeProvider time) {
             }
 
             state.LastSeen[visitor] = ts;
+            state.Dirty.Add(visitor);
             state.DurationSeconds += seconds;
             if (seconds > 0) return;
 
@@ -57,6 +59,43 @@ public sealed class VisitTracker(VisitsOptions options, TimeProvider time) {
         }
     }
 
+    public void Seed(DateOnly day, IReadOnlyDictionary<string, long> lastSeen) {
+        ArgumentNullException.ThrowIfNull(lastSeen);
+        lock (_gate) {
+            if (!_days.TryGetValue(day, out var state)) {
+                state = new DayState();
+                _days[day] = state;
+            }
+            foreach (var (visitor, ts) in lastSeen) {
+                if (state.LastSeen.Count >= MaxVisitors) break;
+                if (!state.LastSeen.TryGetValue(visitor, out var mine) || mine < ts) state.LastSeen[visitor] = ts;
+            }
+        }
+    }
+
+    public void Requeue(VisitsDaySnapshot snapshot) {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        lock (_gate) {
+            if (!_days.TryGetValue(snapshot.Day, out var state)) {
+                state = new DayState();
+                _days[snapshot.Day] = state;
+            }
+            state.Visits += snapshot.Visits;
+            state.Visitors += snapshot.Visitors;
+            state.Pageviews += snapshot.Pageviews;
+            state.DurationSeconds += snapshot.DurationSeconds;
+            state.Capped |= snapshot.Capped;
+            foreach (var (path, views) in snapshot.Paths) {
+                state.PathsSeen.Add(path);
+                state.PathViews[path] = state.PathViews.GetValueOrDefault(path) + views;
+            }
+            foreach (var (visitor, ts) in snapshot.Seen) {
+                if (!state.LastSeen.TryGetValue(visitor, out var mine) || mine < ts) state.LastSeen[visitor] = ts;
+                state.Dirty.Add(visitor);
+            }
+        }
+    }
+
     public IReadOnlyList<VisitsDaySnapshot> Flush() {
         var today = DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
         lock (_gate) {
@@ -64,8 +103,10 @@ public sealed class VisitTracker(VisitsOptions options, TimeProvider time) {
             foreach (var (day, state) in _days) {
                 var snapshot = new VisitsDaySnapshot(
                     day, state.Visits, state.Visitors, state.Pageviews, state.DurationSeconds, state.Capped,
-                    new Dictionary<string, long>(state.PathViews, StringComparer.Ordinal));
+                    new Dictionary<string, long>(state.PathViews, StringComparer.Ordinal),
+                    state.Dirty.ToDictionary(v => v, v => state.LastSeen[v], StringComparer.Ordinal));
                 if (!snapshot.IsEmpty) result.Add(snapshot);
+                state.Dirty.Clear();
                 state.Visits = 0;
                 state.Visitors = 0;
                 state.Pageviews = 0;

@@ -63,7 +63,69 @@ public sealed class VisitsStore(NpgsqlDataSource dataSource, TimeProvider? time 
             await batch.ExecuteNonQueryAsync(ct);
         }
 
+        if (snapshot.Seen.Count > 0) {
+            await using var batch = new NpgsqlBatch(conn, tx);
+            foreach (var (visitor, lastSeen) in snapshot.Seen) {
+                var cmd = batch.CreateBatchCommand();
+                cmd.CommandText =
+                    """
+                    INSERT INTO site_visitors_daily (site, day, visitor, last_seen)
+                    VALUES ($1, $2, $3, $4)
+                    ON CONFLICT (site, day, visitor) DO UPDATE SET
+                        last_seen = GREATEST(site_visitors_daily.last_seen, EXCLUDED.last_seen)
+                    """;
+                cmd.Parameters.AddWithValue(site);
+                cmd.Parameters.AddWithValue(snapshot.Day);
+                cmd.Parameters.AddWithValue(visitor);
+                cmd.Parameters.AddWithValue(lastSeen);
+                batch.BatchCommands.Add(cmd);
+            }
+            await batch.ExecuteNonQueryAsync(ct);
+        }
+
         await tx.CommitAsync(ct);
+    }
+
+    public async Task<VisitsDayState> ClaimDayAsync(string site, DateOnly day, byte[] salt, CancellationToken ct = default) {
+        ArgumentNullException.ThrowIfNull(salt);
+        await using var conn = await dataSource.OpenConnectionAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(ct);
+
+        await using (var prune = new NpgsqlBatch(conn, tx)) {
+            foreach (var table in (string[])["site_visit_salts", "site_visitors_daily"]) {
+                var cmd = prune.CreateBatchCommand();
+                cmd.CommandText = $"DELETE FROM {table} WHERE site = $1 AND day < $2";
+                cmd.Parameters.AddWithValue(site);
+                cmd.Parameters.AddWithValue(day);
+                prune.BatchCommands.Add(cmd);
+            }
+            await prune.ExecuteNonQueryAsync(ct);
+        }
+
+        byte[] stored;
+        await using (var claim = new NpgsqlCommand(
+            """
+            INSERT INTO site_visit_salts (site, day, salt) VALUES ($1, $2, $3)
+            ON CONFLICT (site, day) DO UPDATE SET salt = site_visit_salts.salt
+            RETURNING salt
+            """, conn, tx)) {
+            claim.Parameters.AddWithValue(site);
+            claim.Parameters.AddWithValue(day);
+            claim.Parameters.AddWithValue(salt);
+            stored = (byte[])(await claim.ExecuteScalarAsync(ct))!;
+        }
+
+        var seen = new Dictionary<string, long>(StringComparer.Ordinal);
+        await using (var cmd = new NpgsqlCommand(
+            "SELECT visitor, last_seen FROM site_visitors_daily WHERE site = $1 AND day = $2", conn, tx)) {
+            cmd.Parameters.AddWithValue(site);
+            cmd.Parameters.AddWithValue(day);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct)) seen[reader.GetString(0)] = reader.GetInt64(1);
+        }
+
+        await tx.CommitAsync(ct);
+        return new VisitsDayState(stored, seen);
     }
 
     public async Task<VisitsSummary> QueryAsync(string site, int days, CancellationToken ct = default) {

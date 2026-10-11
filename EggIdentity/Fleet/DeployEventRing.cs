@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using EggIdentity.Contract;
+using Microsoft.Extensions.Logging;
 
 namespace EggIdentity.Fleet;
 
@@ -23,14 +24,18 @@ public sealed class DeployEventRing {
     private readonly List<Channel<DeployEvent>> _subscribers = [];
     private long _nextId;
 
-    public DeployEventRing(int capacity = 500, TimeProvider? time = null, long? firstId = null) {
+
+    public DeployEventRing(int capacity = 500, TimeProvider? time = null, long? firstId = null, ILogger? logger = null) {
         Capacity = capacity;
+        Logger = logger;
         _clock = time ?? TimeProvider.System;
         _nextId = (firstId ?? _clock.GetUtcNow().ToUnixTimeMilliseconds() * 1000) - 1;
         FirstId = _nextId + 1;
     }
 
     public int Capacity { get; }
+
+    public ILogger? Logger { get; }
 
     public long FirstId { get; }
 
@@ -48,7 +53,7 @@ public sealed class DeployEventRing {
             targets = [.. _subscribers];
         }
         foreach (var target in targets) target.Writer.TryWrite(evt);
-        Console.WriteLine($"fleet: {app}: {phase}: {message}");
+        Logger?.LogInformation("{App}: {Phase}: {Message}", app, phase, message);
         Raise(evt);
         return evt;
     }
@@ -92,7 +97,7 @@ public sealed class DeployEventRing {
             try {
                 ((Action<DeployEvent>)handler)(evt);
             } catch (Exception e) {
-                Console.Error.WriteLine($"fleet: event handler failed: {e.Message}");
+                Logger?.LogWarning(e, "event handler failed");
             }
         }
     }

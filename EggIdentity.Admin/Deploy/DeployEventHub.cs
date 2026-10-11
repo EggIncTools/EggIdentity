@@ -1,9 +1,10 @@
 using System.Threading.Channels;
 using EggIdentity.Contract;
+using Microsoft.Extensions.Logging;
 
 namespace EggIdentity.Deploy;
 
-public sealed class DeployEventHub(int subscriberCapacity = 256, int historyCapacity = 500) : IDeployEvents {
+public sealed class DeployEventHub(int subscriberCapacity = 256, int historyCapacity = 500, ILogger<DeployEventHub>? logger = null) : IDeployEvents {
     private readonly Lock _gate = new();
     private readonly List<Channel<DeployEvent>> _subscribers = [];
     private readonly Queue<DeployEvent> _history = new();
@@ -63,7 +64,7 @@ public sealed class DeployEventHub(int subscriberCapacity = 256, int historyCapa
             try {
                 ((Action<DeployEvent>)handler)(evt);
             } catch (Exception e) {
-                Console.Error.WriteLine($"eggidentity-deploy: event handler failed: {e.Message}");
+                logger?.LogWarning(e, "deploy event handler failed");
             }
         }
     }
