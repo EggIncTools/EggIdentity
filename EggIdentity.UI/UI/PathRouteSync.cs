@@ -32,7 +32,10 @@ public sealed class PathRouteSync(NavigationManager nav, IJSRuntime js, string p
     public void ReplaceFragment(string fragment) => Navigate(WithFragment(fragment), replace: true);
 
     private string WithFragment(string fragment) =>
-        fragment.Length == 0 ? $"/{_currentPath}{_query}" : $"/{_currentPath}{_query}#{Uri.EscapeDataString(fragment)}";
+        fragment.Length == 0 ? $"/{_currentPath}{_query}" : $"/{_currentPath}{_query}#{EscapeFragment(fragment)}";
+
+    private static string EscapeFragment(string fragment) =>
+        string.Join('/', fragment.Split('/').Select(Uri.EscapeDataString));
 
     private void Navigate(string path, bool replace) {
         if (Normalize(path) == _currentPath && FragmentOf(path) == Fragment) return;
