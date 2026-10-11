@@ -17,6 +17,8 @@ public static class ViewerCookieRoutes {
         return routes.MapGet(options.Path, (HttpContext ctx) => Write(ctx, options)).AllowAnonymous();
     }
 
+    private const string WrittenBody = "<!doctype html><title></title>";
+
     public static IResult Write(HttpContext ctx, ViewerCookieOptions options) {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(options);
@@ -30,9 +32,10 @@ public static class ViewerCookieRoutes {
 
         var domain = options.DomainFor(name);
         ctx.Response.Headers.CacheControl = "no-store";
+        ctx.Response.Headers.XContentTypeOptions = "nosniff";
         if (ctx.Request.Query["remove"].ToString() == "1") {
             ctx.Response.Cookies.Delete(name, new CookieOptions { Path = "/", Domain = domain, Secure = true });
-            return Results.NoContent();
+            return Results.Text(WrittenBody, "text/html");
         }
 
         ctx.Response.Cookies.Append(name, value, new CookieOptions {
@@ -43,6 +46,6 @@ public static class ViewerCookieRoutes {
             Secure = true,
             IsEssential = true,
         });
-        return Results.NoContent();
+        return Results.Text(WrittenBody, "text/html");
     }
 }

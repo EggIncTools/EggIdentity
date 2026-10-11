@@ -91,10 +91,17 @@ public class ViewerCookiesTests {
     [Fact]
     public async Task WriteSetsCookieWithRuleDomain() {
         var ctx = await RunWrite("?name=tz&value=Asia%2FTokyo");
-        Assert.Equal(204, ctx.Response.StatusCode);
+        Assert.Equal(200, ctx.Response.StatusCode);
         var header = ctx.Response.Headers.SetCookie.ToString();
         Assert.StartsWith("tz=", header);
         Assert.Contains("domain=.example.com", header);
+    }
+
+    [Fact]
+    public async Task WriteRespondsWithAnInlineHtmlBodySoMobileWebKitDoesNotTreatItAsADownload() {
+        var ctx = await RunWrite("?name=tz&value=UTC");
+        Assert.StartsWith("text/html", ctx.Response.ContentType);
+        Assert.Equal("nosniff", ctx.Response.Headers.XContentTypeOptions.ToString());
     }
 
     [Theory]
