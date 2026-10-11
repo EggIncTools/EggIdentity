@@ -74,6 +74,14 @@ public partial class SharedSheetTests {
     }
 
     [Fact]
+    public void ClosedPopoversKeepTheUserAgentDisplayNoneInstead() {
+        var closed = Sheet.Rule(".suite-account-panel");
+        Assert.Null(closed?["display"]);
+        var open = Sheet.Rule(".suite-account-panel:popover-open");
+        Assert.Equal("flex", open?["display"]);
+    }
+
+    [Fact]
     public void PassesTheMotionGuard() {
         Assert.Empty(MotionGuard.Check(Sheet, ["pulse", "pane-in", "pane-in-reverse", "scroll-marker"]));
     }

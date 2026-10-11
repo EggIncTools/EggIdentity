@@ -1190,6 +1190,10 @@
     min-height: calc(var(--spacing) * 0);
     overflow-y: auto;
   }
+  .suite-account-panel:popover-open {
+    display: flex;
+    flex-direction: column;
+  }
   .filter-add-btn.filter-add-inner {
     color: var(--color-accent2);
     border-color: var(--color-accent2);
@@ -1472,8 +1476,6 @@
     margin-top: 6px;
     z-index: 1100;
     min-width: 12rem;
-    display: flex;
-    flex-direction: column;
     padding-block: calc(var(--spacing) * 1);
     background-color: var(--color-panel2);
     border-style: var(--tw-border-style);
