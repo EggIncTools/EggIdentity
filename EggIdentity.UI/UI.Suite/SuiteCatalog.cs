@@ -98,9 +98,11 @@ public static class SuiteCatalog {
         $"{SignOutUrl}?returnUrl={Uri.EscapeDataString(SafeReturn(returnUrl))}";
 
     public static bool IsAllowedReturn([NotNullWhen(true)] string? returnUrl) =>
-        Uri.TryCreate(returnUrl, UriKind.Absolute, out var parsed)
-        && (parsed.Scheme == Uri.UriSchemeHttps || parsed.IsLoopback)
+        Uri.TryCreate(returnUrl, UriKind.Absolute, out var parsed) && IsWebLoopbackOrHttps(parsed)
         && (parsed.IsLoopback || ReturnHosts.Any(host => IsHostOrSubdomain(parsed.Host, host)));
+
+    private static bool IsWebLoopbackOrHttps(Uri url) =>
+        url.Scheme == Uri.UriSchemeHttps || (url.Scheme == Uri.UriSchemeHttp && url.IsLoopback);
 
     private static async Task<IReadOnlyList<SuiteEntry>> FetchAsync(IdentityApiClient api, CancellationToken ct) =>
         FromWire(await api.GetSuiteToolsAsync(ct));
@@ -118,8 +120,6 @@ public static class SuiteCatalog {
     private static string ResolveIdentityOrigin() {
         var raw = Environment.GetEnvironmentVariable(IdentityOriginEnv)?.Trim().TrimEnd('/');
         if (string.IsNullOrEmpty(raw)) return DefaultIdentityOrigin;
-        return Uri.TryCreate(raw, UriKind.Absolute, out var parsed) && (parsed.Scheme == Uri.UriSchemeHttps || parsed.IsLoopback)
-            ? raw
-            : DefaultIdentityOrigin;
+        return Uri.TryCreate(raw, UriKind.Absolute, out var parsed) && IsWebLoopbackOrHttps(parsed) ? raw : DefaultIdentityOrigin;
     }
 }

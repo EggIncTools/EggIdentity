@@ -46,6 +46,8 @@ public class SuiteTests {
     [InlineData("http://eggledger.egginc.tools/", false)]
     [InlineData("https://egginc.tools.evil.example/", false)]
     [InlineData("/relative", false)]
+    [InlineData("file:///etc/passwd", false)]
+    [InlineData("javascript:alert(1)", false)]
     public void ReturnGateMatchesHub(string url, bool allowed) =>
         Assert.Equal(allowed, SuiteCatalog.IsAllowedReturn(url));
 
