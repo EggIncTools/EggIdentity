@@ -3,7 +3,7 @@
 
 <div class="@($"suite-account {SuitePlacements.Css(Placement)}")">
     @if (Suite.Viewer.IsAuthenticated) {
-        <details class="suite-account-menu" open="@_menuOpen" @ontoggle="() => _menuOpen = !_menuOpen">
+        <details class="suite-account-menu" @key="_menuKey">
             <summary class="suite-user" @ref="_trigger">
                 @if (Suite.Viewer.AvatarUrl(SuiteCatalog.IdentityOrigin) is { } avatar) {
                     <img class="suite-avatar" src="@avatar" alt="" width="24" height="24"/>
@@ -37,13 +37,13 @@
     [Parameter] public SuitePlacement Placement { get; set; } = SuitePlacement.Bar;
 
     ElementReference _trigger;
-    bool _menuOpen;
+    int _menuKey;
     bool _profileOpen;
 
     protected override Task OnInitializedAsync() => Suite.LoadAsync();
 
     internal void OpenProfile() {
-        _menuOpen = false;
+        _menuKey++;
         _profileOpen = true;
     }
 

@@ -112,15 +112,14 @@ public class SuiteProfileModalTests {
     }
 
     [Fact]
-    public void ProfileButtonClosesTheMenuAndOpensTheModal() {
+    public void ProfileButtonReplacesTheMenuAndOpensTheModal() {
         var account = new SuiteAccount();
-        var menu = typeof(SuiteAccount).GetField("_menuOpen", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        var menu = typeof(SuiteAccount).GetField("_menuKey", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         var modal = typeof(SuiteAccount).GetField("_profileOpen", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
-        menu.SetValue(account, true);
 
         account.OpenProfile();
 
-        Assert.False((bool)menu.GetValue(account)!);
+        Assert.Equal(1, (int)menu.GetValue(account)!);
         Assert.True((bool)modal.GetValue(account)!);
     }
 

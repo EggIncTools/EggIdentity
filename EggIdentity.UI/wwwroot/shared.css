@@ -134,7 +134,7 @@
     border-bottom-style: var(--tw-border-style);
     border-bottom-width: 1px;
     border-color: var(--color-border);
-    font-size: clamp(0.875rem, 1.05vw, 1.125rem);
+    font-size: var(--suite-font-size,clamp(0.875rem, 1.05vw, 1.125rem));
     user-select: none;
   }
   .cal-range-label {
@@ -152,6 +152,10 @@
     position: relative;
     display: flex;
     align-items: center;
+    font-family: inherit;
+    font-size: var(--suite-font-size,inherit);
+    font-weight: var(--suite-font-weight,inherit);
+    line-height: var(--suite-line-height,inherit);
   }
   .suite-drawer-toggle::-webkit-details-marker {
     display: none;
@@ -599,8 +603,7 @@
     padding-block: calc(var(--spacing) * 1);
     text-decoration-line: none;
     white-space: nowrap;
-    --tw-font-weight: var(--font-weight-semibold);
-    font-weight: var(--font-weight-semibold);
+    font-weight: var(--suite-font-weight,600);
     font-synthesis-weight: none;
     color: var(--tool,var(--color-fg));
     border-radius: var(--suite-radius,0.375rem);
@@ -925,10 +928,9 @@
     gap: calc(var(--spacing) * 2);
     padding-inline: calc(var(--spacing) * 3);
     padding-block: calc(var(--spacing) * 1.5);
-    font-size: var(--text-sm);
-    line-height: var(--tw-leading, var(--text-sm--line-height));
-    color: var(--color-fg);
+    color: inherit;
     text-decoration-line: none;
+    font: inherit;
   }
   .toast-host {
     position: fixed;
@@ -1228,10 +1230,9 @@
     gap: calc(var(--spacing) * 2);
     padding-inline: calc(var(--spacing) * 3);
     padding-block: calc(var(--spacing) * 1.5);
-    font-size: var(--text-sm);
-    line-height: var(--tw-leading, var(--text-sm--line-height));
-    color: var(--color-fg);
+    color: inherit;
     text-decoration-line: none;
+    font: inherit;
   }
   .suite-tool:hover {
     color: color-mix(in oklab,var(--tool,var(--color-fg)) 82%,white);
@@ -1512,7 +1513,6 @@
     border-width: 0px;
     cursor: pointer;
     text-align: left;
-    font: inherit;
   }
   .menu.open {
     opacity: 100%;
@@ -1802,6 +1802,10 @@
     align-items: center;
     min-width: calc(var(--spacing) * 0);
     gap: var(--suite-gap,0.5rem);
+    font-family: inherit;
+    font-size: var(--suite-font-size,inherit);
+    font-weight: var(--suite-font-weight,inherit);
+    line-height: var(--suite-line-height,inherit);
   }
   .drop-zone {
     border-style: dashed;
@@ -1872,13 +1876,12 @@
     padding-block: calc(var(--spacing) * 1);
     cursor: pointer;
     list-style-type: none;
-    font-size: var(--text-sm);
-    line-height: var(--tw-leading, var(--text-sm--line-height));
-    color: var(--color-fg);
+    color: inherit;
     border-style: var(--tw-border-style);
     border-width: 1px;
     border-color: var(--color-border);
     border-radius: var(--suite-radius,0.375rem);
+    font: inherit;
   }
   .cal-lane {
     position: relative;
@@ -2203,9 +2206,8 @@
     gap: calc(var(--spacing) * 2);
     cursor: pointer;
     list-style-type: none;
-    font-size: var(--text-sm);
-    line-height: var(--tw-leading, var(--text-sm--line-height));
-    color: var(--color-fg);
+    color: inherit;
+    font: inherit;
   }
   .suite-tool-soon .suite-tool-name {
     opacity: .7;
