@@ -448,6 +448,10 @@
     color: var(--color-muted);
     border-color: var(--color-border);
   }
+  .suite-inline .suite-tool.suite-tool-soon {
+    padding-inline: calc(0.625rem + 4px);
+    padding-block: calc(0.3rem + 4px);
+  }
   .toast-text {
     font-size: 13px;
     color: var(--color-fg);
@@ -769,7 +773,7 @@
     border-color: var(--color-border);
   }
   .suite-wordmark-dot {
-    color: var(--color-accent);
+    color: var(--tool,var(--color-accent));
     font-size: 1.25em;
     --tw-font-weight: var(--font-weight-bold);
     font-weight: var(--font-weight-bold);
@@ -1025,6 +1029,8 @@
     font-size: 1.15em;
     --tw-font-weight: var(--font-weight-bold);
     font-weight: var(--font-weight-bold);
+    line-height: 1;
+    text-box: trim-both cap alphabetic;
   }
   .wb-entry.selected {
     border-color: var(--color-accent);
@@ -1577,6 +1583,7 @@
     inset: calc(var(--spacing) * 0);
     z-index: 2;
     pointer-events: none;
+    border-radius: inherit;
     background: color-mix(in oklab,var(--color-bg) 25%,transparent);
   }
   .form-input {
@@ -1932,6 +1939,7 @@
     z-index: 3;
     padding: 4px;
     pointer-events: none;
+    border-radius: inherit;
     background: repeating-linear-gradient(45deg,var(--color-warn) 0 6px,var(--color-bg) 6px 12px);
     mask: linear-gradient(black,black) content-box exclude,linear-gradient(black,black);
   }

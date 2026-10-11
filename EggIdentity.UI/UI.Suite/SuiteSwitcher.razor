@@ -9,7 +9,7 @@
 } else {
     <div class="@($"suite-switcher {SuitePlacements.Css(Placement)}")">
         @if (Placement is SuitePlacement.Bar or SuitePlacement.Rail or SuitePlacement.Inline) {
-            <a class="suite-wordmark" href="@SuiteCatalog.HubUrl">
+            <a class="suite-wordmark" href="@SuiteCatalog.HubUrl" style="@HubStyle">
                 <img class="suite-mark" src="@Brands.IconPath("tools", 512)" alt="" width="512" height="512"/>
                 <span class="suite-wordmark-text">EggInc<span class="suite-wordmark-dot">.</span>tools</span>
             </a>
@@ -22,6 +22,8 @@
 @code {
     [Parameter] public SuitePlacement Placement { get; set; } = SuitePlacement.Bar;
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    static readonly string HubStyle = new SuiteEntry("tools", SuiteCatalog.HubUrl, true, -1).ToolStyle;
 
     protected override Task OnInitializedAsync() => Suite.LoadAsync();
 
