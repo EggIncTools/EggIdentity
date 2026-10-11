@@ -3,7 +3,7 @@
 @inject NavigationManager Nav
 
 <ModalHost Open="Open" Title="Profile" TitleId="@_titleId" Width="ModalWidth.Regular" CloseOnEscape="true" CloseOnBackdrop="true"
-           ReturnFocusTo="ReturnFocusTo" OnClose="OnClose" CardClass="suite-profile">
+           ReturnFocusTo="ReturnFocusTo" OnClose="OnClose" CardClass="@CardCss">
     @if (!Suite.Viewer.IsAuthenticated) {
         <div class="suite-profile-body">
             <p class="suite-profile-note">Sign in to manage your profile.</p>
@@ -22,82 +22,99 @@
         </div>
     } else {
         <div class="suite-profile-body">
-            <section class="suite-profile-section">
-                <div class="suite-profile-head">
-                    @if (AvatarSrc(_profile.Avatar) is { } avatar) {
-                        <img class="suite-profile-avatar" src="@avatar" alt="" width="64" height="64"/>
-                    } else {
-                        <Icon Name="user" Class="suite-profile-avatar"/>
-                    }
-                    <span class="suite-profile-name">@_profile.Username</span>
-                </div>
-                <DirectUpload Url="@SuiteRoutes.AvatarPath" Accept="image/png,image/jpeg,image/webp,image/gif" Label="Upload avatar"
-                              Class="suite-profile-upload" OnResult="AvatarUploadedAsync"/>
-            </section>
-
-            <section class="suite-profile-section">
-                <h4 class="suite-profile-label">Linked identities</h4>
-                <ul class="suite-profile-identities">
-                    @foreach (var identity in _profile.Identities) {
-                        var lastOne = _profile.Identities.Count == 1;
-                        <li class="suite-profile-identity">
-                            <Icon Name="@SuiteCatalog.ProviderIcon(identity.Provider)"/>
-                            <span class="suite-profile-identity-name">@(identity.Username ?? identity.Subject)</span>
-                            @if (!string.IsNullOrEmpty(identity.Avatar)) {
-                                <button type="button" class="btn-mini" @onclick="() => SelectAvatarAsync(identity)">Use avatar</button>
-                            }
-                            <button type="button" class="btn-mini" disabled="@lastOne" title="@(lastOne ? LastIdentityReason : null)"
-                                    @onclick="() => UnlinkAsync(identity)">Unlink</button>
-                        </li>
-                    }
-                </ul>
-                <button type="button" class="btn-mini" @onclick="SyncAsync">Sync from provider</button>
-            </section>
-
-            <section class="suite-profile-section suite-profile-grid">
-                <label class="suite-profile-field">
-                    <span class="suite-profile-label">Timezone</span>
-                    <TimeZonePicker Value="@_profile.Timezone" ValueChanged="TimezoneChangedAsync"/>
-                </label>
-                <label class="suite-profile-field">
-                    <span class="suite-profile-label">Language</span>
-                    <LanguagePicker Value="@_profile.Language" ValueChanged="LanguageChangedAsync"/>
-                </label>
-                <label class="suite-profile-field">
-                    <span class="suite-profile-label">Theme</span>
-                    <select class="form-input" value="@Suite.Theme" @onchange="ThemeChangedAsync">
-                        @foreach (var theme in Suite.Themes) {
-                            <option value="@theme">@theme</option>
+            @if (Slots?.Avatar is { } avatarSlot) {
+                @avatarSlot(AvatarContext)
+            } else {
+                <section class="suite-profile-section">
+                    <div class="suite-profile-head">
+                        @if (AvatarContext.AvatarUrl is { } avatar) {
+                            <img class="suite-profile-avatar" src="@avatar" alt="" width="64" height="64"/>
+                        } else {
+                            <Icon Name="user" Class="suite-profile-avatar"/>
                         }
-                    </select>
-                </label>
-                <label class="suite-profile-field suite-profile-check">
-                    <input type="checkbox" checked="@Suite.ReducedMotion" @onchange="MotionChangedAsync"/>
-                    <span>Reduce motion</span>
-                </label>
-            </section>
+                        <span class="suite-profile-name">@AvatarContext.Username</span>
+                    </div>
+                    @AvatarContext.Upload
+                </section>
+            }
 
-            <section class="suite-profile-section suite-profile-grid">
-                <label class="suite-profile-field">
-                    <span class="suite-profile-label">Active EID</span>
-                    <input class="form-input" maxlength="@ProfileGame.MaxEidLength" autocomplete="off" spellcheck="false" @bind="_eid"/>
-                </label>
-                <label class="suite-profile-field">
-                    <span class="suite-profile-label">Label</span>
-                    <input class="form-input" maxlength="@ProfileGame.MaxLabelLength" @bind="_eidLabel"/>
-                </label>
-                <button type="button" class="btn-mini" @onclick="SaveEidAsync">Save EID</button>
-            </section>
+            @if (Slots?.Identities is { } identitiesSlot) {
+                @identitiesSlot(IdentitiesContext)
+            } else {
+                <section class="suite-profile-section">
+                    <h4 class="suite-profile-label">Linked identities</h4>
+                    <ul class="suite-profile-identities">
+                        @foreach (var item in IdentitiesContext.Items) {
+                            <li class="suite-profile-identity">
+                                <Icon Name="@item.ProviderIcon"/>
+                                <span class="suite-profile-identity-name">@(item.Identity.Username ?? item.Identity.Subject)</span>
+                                @if (!string.IsNullOrEmpty(item.Identity.Avatar)) {
+                                    <button type="button" class="btn-mini" @onclick="item.OnSelectAvatar">Use avatar</button>
+                                }
+                                <button type="button" class="btn-mini" disabled="@(!item.CanUnlink)" title="@item.UnlinkReason"
+                                        @onclick="item.OnUnlink">Unlink</button>
+                            </li>
+                        }
+                    </ul>
+                    <button type="button" class="btn-mini" @onclick="IdentitiesContext.OnSync">Sync from provider</button>
+                </section>
+            }
+
+            @if (Slots?.Preferences is { } preferencesSlot) {
+                @preferencesSlot(PreferencesContext)
+            } else {
+                <section class="suite-profile-section suite-profile-grid">
+                    <label class="suite-profile-field">
+                        <span class="suite-profile-label">Timezone</span>
+                        <TimeZonePicker Value="@PreferencesContext.Timezone" ValueChanged="PreferencesContext.OnTimezone"/>
+                    </label>
+                    <label class="suite-profile-field">
+                        <span class="suite-profile-label">Language</span>
+                        <LanguagePicker Value="@PreferencesContext.Language" ValueChanged="PreferencesContext.OnLanguage"/>
+                    </label>
+                    <label class="suite-profile-field">
+                        <span class="suite-profile-label">Theme</span>
+                        <select class="form-input" value="@PreferencesContext.Theme" @onchange="e => ThemeAsync(e.Value as string)">
+                            @foreach (var theme in PreferencesContext.Themes) {
+                                <option value="@theme">@theme</option>
+                            }
+                        </select>
+                    </label>
+                    <label class="suite-profile-field suite-profile-check">
+                        <input type="checkbox" checked="@PreferencesContext.ReducedMotion" @onchange="e => MotionAsync(e.Value is true)"/>
+                        <span>Reduce motion</span>
+                    </label>
+                </section>
+            }
+
+            @if (Slots?.Eid is { } eidSlot) {
+                @eidSlot(EidContext)
+            } else {
+                <section class="suite-profile-section suite-profile-grid">
+                    <label class="suite-profile-field">
+                        <span class="suite-profile-label">Active EID</span>
+                        <input class="form-input" maxlength="@ProfileGame.MaxEidLength" autocomplete="off" spellcheck="false" @bind="_eid"/>
+                    </label>
+                    <label class="suite-profile-field">
+                        <span class="suite-profile-label">Label</span>
+                        <input class="form-input" maxlength="@ProfileGame.MaxLabelLength" @bind="_eidLabel"/>
+                    </label>
+                    <button type="button" class="btn-mini" @onclick="() => SaveEidAsync((_eid, _eidLabel))">Save EID</button>
+                </section>
+            }
         </div>
     }
 </ModalHost>
 
 @code {
     public const string LastIdentityReason = "Cannot unlink the last identity on an account";
+    public const string AvatarAccept = "image/png,image/jpeg,image/webp,image/gif";
 
     [Parameter] public bool Open { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public ElementReference? ReturnFocusTo { get; set; }
+    [Parameter] public SuiteProfileTemplates? Templates { get; set; }
+    [CascadingParameter] public SuiteProfileTemplates? CascadedTemplates { get; set; }
 
     readonly string _titleId = "suite-profile-" + Guid.NewGuid().ToString("N");
     ProfileResponse? _profile;
@@ -105,6 +122,40 @@
     bool _wasOpen;
     string? _eid;
     string? _eidLabel;
+
+    SuiteProfileTemplates? Slots => Templates ?? CascadedTemplates;
+
+    string CardCss => Slots?.CardClass is { Length: > 0 } extra ? $"suite-profile {extra}" : "suite-profile";
+
+    SuiteProfileAvatarContext AvatarContext => new(
+        AvatarSrc(_profile!.Avatar), _profile.AvatarIsCustom, _profile.Username,
+        @<DirectUpload Url="@SuiteRoutes.AvatarPath" Accept="@AvatarAccept" Label="Upload avatar" Class="suite-profile-upload" OnResult="AvatarUploadedAsync"/>);
+
+    SuiteProfileIdentitiesContext IdentitiesContext => new(
+        [.. _profile!.Identities.Select(identity => {
+            var canUnlink = _profile.Identities.Count > 1;
+            return new SuiteProfileIdentityItem(
+                identity,
+                SuiteCatalog.ProviderIcon(identity.Provider),
+                SuiteAccount.ProviderName(identity.Provider),
+                !string.IsNullOrEmpty(identity.Avatar) && identity.Avatar == _profile.Avatar,
+                canUnlink,
+                canUnlink ? null : LastIdentityReason,
+                EventCallback.Factory.Create(this, () => SelectAvatarAsync(identity)),
+                EventCallback.Factory.Create(this, () => UnlinkAsync(identity)));
+        })],
+        EventCallback.Factory.Create(this, SyncAsync));
+
+    SuiteProfilePreferencesContext PreferencesContext => new(
+        _profile!.Timezone, _profile.Language, Suite.Theme, Suite.Themes, Suite.ReducedMotion,
+        EventCallback.Factory.Create<string?>(this, TimezoneAsync),
+        EventCallback.Factory.Create<string?>(this, LanguageAsync),
+        EventCallback.Factory.Create<string>(this, ThemeAsync),
+        EventCallback.Factory.Create<bool>(this, MotionAsync));
+
+    SuiteProfileEidContext EidContext => new(
+        Suite.ActiveEid, Suite.ActiveEidLabel, ProfileGame.MaxEidLength, ProfileGame.MaxLabelLength,
+        EventCallback.Factory.Create<(string?, string?)>(this, SaveEidAsync));
 
     protected override async Task OnParametersSetAsync() {
         var opening = Open && !_wasOpen;
@@ -148,26 +199,28 @@
 
     Task SyncAsync() => Report(Suite.SyncIdentitiesAsync(), "Identities synced.", "Could not sync from the provider.", reload: true);
 
-    Task TimezoneChangedAsync(string? timezone) =>
+    Task TimezoneAsync(string? timezone) =>
         Report(Suite.SetLocaleAsync(timezone, null), "Timezone saved.", "Could not save the timezone.", reload: true);
 
-    Task LanguageChangedAsync(string? language) =>
+    Task LanguageAsync(string? language) =>
         Report(Suite.SetLocaleAsync(null, language), "Language saved.", "Could not save the language.", reload: true);
 
-    Task ThemeChangedAsync(ChangeEventArgs e) =>
-        e.Value is string theme && theme.Length > 0
-            ? Report(Done(Suite.SetThemeAsync(theme)), "Theme saved.", "Could not save the theme.")
-            : Task.CompletedTask;
+    Task ThemeAsync(string? theme) =>
+        string.IsNullOrWhiteSpace(theme)
+            ? Task.CompletedTask
+            : Report(Done(Suite.SetThemeAsync(theme)), "Theme saved.", "Could not save the theme.");
 
-    Task MotionChangedAsync(ChangeEventArgs e) =>
-        Report(Done(Suite.SetReducedMotionAsync(e.Value is true)), "Motion preference saved.", "Could not save the motion preference.");
+    Task MotionAsync(bool reduced) =>
+        Report(Done(Suite.SetReducedMotionAsync(reduced)), "Motion preference saved.", "Could not save the motion preference.");
 
-    Task SaveEidAsync() {
-        if (_eid?.Trim().Length > ProfileGame.MaxEidLength) {
+    Task SaveEidAsync((string? Eid, string? Label) value) {
+        if (value.Eid?.Trim().Length > ProfileGame.MaxEidLength) {
             Toasts.Push(StatusNoteKind.Error, "That EID is too long.");
             return Task.CompletedTask;
         }
-        return Report(Done(Suite.SetActiveEidAsync(_eid, _eidLabel)), "Active EID saved.", "Could not save the EID.");
+        _eid = value.Eid;
+        _eidLabel = value.Label;
+        return Report(Done(Suite.SetActiveEidAsync(value.Eid, value.Label)), "Active EID saved.", "Could not save the EID.");
     }
 
     async Task AvatarUploadedAsync(UploadResult result) {

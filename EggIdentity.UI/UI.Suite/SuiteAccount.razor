@@ -30,11 +30,12 @@
             </div>
         </details>
     }
-    <SuiteProfileModal Open="_profileOpen" OnClose="CloseProfile" ReturnFocusTo="_trigger"/>
+    <SuiteProfileModal Open="_profileOpen" OnClose="CloseProfile" ReturnFocusTo="_trigger" Templates="ProfileTemplates"/>
 </div>
 
 @code {
     [Parameter] public SuitePlacement Placement { get; set; } = SuitePlacement.Bar;
+    [Parameter] public SuiteProfileTemplates? ProfileTemplates { get; set; }
 
     ElementReference _trigger;
     int _menuKey;

@@ -92,6 +92,11 @@ public static class SharedLiterals {
             position-area: bottom span-right;
           }
         }
+        @supports (anchor-name: --tt) and (not (container-type: anchored)) {
+          .tooltip-floating.tooltip-fixed::before, .tooltip-floating.tooltip-fixed::after {
+            display: none;
+          }
+        }
         @supports not (anchor-name: --tt) {
           .tooltip-trigger, .tooltip-point {
             position: relative;

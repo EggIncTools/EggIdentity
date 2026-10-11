@@ -67,6 +67,13 @@ public partial class SharedSheetTests {
     }
 
     [Fact]
+    public void FixedTooltipArrowsHideWhereTheyCannotFollowAFlip() {
+        var hidden = Sheet.Within("@supports (anchor-name: --tt) and (not (container-type: anchored))")
+            .Single(r => r.Selector.Contains(".tooltip-floating.tooltip-fixed::before", StringComparison.Ordinal));
+        Assert.Equal("none", hidden["display"]);
+    }
+
+    [Fact]
     public void PassesTheMotionGuard() {
         Assert.Empty(MotionGuard.Check(Sheet, ["pulse", "pane-in", "pane-in-reverse", "scroll-marker"]));
     }

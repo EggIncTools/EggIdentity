@@ -106,6 +106,23 @@ public class SuiteProfileModalTests {
     }
 
     [Fact]
+    public async Task HostSlotsReplaceTheDefaultSectionsAndReceiveTheirContext() {
+        var templates = new SuiteProfileTemplates {
+            CardClass = "ledger-profile",
+            Identities = ctx => builder => builder.AddMarkupContent(0,
+                $"<ol class=\"host-ids\">{string.Concat(ctx.Items.Select(i => $"<li data-unlink=\"{i.CanUnlink}\">{i.ProviderName}</li>"))}</ol>"),
+        };
+        var parameters = new Dictionary<string, object?>(OpenModal) { [nameof(SuiteProfileModal.Templates)] = templates };
+
+        var html = await RenderAsync<SuiteProfileModal>(true, [Identity(Discord, AliceDiscord), Identity("github", "alice-gh")], parameters);
+
+        Assert.Contains("ledger-profile", html);
+        Assert.Contains("<ol class=\"host-ids\"><li data-unlink=\"True\">Discord</li><li data-unlink=\"True\">GitHub</li></ol>", html);
+        Assert.DoesNotContain("suite-profile-identities", html);
+        Assert.Contains("suite-profile-grid", html);
+    }
+
+    [Fact]
     public async Task ClosedModalRendersNothing() {
         var html = await RenderAsync<SuiteProfileModal>(true, [Identity(Discord, AliceDiscord)], []);
         Assert.DoesNotContain("suite-profile-body", html);
