@@ -129,14 +129,12 @@ public class SuiteProfileModalTests {
     }
 
     [Fact]
-    public void ProfileButtonReplacesTheMenuAndOpensTheModal() {
+    public void ProfileButtonOpensTheModal() {
         var account = new SuiteAccount();
-        var menu = typeof(SuiteAccount).GetField("_menuKey", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         var modal = typeof(SuiteAccount).GetField("_profileOpen", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
 
         account.OpenProfile();
 
-        Assert.Equal(1, (int)menu.GetValue(account)!);
         Assert.True((bool)modal.GetValue(account)!);
     }
 
@@ -147,5 +145,13 @@ public class SuiteProfileModalTests {
         Assert.Contains("<button type=\"button\" class=\"suite-account-link suite-profile-open\"", html);
         Assert.DoesNotContain("/profile\"", html);
         Assert.DoesNotContain("suite-profile-body", html);
+    }
+
+    [Fact]
+    public async Task AccountPopoverEscapesContainmentInsteadOfBeingAbsolutelyPositioned() {
+        var html = await RenderAsync<SuiteAccount>(true, [Identity(Discord, AliceDiscord)], []);
+
+        Assert.Contains("popover", html);
+        Assert.DoesNotContain("<details", html);
     }
 }

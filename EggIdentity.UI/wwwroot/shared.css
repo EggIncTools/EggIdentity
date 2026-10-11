@@ -632,10 +632,6 @@
     align-items: center;
     gap: calc(var(--spacing) * 3);
   }
-  .suite-tabs .suite-account-panel {
-    top: auto;
-    bottom: calc(100% + 6px);
-  }
   .icon-lg {
     --icon-size: 1.5rem;
   }
@@ -654,9 +650,6 @@
     --tw-font-weight: var(--font-weight-medium);
     font-weight: var(--font-weight-medium);
     color: var(--color-fg);
-  }
-  .suite-account-menu {
-    position: relative;
   }
   .filter-glue {
     display: flex;
@@ -827,9 +820,6 @@
   .suite-inline .suite-wordmark-text {
     display: var(--suite-wordmark-text,none);
   }
-  .suite-user::-webkit-details-marker {
-    display: none;
-  }
   .filter-glue.filter-glue-outer {
     color: var(--color-accent);
   }
@@ -902,9 +892,6 @@
     position: absolute;
     transform: translateX(calc(-50% + var(--tt-shift-x,0px))) translateY(var(--tt-ty,-10px)) scale(var(--tt-scale,1));
   }
-  .suite-signin::-webkit-details-marker {
-    display: none;
-  }
   .wb-rail {
     flex-shrink: 0;
     border-right-style: var(--tw-border-style);
@@ -932,6 +919,7 @@
     gap: calc(var(--spacing) * 2);
     padding-inline: calc(var(--spacing) * 3);
     padding-block: calc(var(--spacing) * 1.5);
+    box-sizing: border-box;
     color: inherit;
     text-decoration-line: none;
     font: inherit;
@@ -998,8 +986,7 @@
     line-height: var(--tw-leading, var(--text-sm--line-height));
   }
   .suite-inline.suite-account .suite-account-panel {
-    left: calc(var(--spacing) * 0);
-    right: auto;
+    position-area: bottom span-right;
   }
   .drag-panel {
     position: fixed;
@@ -1236,6 +1223,7 @@
     gap: calc(var(--spacing) * 2);
     padding-inline: calc(var(--spacing) * 3);
     padding-block: calc(var(--spacing) * 1.5);
+    box-sizing: border-box;
     color: inherit;
     text-decoration-line: none;
     font: inherit;
@@ -1465,9 +1453,14 @@
     align-items: flex-end;
   }
   .suite-account-panel {
-    position: absolute;
-    right: calc(var(--spacing) * 0);
-    top: calc(100% + 6px);
+    position: fixed;
+    margin: calc(var(--spacing) * 0);
+    padding: calc(var(--spacing) * 0);
+    inset: auto;
+    position-anchor: var(--suite-account-anchor);
+    position-area: bottom span-left;
+    position-try-fallbacks: flip-block;
+    margin-top: 6px;
     z-index: 1100;
     min-width: 12rem;
     display: flex;
@@ -1882,7 +1875,7 @@
     padding-inline: calc(var(--spacing) * 3);
     padding-block: calc(var(--spacing) * 1);
     cursor: pointer;
-    list-style-type: none;
+    appearance: none;
     color: inherit;
     border-style: var(--tw-border-style);
     border-width: 1px;
@@ -2213,7 +2206,10 @@
     align-items: center;
     gap: calc(var(--spacing) * 2);
     cursor: pointer;
-    list-style-type: none;
+    background-color: transparent;
+    border-style: var(--tw-border-style);
+    border-width: 0px;
+    appearance: none;
     color: inherit;
     font: inherit;
   }
@@ -2225,6 +2221,9 @@
   }
   .status-note-x:hover {
     color: var(--color-fg);
+  }
+  .suite-account-anchor {
+    anchor-name: var(--suite-account-anchor);
   }
   .fab-bubble {
     position: fixed;

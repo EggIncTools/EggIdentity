@@ -2,34 +2,30 @@
 @inject NavigationManager Nav
 
 <CircuitGuard Name="SuiteAccount">
-    <div class="@($"suite-account {SuitePlacements.Css(Placement)}")">
+    <div class="@($"suite-account {SuitePlacements.Css(Placement)}")" style="@AnchorStyle">
         @if (Suite.Viewer.IsAuthenticated) {
-            <details class="suite-account-menu" @key="_menuKey">
-                <summary class="suite-user" @ref="_trigger">
-                    @if (Suite.Viewer.AvatarUrl(SuiteCatalog.IdentityOrigin) is { } avatar) {
-                        <img class="suite-avatar" src="@avatar" alt="" width="24" height="24"/>
-                    } else {
-                        <Icon Name="user" Class="suite-avatar"/>
-                    }
-                    <span class="suite-user-name">@Suite.Viewer.Name</span>
-                </summary>
-                <div class="suite-account-panel">
-                    <button type="button" class="suite-account-link suite-profile-open" @onclick="OpenProfile">Profile</button>
-                    <a class="suite-account-link" href="@SuiteCatalog.SignOutUrlFor(Nav.Uri)">Sign out</a>
-                </div>
-            </details>
+            <button type="button" class="suite-user suite-account-anchor" popovertarget="@_panelId" @ref="_trigger">
+                @if (Suite.Viewer.AvatarUrl(SuiteCatalog.IdentityOrigin) is { } avatar) {
+                    <img class="suite-avatar" src="@avatar" alt="" width="24" height="24"/>
+                } else {
+                    <Icon Name="user" Class="suite-avatar"/>
+                }
+                <span class="suite-user-name">@Suite.Viewer.Name</span>
+            </button>
+            <div id="@_panelId" popover class="suite-account-panel">
+                <button type="button" class="suite-account-link suite-profile-open" popovertarget="@_panelId" popovertargetaction="hide" @onclick="OpenProfile">Profile</button>
+                <a class="suite-account-link" href="@SuiteCatalog.SignOutUrlFor(Nav.Uri)">Sign out</a>
+            </div>
         } else {
-            <details class="suite-account-menu">
-                <summary class="suite-signin">Sign in</summary>
-                <div class="suite-account-panel">
-                    @foreach (var provider in SuiteCatalog.Providers) {
-                        <a class="suite-provider" href="@SuiteCatalog.ProviderSignInUrl(provider, Nav.Uri)">
-                            <Icon Name="@SuiteCatalog.ProviderIcon(provider)"/>
-                            <span>@ProviderName(provider)</span>
-                        </a>
-                    }
-                </div>
-            </details>
+            <button type="button" class="suite-signin suite-account-anchor" popovertarget="@_panelId">Login</button>
+            <div id="@_panelId" popover class="suite-account-panel">
+                @foreach (var provider in SuiteCatalog.Providers) {
+                    <a class="suite-provider" href="@SuiteCatalog.ProviderSignInUrl(provider, Nav.Uri)">
+                        <Icon Name="@SuiteCatalog.ProviderIcon(provider)"/>
+                        <span>@ProviderName(provider)</span>
+                    </a>
+                }
+            </div>
         }
         <SuiteProfileModal Open="_profileOpen" OnClose="CloseProfile" ReturnFocusTo="_trigger" Templates="ProfileTemplates"/>
     </div>
@@ -39,14 +35,16 @@
     [Parameter] public SuitePlacement Placement { get; set; } = SuitePlacement.Bar;
     [Parameter] public SuiteProfileTemplates? ProfileTemplates { get; set; }
 
+    readonly string _panelId = "suite-account-" + Guid.NewGuid().ToString("N");
+    readonly string _anchor = "--suite-account-" + Guid.NewGuid().ToString("N");
     ElementReference _trigger;
-    int _menuKey;
     bool _profileOpen;
+
+    string AnchorStyle => $"--suite-account-anchor: {_anchor}";
 
     protected override Task OnInitializedAsync() => Suite.LoadAsync();
 
     internal void OpenProfile() {
-        _menuKey++;
         _profileOpen = true;
     }
 

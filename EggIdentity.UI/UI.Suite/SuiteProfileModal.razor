@@ -6,7 +6,7 @@
            ReturnFocusTo="ReturnFocusTo" OnClose="OnClose" CardClass="@CardCss">
     @if (!Suite.Viewer.IsAuthenticated) {
         <div class="suite-profile-body">
-            <p class="suite-profile-note">Sign in to manage your profile.</p>
+            <p class="suite-profile-note">Login to manage your profile.</p>
             <div class="suite-profile-providers">
                 @foreach (var provider in SuiteCatalog.Providers) {
                     <a class="suite-provider" href="@SuiteCatalog.ProviderSignInUrl(provider, Nav.Uri)">

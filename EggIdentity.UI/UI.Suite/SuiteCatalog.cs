@@ -84,11 +84,7 @@ public static class SuiteCatalog {
         return string.Create(CultureInfo.InvariantCulture, $"scale: {scale:0.###}");
     }
 
-    public static string ProviderIcon(string provider) =>
-        provider switch {
-            "microsoft" => "layout-grid",
-            _ => $"brand-{provider}",
-        };
+    public static string ProviderIcon(string provider) => $"brand-{provider}";
 
     public static string ProviderSignInUrl(string provider, string returnUrl) =>
         $"{IdentityOrigin}/auth/go/{provider}?returnUrl={Uri.EscapeDataString(SafeReturn(returnUrl))}";
