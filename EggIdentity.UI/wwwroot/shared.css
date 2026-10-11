@@ -808,9 +808,8 @@
     font-family: inherit;
   }
   .consent-actions > .btn-primary {
-    flex: 1;
+    flex: auto;
     min-width: calc(var(--spacing) * 0);
-    flex-shrink: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1886,6 +1885,7 @@
     padding-inline: calc(var(--spacing) * 3);
     padding-block: calc(var(--spacing) * 1);
     cursor: pointer;
+    background-color: transparent;
     appearance: none;
     color: inherit;
     border-style: var(--tw-border-style);
@@ -2055,6 +2055,11 @@
     filter: blur(var(--mask-blur,5px));
     transition: filter var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,0,0,1));
   }
+  .suite-tabs.suite-account .suite-account-panel {
+    position-area: top span-left;
+    margin-top: 0;
+    margin-bottom: 6px;
+  }
   .wb-card.wb-card-wide {
     --wb-card-w: 94vw;
     --wb-card-h: 90vh;
@@ -2087,9 +2092,8 @@
     flex-direction: column;
   }
   .consent-actions > .btn-secondary {
-    flex: 1;
+    flex: auto;
     min-width: calc(var(--spacing) * 0);
-    flex-shrink: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2225,6 +2229,7 @@
     display: inline-flex;
     align-items: center;
     gap: calc(var(--spacing) * 2);
+    padding: calc(var(--spacing) * 0);
     cursor: pointer;
     background-color: transparent;
     border-style: var(--tw-border-style);

@@ -72,8 +72,8 @@ internal static class Suite {
         { ".suite-drawer-panel .suite-tools", "flex-col items-stretch" },
         { ".suite-account", $"relative flex items-center {HostType}" },
         { ".suite-account-anchor", "[anchor-name:var(--suite-account-anchor)]" },
-        { ".suite-user", $"inline-flex items-center gap-2 cursor-pointer bg-transparent border-0 [appearance:none] text-fg {ControlType}" },
-        { ".suite-signin", $"inline-flex items-center px-3 py-1 cursor-pointer [appearance:none] text-fg border border-border [border-radius:var(--suite-radius,0.375rem)] {ControlType}" },
+        { ".suite-user", $"inline-flex items-center gap-2 p-0 cursor-pointer bg-transparent border-0 [appearance:none] text-fg {ControlType}" },
+        { ".suite-signin", $"inline-flex items-center px-3 py-1 cursor-pointer bg-transparent [appearance:none] text-fg border border-border [border-radius:var(--suite-radius,0.375rem)] {ControlType}" },
         { ".suite-avatar", "w-6 h-6 rounded-full shrink-0" },
         { ".suite-user-name", "truncate max-w-[10rem]" },
         { ".suite-account-panel", "fixed m-0 p-0 [inset:auto] [position-anchor:var(--suite-account-anchor)] [position-area:bottom_span-left] [position-try-fallbacks:flip-block] [margin-top:6px] z-[1100] min-w-[12rem] py-1 bg-panel2 border border-border rounded-md shadow-[0_6px_18px_rgba(0,0,0,.4)]" },
@@ -83,5 +83,6 @@ internal static class Suite {
         { ".suite-provider", $"flex w-full items-center gap-2 px-3 py-1.5 [box-sizing:border-box] text-fg no-underline {ControlType}" },
         { ".suite-provider:hover", "bg-panel" },
         { ".suite-inline.suite-account .suite-account-panel", "[position-area:bottom_span-right]" },
+        { ".suite-tabs.suite-account .suite-account-panel", "[position-area:top_span-left] [margin-top:0] [margin-bottom:6px]" },
     }.ToImmutableDictionary();
 }
