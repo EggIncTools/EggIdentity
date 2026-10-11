@@ -8,7 +8,7 @@
     </details>
 } else {
     <div class="@($"suite-switcher {SuitePlacements.Css(Placement)}")">
-        @if (Placement is SuitePlacement.Bar or SuitePlacement.Rail) {
+        @if (Placement is SuitePlacement.Bar or SuitePlacement.Rail or SuitePlacement.Inline) {
             <a class="suite-wordmark" href="@SuiteCatalog.HubUrl">
                 <img class="suite-mark" src="@Brands.IconPath("tools", 512)" alt="" width="512" height="512"/>
                 <span class="suite-wordmark-text">EggInc<span class="suite-wordmark-dot">.</span>tools</span>
@@ -28,6 +28,7 @@
     RenderFragment Items => @<ul class="suite-tools">
         @foreach (var tool in Suite.Tools) {
             var current = string.Equals(tool.Slug, Suite.CurrentSlug, StringComparison.OrdinalIgnoreCase);
+            if (current && Placement == SuitePlacement.Inline) continue;
             <li class="suite-tool-item">
                 @if (tool.Live) {
                     <a class="@(current ? "suite-tool suite-tool-current" : "suite-tool")" style="@tool.ToolStyle" href="@(current ? "/" : tool.Url + "/")"

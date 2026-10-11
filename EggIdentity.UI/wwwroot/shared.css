@@ -260,6 +260,14 @@
     bottom: auto;
     top: 100%;
   }
+  .suite-profile-identities {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 1);
+    list-style-type: none;
+    margin: calc(var(--spacing) * 0);
+    padding: calc(var(--spacing) * 0);
+  }
   .fab-bubble:hover {
     border-color: var(--color-accent2);
     transform: translateY(-2px);
@@ -280,6 +288,18 @@
   }
   .suite-tool-soon:hover .suite-tool-tip {
     opacity: 100%;
+  }
+  .suite-profile-identity {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 2);
+    padding-inline: calc(var(--spacing) * 2);
+    padding-block: calc(var(--spacing) * 1.5);
+    border-radius: var(--radius-md);
+    background-color: var(--color-panel2);
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
+    color: var(--color-fg);
   }
   .pane-in-reverse {
     animation: pane-in-reverse var(--motion-morph,220ms) var(--ease-standard,cubic-bezier(.2,0,0,1)) backwards;
@@ -329,6 +349,13 @@
     --tw-font-weight: var(--font-weight-semibold);
     font-weight: var(--font-weight-semibold);
     cursor: pointer;
+  }
+  .suite-profile-name {
+    font-size: var(--text-lg);
+    line-height: var(--tw-leading, var(--text-lg--line-height));
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-fg);
   }
   .wb-drawer-tab {
     position: absolute;
@@ -388,6 +415,12 @@
     -webkit-user-select: none;
     user-select: none;
     touch-action: none;
+  }
+  .suite-profile-note {
+    margin: calc(var(--spacing) * 0);
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
+    color: var(--color-muted);
   }
   .icon-md {
     --icon-size: 1.25rem;
@@ -451,6 +484,11 @@
     border-left-style: var(--tw-border-style);
     border-left-width: 1px;
     border-color: var(--color-border);
+  }
+  .suite-profile-section {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 2);
   }
   .modal-head {
     display: flex;
@@ -582,6 +620,11 @@
   .filter-remove-btn:hover {
     background-color: color-mix(in srgb,var(--color-err) 15%,transparent);
   }
+  .suite-profile-head {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 3);
+  }
   .suite-tabs .suite-account-panel {
     top: auto;
     bottom: calc(100% + 6px);
@@ -691,6 +734,20 @@
     gap: calc(var(--spacing) * 2);
     min-width: calc(var(--spacing) * 0);
   }
+  .suite-profile-check {
+    flex-direction: row;
+    align-items: center;
+    gap: calc(var(--spacing) * 2);
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
+    color: var(--color-fg);
+  }
+  .suite-profile-identity-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .tooltip-trigger:focus-within > .tooltip-toggle {
     opacity: 100%;
     --tt-scale: 1;
@@ -718,6 +775,16 @@
   .tooltip-host {
     position: relative;
     display: inline-block;
+  }
+  .suite-profile-label {
+    margin: calc(var(--spacing) * 0);
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    color: var(--color-muted);
+    letter-spacing: 0.06em;
   }
   .btn-mini:hover {
     border-color: var(--color-accent2);
@@ -749,6 +816,9 @@
     border-right-width: 1px;
     border-radius: var(--radius-md);
     box-shadow: 0 6px 20px rgba(0,0,0,.45);
+  }
+  .suite-inline .suite-wordmark-text {
+    display: var(--suite-wordmark-text,none);
   }
   .suite-user::-webkit-details-marker {
     display: none;
@@ -912,6 +982,14 @@
     border-top-style: var(--tw-border-style);
     border-top-width: 1px;
     border-color: var(--color-border);
+  }
+  .suite-profile-upload {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--spacing) * 2);
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
   }
   .suite-inline.suite-account .suite-account-panel {
     left: calc(var(--spacing) * 0);
@@ -1257,6 +1335,12 @@
     align-items: center;
     gap: calc(var(--spacing) * 1);
   }
+  .suite-profile-avatar {
+    width: calc(var(--spacing) * 16);
+    height: calc(var(--spacing) * 16);
+    border-radius: calc(infinity * 1px);
+    flex-shrink: 0;
+  }
   .tooltip-floating.tooltip-err {
     color: var(--color-err);
     --tooltip-border: var(--color-err);
@@ -1367,6 +1451,12 @@
     hyphens: none;
     -webkit-hyphens: none;
   }
+  .suite-profile-grid {
+    display: grid;
+    gap: calc(var(--spacing) * 3);
+    grid-template-columns: repeat(auto-fit,minmax(min(18rem, 100%),1fr));
+    align-items: flex-end;
+  }
   .suite-account-panel {
     position: absolute;
     right: calc(var(--spacing) * 0);
@@ -1383,6 +1473,14 @@
     border-radius: var(--radius-md);
     --tw-shadow: 0 6px 18px rgba(0,0,0,.4);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
+  .suite-inline .suite-tool {
+    padding-block: 0.3rem;
+  }
+  .suite-profile-body {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 4);
   }
   .suite-switcher.suite-tabs {
     position: fixed;
@@ -1407,6 +1505,14 @@
     display: flex;
     flex-direction: column;
     transition: opacity var(--motion-base,150ms) var(--ease-standard,cubic-bezier(.2,0,0,1));
+  }
+  .suite-profile-open {
+    background-color: transparent;
+    border-style: var(--tw-border-style);
+    border-width: 0px;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
   }
   .menu.open {
     opacity: 100%;
@@ -1954,6 +2060,16 @@
     inset-block: calc(var(--spacing) * 0);
     width: 1px;
     background-color: color-mix(in srgb,var(--color-border) 40%,transparent);
+  }
+  .suite-profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 1);
+    min-width: calc(var(--spacing) * 0);
+  }
+  .suite-profile-providers {
+    display: flex;
+    flex-direction: column;
   }
   .text-rarity-1 {
     color: var(--rarity-fg-1,#6ab6ff);

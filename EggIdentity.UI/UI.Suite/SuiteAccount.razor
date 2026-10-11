@@ -3,8 +3,8 @@
 
 <div class="@($"suite-account {SuitePlacements.Css(Placement)}")">
     @if (Suite.Viewer.IsAuthenticated) {
-        <details class="suite-account-menu">
-            <summary class="suite-user">
+        <details class="suite-account-menu" open="@_menuOpen" @ontoggle="() => _menuOpen = !_menuOpen">
+            <summary class="suite-user" @ref="_trigger">
                 @if (Suite.Viewer.AvatarUrl(SuiteCatalog.IdentityOrigin) is { } avatar) {
                     <img class="suite-avatar" src="@avatar" alt="" width="24" height="24"/>
                 } else {
@@ -13,7 +13,7 @@
                 <span class="suite-user-name">@Suite.Viewer.Name</span>
             </summary>
             <div class="suite-account-panel">
-                <a class="suite-account-link" href="@Suite.ProfileUrl">Profile</a>
+                <button type="button" class="suite-account-link suite-profile-open" @onclick="OpenProfile">Profile</button>
                 <a class="suite-account-link" href="@SuiteCatalog.SignOutUrlFor(Nav.Uri)">Sign out</a>
             </div>
         </details>
@@ -30,14 +30,26 @@
             </div>
         </details>
     }
+    <SuiteProfileModal Open="_profileOpen" OnClose="CloseProfile" ReturnFocusTo="_trigger"/>
 </div>
 
 @code {
     [Parameter] public SuitePlacement Placement { get; set; } = SuitePlacement.Bar;
 
+    ElementReference _trigger;
+    bool _menuOpen;
+    bool _profileOpen;
+
     protected override Task OnInitializedAsync() => Suite.LoadAsync();
 
-    static string ProviderName(string provider) => provider switch {
+    internal void OpenProfile() {
+        _menuOpen = false;
+        _profileOpen = true;
+    }
+
+    void CloseProfile() => _profileOpen = false;
+
+    internal static string ProviderName(string provider) => provider switch {
         "github" => "GitHub",
         _ => char.ToUpperInvariant(provider[0]) + provider[1..],
     };

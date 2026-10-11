@@ -24,7 +24,6 @@ public static class SuiteCatalog {
     public const string HubUrl = $"https://{HubHost}";
     public const string IdentityOriginEnv = "IDENTITY_WIDGET_URL";
     public const string DefaultIdentityOrigin = $"https://id.{HubHost}";
-    public const string ProfileUrl = $"{HubUrl}/profile";
 
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(1);
     private static readonly Lock Gate = new();

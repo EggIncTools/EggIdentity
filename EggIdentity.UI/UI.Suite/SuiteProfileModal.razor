@@ -1,0 +1,183 @@
+@inject SuiteContext Suite
+@inject ToastService Toasts
+@inject NavigationManager Nav
+
+<ModalHost Open="Open" Title="Profile" TitleId="@_titleId" Width="ModalWidth.Regular" CloseOnEscape="true" CloseOnBackdrop="true"
+           ReturnFocusTo="ReturnFocusTo" OnClose="OnClose" CardClass="suite-profile">
+    @if (!Suite.Viewer.IsAuthenticated) {
+        <div class="suite-profile-body">
+            <p class="suite-profile-note">Sign in to manage your profile.</p>
+            <div class="suite-profile-providers">
+                @foreach (var provider in SuiteCatalog.Providers) {
+                    <a class="suite-provider" href="@SuiteCatalog.ProviderSignInUrl(provider, Nav.Uri)">
+                        <Icon Name="@SuiteCatalog.ProviderIcon(provider)"/>
+                        <span>@SuiteAccount.ProviderName(provider)</span>
+                    </a>
+                }
+            </div>
+        </div>
+    } else if (_profile is null) {
+        <div class="suite-profile-body">
+            <p class="suite-profile-note">@(_loadFailed ? "Profile could not be loaded." : "Loading...")</p>
+        </div>
+    } else {
+        <div class="suite-profile-body">
+            <section class="suite-profile-section">
+                <div class="suite-profile-head">
+                    @if (AvatarSrc(_profile.Avatar) is { } avatar) {
+                        <img class="suite-profile-avatar" src="@avatar" alt="" width="64" height="64"/>
+                    } else {
+                        <Icon Name="user" Class="suite-profile-avatar"/>
+                    }
+                    <span class="suite-profile-name">@_profile.Username</span>
+                </div>
+                <DirectUpload Url="@SuiteRoutes.AvatarPath" Accept="image/png,image/jpeg,image/webp,image/gif" Label="Upload avatar"
+                              Class="suite-profile-upload" OnResult="AvatarUploadedAsync"/>
+            </section>
+
+            <section class="suite-profile-section">
+                <h4 class="suite-profile-label">Linked identities</h4>
+                <ul class="suite-profile-identities">
+                    @foreach (var identity in _profile.Identities) {
+                        var lastOne = _profile.Identities.Count == 1;
+                        <li class="suite-profile-identity">
+                            <Icon Name="@SuiteCatalog.ProviderIcon(identity.Provider)"/>
+                            <span class="suite-profile-identity-name">@(identity.Username ?? identity.Subject)</span>
+                            @if (!string.IsNullOrEmpty(identity.Avatar)) {
+                                <button type="button" class="btn-mini" @onclick="() => SelectAvatarAsync(identity)">Use avatar</button>
+                            }
+                            <button type="button" class="btn-mini" disabled="@lastOne" title="@(lastOne ? LastIdentityReason : null)"
+                                    @onclick="() => UnlinkAsync(identity)">Unlink</button>
+                        </li>
+                    }
+                </ul>
+                <button type="button" class="btn-mini" @onclick="SyncAsync">Sync from provider</button>
+            </section>
+
+            <section class="suite-profile-section suite-profile-grid">
+                <label class="suite-profile-field">
+                    <span class="suite-profile-label">Timezone</span>
+                    <TimeZonePicker Value="@_profile.Timezone" ValueChanged="TimezoneChangedAsync"/>
+                </label>
+                <label class="suite-profile-field">
+                    <span class="suite-profile-label">Language</span>
+                    <LanguagePicker Value="@_profile.Language" ValueChanged="LanguageChangedAsync"/>
+                </label>
+                <label class="suite-profile-field">
+                    <span class="suite-profile-label">Theme</span>
+                    <select class="form-input" value="@Suite.Theme" @onchange="ThemeChangedAsync">
+                        @foreach (var theme in Suite.Themes) {
+                            <option value="@theme">@theme</option>
+                        }
+                    </select>
+                </label>
+                <label class="suite-profile-field suite-profile-check">
+                    <input type="checkbox" checked="@Suite.ReducedMotion" @onchange="MotionChangedAsync"/>
+                    <span>Reduce motion</span>
+                </label>
+            </section>
+
+            <section class="suite-profile-section suite-profile-grid">
+                <label class="suite-profile-field">
+                    <span class="suite-profile-label">Active EID</span>
+                    <input class="form-input" maxlength="@ProfileGame.MaxEidLength" autocomplete="off" spellcheck="false" @bind="_eid"/>
+                </label>
+                <label class="suite-profile-field">
+                    <span class="suite-profile-label">Label</span>
+                    <input class="form-input" maxlength="@ProfileGame.MaxLabelLength" @bind="_eidLabel"/>
+                </label>
+                <button type="button" class="btn-mini" @onclick="SaveEidAsync">Save EID</button>
+            </section>
+        </div>
+    }
+</ModalHost>
+
+@code {
+    public const string LastIdentityReason = "Cannot unlink the last identity on an account";
+
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public ElementReference? ReturnFocusTo { get; set; }
+
+    readonly string _titleId = "suite-profile-" + Guid.NewGuid().ToString("N");
+    ProfileResponse? _profile;
+    bool _loadFailed;
+    bool _wasOpen;
+    string? _eid;
+    string? _eidLabel;
+
+    protected override async Task OnParametersSetAsync() {
+        var opening = Open && !_wasOpen;
+        _wasOpen = Open;
+        if (opening && Suite.Viewer.IsAuthenticated) await LoadAsync();
+    }
+
+    async Task LoadAsync() {
+        await Suite.LoadAsync();
+        try {
+            _profile = await Suite.GetProfileAsync();
+            _loadFailed = _profile is null;
+        } catch (HttpRequestException) {
+            _loadFailed = true;
+        }
+        _eid = Suite.ActiveEid;
+        _eidLabel = Suite.ActiveEidLabel;
+    }
+
+    static string? AvatarSrc(string? avatar) =>
+        string.IsNullOrEmpty(avatar) || !avatar.StartsWith('/') || avatar.StartsWith("//", StringComparison.Ordinal)
+            ? avatar
+            : SuiteCatalog.IdentityOrigin + avatar;
+
+    async Task Report(Task<bool> work, string ok, string failed, bool reload = false) {
+        bool success;
+        try {
+            success = await work;
+        } catch (HttpRequestException) {
+            success = false;
+        }
+        Toasts.Push(success ? StatusNoteKind.Ok : StatusNoteKind.Error, success ? ok : failed);
+        if (success && reload) await LoadAsync();
+    }
+
+    Task SelectAvatarAsync(ProfileIdentityResponse identity) =>
+        Report(Suite.SelectAvatarAsync(identity.Provider, identity.Subject), "Avatar updated.", "Could not use that avatar.", reload: true);
+
+    Task UnlinkAsync(ProfileIdentityResponse identity) =>
+        Report(Suite.UnlinkIdentityAsync(identity.Provider, identity.Subject), "Identity unlinked.", "Could not unlink that identity.", reload: true);
+
+    Task SyncAsync() => Report(Suite.SyncIdentitiesAsync(), "Identities synced.", "Could not sync from the provider.", reload: true);
+
+    Task TimezoneChangedAsync(string? timezone) =>
+        Report(Suite.SetLocaleAsync(timezone, null), "Timezone saved.", "Could not save the timezone.", reload: true);
+
+    Task LanguageChangedAsync(string? language) =>
+        Report(Suite.SetLocaleAsync(null, language), "Language saved.", "Could not save the language.", reload: true);
+
+    Task ThemeChangedAsync(ChangeEventArgs e) =>
+        e.Value is string theme && theme.Length > 0
+            ? Report(Done(Suite.SetThemeAsync(theme)), "Theme saved.", "Could not save the theme.")
+            : Task.CompletedTask;
+
+    Task MotionChangedAsync(ChangeEventArgs e) =>
+        Report(Done(Suite.SetReducedMotionAsync(e.Value is true)), "Motion preference saved.", "Could not save the motion preference.");
+
+    Task SaveEidAsync() {
+        if (_eid?.Trim().Length > ProfileGame.MaxEidLength) {
+            Toasts.Push(StatusNoteKind.Error, "That EID is too long.");
+            return Task.CompletedTask;
+        }
+        return Report(Done(Suite.SetActiveEidAsync(_eid, _eidLabel)), "Active EID saved.", "Could not save the EID.");
+    }
+
+    async Task AvatarUploadedAsync(UploadResult result) {
+        Toasts.Push(result.Ok ? StatusNoteKind.Ok : StatusNoteKind.Error,
+            result.Ok ? "Avatar uploaded." : "Upload failed: unsupported file type or too large.");
+        if (result.Ok) await LoadAsync();
+    }
+
+    static async Task<bool> Done(Task work) {
+        await work;
+        return true;
+    }
+}

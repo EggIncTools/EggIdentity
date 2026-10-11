@@ -3,13 +3,14 @@ using EggIdentity.Client;
 using EggIdentity.Contract;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace EggIdentity.UI.Suite;
 
 public sealed class SuiteOptions {
     public string CurrentSlug { get; set; } = "";
     public string DefaultTheme { get; set; } = "dark";
-    public string ProfileUrl { get; set; } = SuiteCatalog.ProfileUrl;
+    public IReadOnlyList<string> Themes { get; set; } = ["dark", "light"];
 }
 
 public sealed class SuiteContext(
@@ -35,7 +36,9 @@ public sealed class SuiteContext(
 
     public CurrentUser Viewer => user.Current;
 
-    public string ProfileUrl => options.ProfileUrl;
+    public IReadOnlyList<string> Themes => options.Themes;
+
+    public bool CanEditProfile => SessionToken() is not null && api is not null;
 
     public string Theme => _theme ?? cookies.Get(ViewerCookieOptions.ThemeCookie) ?? options.DefaultTheme;
 
@@ -97,6 +100,21 @@ public sealed class SuiteContext(
         Changed?.Invoke();
     }
 
+    public async Task<ProfileResponse?> GetProfileAsync(CancellationToken ct = default) =>
+        SessionToken() is { } token && api is not null ? await api.GetProfileAsync(token, ct) : null;
+
+    public async Task<bool> SetLocaleAsync(string? timezone, string? language, CancellationToken ct = default) =>
+        SessionToken() is { } token && api is not null && await api.SetPreferencesAsync(token, timezone, language, null, ct);
+
+    public async Task<bool> SelectAvatarAsync(string provider, string subject, CancellationToken ct = default) =>
+        SessionToken() is { } token && api is not null && await api.SelectAvatarAsync(token, provider, subject, ct);
+
+    public async Task<bool> UnlinkIdentityAsync(string provider, string subject, CancellationToken ct = default) =>
+        SessionToken() is { } token && api is not null && await api.UnlinkIdentityAsync(token, provider, subject, ct);
+
+    public async Task<bool> SyncIdentitiesAsync(CancellationToken ct = default) =>
+        SessionToken() is { } token && api is not null && await api.SyncIdentitiesAsync(token, ct);
+
     private string? SessionToken() => Viewer.IsAuthenticated ? _token : null;
 
     private static string? ReadToken(IHttpContextAccessor? accessor, SessionCookieOptions? session) {
@@ -113,6 +131,8 @@ public static class SuiteServiceCollectionExtensions {
         configure?.Invoke(options);
         services.AddSingleton(options);
         services.AddEggIdentityCurrentUser();
+        services.AddEggIdentityUploads();
+        services.TryAddScoped<ToastService>();
         var cookies = ViewerCookieOptions.In(services);
         cookies.Domain ??= $".{SuiteCatalog.HubHost}";
         foreach (var name in ViewerCookieOptions.SuiteCookies)
