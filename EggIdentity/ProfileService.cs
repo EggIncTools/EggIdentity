@@ -60,20 +60,33 @@ public sealed class ProfileService(NpgsqlDataSource dataSource) {
         return await cmd.ExecuteNonQueryAsync(ct) > 0;
     }
 
-    public async Task SetPreferencesAsync(Guid userId, string? timezone, string? language, string? theme, CancellationToken ct) {
+    public async Task SetPreferencesAsync(
+        Guid userId, string? timezone, string? language, string? theme, bool? reducedMotion, CancellationToken ct) {
         await using var conn = await dataSource.OpenConnectionAsync(ct);
         await using var cmd = new NpgsqlCommand(
             """
             UPDATE users SET
                 timezone = COALESCE($2, timezone),
                 language = COALESCE($3, language),
-                theme = COALESCE($4::jsonb, theme)
+                theme = COALESCE($4::jsonb, theme),
+                reduced_motion = COALESCE($5, reduced_motion)
             WHERE user_id = $1
             """, conn);
         cmd.Parameters.AddWithValue(userId);
         cmd.Parameters.AddWithValue((object?)timezone ?? DBNull.Value);
         cmd.Parameters.AddWithValue((object?)language ?? DBNull.Value);
         cmd.Parameters.AddWithValue((object?)theme ?? DBNull.Value);
+        cmd.Parameters.Add(new NpgsqlParameter { Value = (object?)reducedMotion ?? DBNull.Value, NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Boolean });
+        await cmd.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task SetGameAsync(Guid userId, string? activeEid, string? activeEidLabel, CancellationToken ct) {
+        await using var conn = await dataSource.OpenConnectionAsync(ct);
+        await using var cmd = new NpgsqlCommand(
+            "UPDATE users SET active_eid = $2, active_eid_label = $3 WHERE user_id = $1", conn);
+        cmd.Parameters.AddWithValue(userId);
+        cmd.Parameters.AddWithValue((object?)activeEid ?? DBNull.Value);
+        cmd.Parameters.AddWithValue((object?)activeEidLabel ?? DBNull.Value);
         await cmd.ExecuteNonQueryAsync(ct);
     }
 

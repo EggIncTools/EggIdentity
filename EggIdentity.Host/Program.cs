@@ -6,6 +6,7 @@ using EggIdentity.Fallback;
 using EggIdentity.Fleet;
 using EggIdentity.Settings.Api;
 using EggIdentity.Settings.Store;
+using EggIdentity.UI.Suite;
 
 namespace EggIdentity.Host;
 
@@ -27,6 +28,7 @@ public static class Program {
     }
 
     private static void ConfigurePipeline(WebApplication app, HostConfig config) {
+        app.UseSuitePrerender();
         app.UseStaticFiles();
         app.UseEggIdentityFallback();
         IdentityApiRoutes.UseBearerGate(app, config);
@@ -55,6 +57,7 @@ public static class Program {
 
         LoginRoutes.Map(app, config, sponsorSync);
         BrandRoutes.Map(app);
+        SuiteToolRoutes.Map(app);
 
         if (config.ProfileEnabled) ProfileLinkRoutes.Map(app, config);
         if (sponsorSync is not null) SponsorRoutes.Map(app, config, sponsorSync);

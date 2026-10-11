@@ -294,7 +294,7 @@ public class IdentityApiClientTests {
             "StartLinkUrl", "StartRelinkUrl", "IconUrl", "UnlinkIdentityAsync", "UploadAvatarAsync",
             "SelectAvatarAsync", "GetSponsorStatusAsync", "GetSupporterStatusAsync", "RefreshSupporterStatusAsync",
             "SetPreferencesAsync", "GetConsentAsync", "SetConsentAsync", "SyncIdentitiesAsync", "ListMergesAsync",
-            "GetDiscordRegistrationAsync",
+            "GetDiscordRegistrationAsync", "GetGameAsync", "SetGameAsync", "GetSuiteToolsAsync",
         };
         var actual = typeof(IdentityApiClient)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)

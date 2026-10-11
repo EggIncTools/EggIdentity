@@ -1,0 +1,47 @@
+using System.Collections.Immutable;
+
+namespace EggIdentity.Styles.Components;
+
+internal static class Suite {
+    internal static readonly ImmutableDictionary<string, string> Applies = new Dictionary<string, string> {
+        { ".suite-switcher", "flex items-center min-w-0 [gap:var(--suite-gap,0.5rem)]" },
+        { ".suite-tools", "flex items-center list-none m-0 p-0 min-w-0 [gap:var(--suite-gap,0.5rem)]" },
+        { ".suite-tool-item", "flex min-w-0" },
+        { ".suite-tool", $"inline-flex items-center gap-2 px-2.5 py-1 text-sm text-muted no-underline whitespace-nowrap border border-transparent [border-radius:var(--suite-radius,0.375rem)] [transition:color_{Motion.Fast}_{Motion.Standard},background-color_{Motion.Fast}_{Motion.Standard},border-color_{Motion.Fast}_{Motion.Standard}]" },
+        { ".suite-tool:hover", "text-fg bg-panel2" },
+        { ".suite-tool-current", "text-fg bg-panel2 [border-color:color-mix(in_srgb,var(--tool,var(--color-accent))_55%,transparent)]" },
+        { ".suite-tool-soon", "opacity-50 cursor-default" },
+        { ".suite-tool-mark", "w-5 h-5 shrink-0" },
+        { ".suite-tool-name", "truncate" },
+        { ".suite-wordmark", "inline-flex items-center gap-2 text-fg no-underline font-semibold whitespace-nowrap [display:var(--suite-wordmark,inline-flex)]" },
+        { ".suite-mark", "w-6 h-6 shrink-0" },
+        { ".suite-bar", "[height:var(--suite-height,3rem)] px-3 bg-panel border-b border-border" },
+        { ".suite-rail", "flex-col items-stretch py-3 px-2 bg-panel border-r border-border" },
+        { ".suite-rail .suite-tools", "flex-col items-stretch" },
+        { ".suite-tabs", "fixed left-0 right-0 bottom-0 z-[900] justify-around [height:var(--suite-height,3.5rem)] bg-panel border-t border-border" },
+        { ".suite-tabs .suite-tools", "flex-1 justify-around" },
+        { ".suite-tabs .suite-tool", "flex-col gap-0.5 text-[0.7rem]" },
+        { ".suite-inline", "flex-wrap bg-transparent" },
+        { ".suite-inline .suite-tools", "flex-wrap" },
+        { ".suite-drawer", "relative" },
+        { ".suite-drawer-toggle", "inline-flex items-center justify-center w-9 h-9 cursor-pointer list-none text-fg bg-transparent border border-border [border-radius:var(--suite-radius,0.375rem)]" },
+        { ".suite-drawer-toggle::-webkit-details-marker", "hidden" },
+        { ".suite-drawer-panel", "fixed top-0 left-0 bottom-0 z-[1000] w-[min(18rem,85vw)] p-3 bg-panel border-r border-border shadow-[0_6px_18px_rgba(0,0,0,.4)]" },
+        { ".suite-drawer-panel .suite-tools", "flex-col items-stretch" },
+        { ".suite-account", "relative flex items-center" },
+        { ".suite-account-menu", "relative" },
+        { ".suite-user", "inline-flex items-center gap-2 cursor-pointer list-none text-sm text-fg" },
+        { ".suite-signin", "inline-flex items-center px-3 py-1 cursor-pointer list-none text-sm text-fg border border-border [border-radius:var(--suite-radius,0.375rem)]" },
+        { ".suite-user::-webkit-details-marker", "hidden" },
+        { ".suite-signin::-webkit-details-marker", "hidden" },
+        { ".suite-avatar", "w-6 h-6 rounded-full shrink-0" },
+        { ".suite-user-name", "truncate max-w-[10rem]" },
+        { ".suite-account-panel", "absolute right-0 top-[calc(100%+6px)] z-[1100] min-w-[12rem] flex flex-col py-1 bg-panel2 border border-border rounded-md shadow-[0_6px_18px_rgba(0,0,0,.4)]" },
+        { ".suite-account-link", "flex w-full items-center gap-2 px-3 py-1.5 text-sm text-fg no-underline" },
+        { ".suite-account-link:hover", "bg-panel" },
+        { ".suite-provider", "flex w-full items-center gap-2 px-3 py-1.5 text-sm text-fg no-underline" },
+        { ".suite-provider:hover", "bg-panel" },
+        { ".suite-tabs .suite-account-panel", "top-auto bottom-[calc(100%+6px)]" },
+        { ".suite-inline.suite-account .suite-account-panel", "left-0 right-auto" },
+    }.ToImmutableDictionary();
+}

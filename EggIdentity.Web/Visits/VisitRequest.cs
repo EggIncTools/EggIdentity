@@ -1,3 +1,4 @@
+using EggIdentity.UI.Suite;
 using Microsoft.AspNetCore.Http;
 
 namespace EggIdentity.Visits;
@@ -9,9 +10,13 @@ public static class VisitRequest {
 
     public static bool IsExcluded(HttpRequest request) {
         ArgumentNullException.ThrowIfNull(request);
+        return Speculation.IsSpeculative(request.HttpContext) || IsExcludedOnActivation(request);
+    }
+
+    public static bool IsExcludedOnActivation(HttpRequest request) {
+        ArgumentNullException.ThrowIfNull(request);
         if (request.Headers["DNT"].ToString().Trim() == "1") return true;
         if (request.Headers["Sec-GPC"].ToString().Trim() == "1") return true;
-        if (request.Headers["Sec-Purpose"].ToString().Contains("prefetch", StringComparison.OrdinalIgnoreCase)) return true;
         if (request.Headers["Sec-Fetch-Dest"].ToString() is { Length: > 0 } dest && dest is not ("document" or "empty")) return true;
         var ua = request.Headers.UserAgent.ToString();
         return Array.Exists(BotMarkers, m => ua.Contains(m, StringComparison.OrdinalIgnoreCase))
@@ -28,7 +33,7 @@ public static class VisitRequest {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(hasher);
-        return IsExcluded(ctx.Request)
+        return IsExcludedOnActivation(ctx.Request)
             ? null
             : hasher.Hash(options.Site, ClientIp.Resolve(ctx, options.HostedBehindProxy), ctx.Request.Headers.UserAgent.ToString());
     }

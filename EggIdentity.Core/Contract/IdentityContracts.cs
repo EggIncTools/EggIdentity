@@ -177,6 +177,9 @@ public sealed class ProfileResponse {
 
     [JsonPropertyName("theme")]
     public string? Theme { get; set; }
+
+    [JsonPropertyName("reducedMotion")]
+    public bool? ReducedMotion { get; set; }
 }
 
 public sealed class ProfilePreferencesRequest {
@@ -188,6 +191,34 @@ public sealed class ProfilePreferencesRequest {
 
     [JsonPropertyName("theme")]
     public string? Theme { get; set; }
+
+    [JsonPropertyName("reducedMotion")]
+    public bool? ReducedMotion { get; set; }
+}
+
+public sealed class ProfileGame {
+    public const int MaxEidLength = 64;
+    public const int MaxLabelLength = 64;
+
+    [JsonPropertyName("activeEid")]
+    public string? ActiveEid { get; set; }
+
+    [JsonPropertyName("activeEidLabel")]
+    public string? ActiveEidLabel { get; set; }
+}
+
+public sealed class SuiteTool {
+    [JsonPropertyName("slug")]
+    public string Slug { get; set; } = "";
+
+    [JsonPropertyName("url")]
+    public string Url { get; set; } = "";
+
+    [JsonPropertyName("live")]
+    public bool Live { get; set; }
+
+    [JsonPropertyName("order")]
+    public int Order { get; set; }
 }
 
 public sealed class LinkResultResponse {

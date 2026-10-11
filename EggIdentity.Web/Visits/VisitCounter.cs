@@ -1,3 +1,4 @@
+using EggIdentity.UI.Suite;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Http;
@@ -22,17 +23,21 @@ public sealed class VisitCounter : ComponentBase, IDisposable {
     private bool _listening;
     private PersistingComponentStateSubscription _persisting;
 
+    private sealed record Handoff(string Visitor, bool Pending);
+
     protected override void OnInitialized() {
         _path = VisitRequest.PathOf(Nav.Uri);
         _since = Time.GetUtcNow();
-        if (State.TryTakeFromJson<string>(StateKey, out var restored) && restored is not null) {
-            _visitor = restored;
+        if (State.TryTakeFromJson<Handoff>(StateKey, out var restored) && restored is not null) {
+            _visitor = restored.Visitor;
+            if (restored.Pending && RendererInfo.IsInteractive) Tracker.Record(_visitor, _path, 0);
         } else if (HttpContext is not null) {
             _visitor = VisitRequest.VisitorOf(HttpContext, Options, Hasher);
             if (_visitor is null) return;
-            Tracker.Record(_visitor, _path, 0);
+            var speculative = Speculation.IsSpeculative(HttpContext);
+            if (!speculative) Tracker.Record(_visitor, _path, 0);
             _persisting = State.RegisterOnPersisting(() => {
-                State.PersistAsJson(StateKey, _visitor);
+                State.PersistAsJson(StateKey, new Handoff(_visitor, speculative));
                 return Task.CompletedTask;
             });
         }

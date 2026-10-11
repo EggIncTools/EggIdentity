@@ -35,6 +35,7 @@ public static class ProfileRoutes {
                 Timezone = user.Timezone,
                 Language = user.Language,
                 Theme = user.Theme,
+                ReducedMotion = user.ReducedMotion,
             });
         });
 
@@ -42,7 +43,29 @@ public static class ProfileRoutes {
             var userId = await ProfileAuth.TryGetUserIdAsync(ctx, sessionOptions, isRevoked, ctx.RequestAborted);
             if (userId is null) return Results.Unauthorized();
 
-            await profiles.SetPreferencesAsync(userId.Value, req.Timezone, req.Language, req.Theme, ctx.RequestAborted);
+            await profiles.SetPreferencesAsync(userId.Value, req.Timezone, req.Language, req.Theme, req.ReducedMotion, ctx.RequestAborted);
+            return Results.NoContent();
+        });
+
+        profileRoutes.MapGet("/game", async (HttpContext ctx) => {
+            var userId = await ProfileAuth.TryGetUserIdAsync(ctx, sessionOptions, isRevoked, ctx.RequestAborted);
+            if (userId is null) return Results.Unauthorized();
+
+            var user = await users.GetAsync(userId.Value, ctx.RequestAborted);
+            if (user is null) return Results.NotFound();
+            return Results.Ok(new ProfileGame { ActiveEid = user.ActiveEid, ActiveEidLabel = user.ActiveEidLabel });
+        });
+
+        profileRoutes.MapPost("/game", async (HttpContext ctx, ProfileGame req) => {
+            var userId = await ProfileAuth.TryGetUserIdAsync(ctx, sessionOptions, isRevoked, ctx.RequestAborted);
+            if (userId is null) return Results.Unauthorized();
+
+            var eid = string.IsNullOrWhiteSpace(req.ActiveEid) ? null : req.ActiveEid.Trim();
+            var label = string.IsNullOrWhiteSpace(req.ActiveEidLabel) ? null : req.ActiveEidLabel.Trim();
+            if (eid?.Length > ProfileGame.MaxEidLength || label?.Length > ProfileGame.MaxLabelLength)
+                return Results.BadRequest("activeEid or activeEidLabel too long");
+
+            await profiles.SetGameAsync(userId.Value, eid, eid is null ? null : label, ctx.RequestAborted);
             return Results.NoContent();
         });
 

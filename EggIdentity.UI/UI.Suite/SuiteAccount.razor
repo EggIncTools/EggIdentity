@@ -1,0 +1,44 @@
+@inject SuiteContext Suite
+@inject NavigationManager Nav
+
+<div class="@($"suite-account {SuitePlacements.Css(Placement)}")">
+    @if (Suite.Viewer.IsAuthenticated) {
+        <details class="suite-account-menu">
+            <summary class="suite-user">
+                @if (Suite.Viewer.AvatarUrl(SuiteCatalog.IdentityOrigin) is { } avatar) {
+                    <img class="suite-avatar" src="@avatar" alt="" width="24" height="24"/>
+                } else {
+                    <Icon Name="user" Class="suite-avatar"/>
+                }
+                <span class="suite-user-name">@Suite.Viewer.Name</span>
+            </summary>
+            <div class="suite-account-panel">
+                <a class="suite-account-link" href="@Suite.ProfileUrl">Profile</a>
+                <a class="suite-account-link" href="@SuiteCatalog.SignOutUrlFor(Nav.Uri)">Sign out</a>
+            </div>
+        </details>
+    } else {
+        <details class="suite-account-menu">
+            <summary class="suite-signin">Sign in</summary>
+            <div class="suite-account-panel">
+                @foreach (var provider in SuiteCatalog.Providers) {
+                    <a class="suite-provider" href="@SuiteCatalog.ProviderSignInUrl(provider, Nav.Uri)">
+                        <Icon Name="@SuiteCatalog.ProviderIcon(provider)"/>
+                        <span>@ProviderName(provider)</span>
+                    </a>
+                }
+            </div>
+        </details>
+    }
+</div>
+
+@code {
+    [Parameter] public SuitePlacement Placement { get; set; } = SuitePlacement.Bar;
+
+    protected override Task OnInitializedAsync() => Suite.LoadAsync();
+
+    static string ProviderName(string provider) => provider switch {
+        "github" => "GitHub",
+        _ => char.ToUpperInvariant(provider[0]) + provider[1..],
+    };
+}

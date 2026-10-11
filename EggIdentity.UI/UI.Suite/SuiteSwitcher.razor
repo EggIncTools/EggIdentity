@@ -1,0 +1,45 @@
+@using EggIdentity.Contract
+@inject SuiteContext Suite
+
+@if (Placement == SuitePlacement.Drawer) {
+    <details class="suite-switcher suite-drawer">
+        <summary class="suite-drawer-toggle" aria-label="Suite tools"><Icon Name="menu"/></summary>
+        <nav class="suite-drawer-panel" aria-label="Suite tools">@Items</nav>
+    </details>
+} else {
+    <nav class="@($"suite-switcher {SuitePlacements.Css(Placement)}")" aria-label="Suite tools">
+        @if (Placement is SuitePlacement.Bar or SuitePlacement.Rail) {
+            <a class="suite-wordmark" href="@SuiteCatalog.HubUrl">
+                <img class="suite-mark" src="@Brands.IconPath("tools", 64)" alt="" width="24" height="24"/>
+                <span class="suite-wordmark-text">EggIncTools</span>
+            </a>
+        }
+        @Items
+    </nav>
+}
+
+@code {
+    [Parameter] public SuitePlacement Placement { get; set; } = SuitePlacement.Bar;
+
+    protected override Task OnInitializedAsync() => Suite.LoadAsync();
+
+    RenderFragment Items => @<ul class="suite-tools">
+        @foreach (var tool in Suite.Tools) {
+            var current = string.Equals(tool.Slug, Suite.CurrentSlug, StringComparison.OrdinalIgnoreCase);
+            <li class="suite-tool-item">
+                @if (tool.Live) {
+                    <a class="@(current ? "suite-tool suite-tool-current" : "suite-tool")" style="@tool.ToolStyle" href="@(current ? "/" : tool.Url + "/")"
+                       aria-current="@(current ? "page" : null)">
+                        <img class="suite-tool-mark" src="@tool.IconUrl()" style="@tool.MarkStyle" alt="" width="20" height="20"/>
+                        <span class="suite-tool-name">@tool.Name</span>
+                    </a>
+                } else {
+                    <span class="suite-tool suite-tool-soon" style="@tool.ToolStyle" aria-disabled="true">
+                        <img class="suite-tool-mark" src="@tool.IconUrl()" style="@tool.MarkStyle" alt="" width="20" height="20"/>
+                        <span class="suite-tool-name">@tool.Name</span>
+                    </span>
+                }
+            </li>
+        }
+    </ul>;
+}

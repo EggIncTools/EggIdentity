@@ -36,7 +36,6 @@ public class VisitRequestTests {
     [Theory]
     [InlineData("DNT", "1")]
     [InlineData("Sec-GPC", "1")]
-    [InlineData("Sec-Purpose", "prefetch;prerender")]
     [InlineData("Sec-Fetch-Dest", "iframe")]
     [InlineData("Sec-Fetch-Dest", "image")]
     public void PrivacySignalsExclude(string header, string value) {
@@ -44,6 +43,15 @@ public class VisitRequestTests {
         var ctx = Request();
         ctx.Request.Headers[header] = value;
         Assert.Null(VisitRequest.VisitorOf(ctx, options, hasher));
+    }
+
+    [Fact]
+    public void PrerenderIsExcludedButKeepsTheVisitorForActivation() {
+        var (options, hasher) = Build();
+        var ctx = Request();
+        ctx.Request.Headers["Sec-Purpose"] = "prefetch;prerender";
+        Assert.True(VisitRequest.IsExcluded(ctx.Request));
+        Assert.NotNull(VisitRequest.VisitorOf(ctx, options, hasher));
     }
 
     [Theory]

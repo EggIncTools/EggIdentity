@@ -148,13 +148,41 @@ public sealed class IdentityApiClient(HttpClient http) {
         return resp.IsSuccessStatusCode;
     }
 
-    public async Task<bool> SetPreferencesAsync(string sessionToken, string? timezone, string? language, string? theme, CancellationToken ct) {
+    public async Task<bool> SetPreferencesAsync(
+        string sessionToken, string? timezone, string? language, string? theme, CancellationToken ct, bool? reducedMotion = null) {
         using var req = new HttpRequestMessage(HttpMethod.Post, "/profile/preferences") {
-            Content = JsonContent.Create(new ProfilePreferencesRequest { Timezone = timezone, Language = language, Theme = theme }),
+            Content = JsonContent.Create(new ProfilePreferencesRequest {
+                Timezone = timezone,
+                Language = language,
+                Theme = theme,
+                ReducedMotion = reducedMotion,
+            }),
         };
         req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
         var resp = await http.SendAsync(req, ct);
         return resp.IsSuccessStatusCode;
+    }
+
+    public async Task<ProfileGame?> GetGameAsync(string sessionToken, CancellationToken ct) {
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/profile/game");
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
+        var resp = await http.SendAsync(req, ct);
+        if (resp.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Unauthorized) return null;
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<ProfileGame>(cancellationToken: ct);
+    }
+
+    public async Task<bool> SetGameAsync(string sessionToken, ProfileGame game, CancellationToken ct) {
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/profile/game") { Content = JsonContent.Create(game) };
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
+        var resp = await http.SendAsync(req, ct);
+        return resp.IsSuccessStatusCode;
+    }
+
+    public async Task<IReadOnlyList<SuiteTool>> GetSuiteToolsAsync(CancellationToken ct) {
+        var resp = await http.GetAsync("/suite/tools", ct);
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<List<SuiteTool>>(cancellationToken: ct) ?? [];
     }
 
     public async Task<ConsentResponse?> GetConsentAsync(string sessionToken, CancellationToken ct) {

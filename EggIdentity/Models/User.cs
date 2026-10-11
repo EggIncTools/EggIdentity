@@ -12,4 +12,7 @@ public sealed class User {
     public string? Timezone { get; set; }
     public string? Language { get; set; }
     public string? Theme { get; set; }
+    public bool? ReducedMotion { get; set; }
+    public string? ActiveEid { get; set; }
+    public string? ActiveEidLabel { get; set; }
 }

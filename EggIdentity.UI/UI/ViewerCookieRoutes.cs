@@ -28,15 +28,16 @@ public static class ViewerCookieRoutes {
         if (!options.Cookies.TryGetValue(name, out var rule) || value.Length > ViewerCookieOptions.MaxValueLength)
             return Results.BadRequest();
 
+        var domain = options.DomainFor(name);
         ctx.Response.Headers.CacheControl = "no-store";
         if (ctx.Request.Query["remove"].ToString() == "1") {
-            ctx.Response.Cookies.Delete(name, new CookieOptions { Path = "/", Domain = rule.Domain, Secure = true });
+            ctx.Response.Cookies.Delete(name, new CookieOptions { Path = "/", Domain = domain, Secure = true });
             return Results.NoContent();
         }
 
         ctx.Response.Cookies.Append(name, value, new CookieOptions {
             Path = "/",
-            Domain = rule.Domain,
+            Domain = domain,
             MaxAge = rule.Lifetime,
             SameSite = SameSiteMode.Lax,
             Secure = true,

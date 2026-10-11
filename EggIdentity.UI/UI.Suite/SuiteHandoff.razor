@@ -1,0 +1,20 @@
+@inject SuiteContext Suite
+
+@foreach (var origin in Others.Select(t => t.Url)) {
+    <link rel="dns-prefetch" href="@origin"/>
+    <link rel="preconnect" href="@origin" crossorigin="use-credentials"/>
+}
+@if (Others.Count > 0) {
+    <script type="speculationrules">@((MarkupString)Rules)</script>
+}
+
+@code {
+    IReadOnlyList<SuiteEntry> Others = [];
+    string Rules = "";
+
+    protected override async Task OnInitializedAsync() {
+        await Suite.LoadAsync();
+        Others = [.. Suite.Tools.Where(t => t.Live && !string.Equals(t.Slug, Suite.CurrentSlug, StringComparison.OrdinalIgnoreCase))];
+        Rules = SuiteHandoffRules.Build(Others);
+    }
+}

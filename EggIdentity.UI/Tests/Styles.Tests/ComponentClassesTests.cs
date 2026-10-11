@@ -27,7 +27,8 @@ public class ComponentClassesTests {
             + Components.Icons.Applies.Count
             + Components.Brand.Applies.Count
             + Components.Consent.Applies.Count
-            + Components.Rarity.Applies.Count;
+            + Components.Rarity.Applies.Count
+            + Components.Suite.Applies.Count;
 
         Assert.Equal(expected, ComponentClasses.All.Count);
     }

@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EggIdentity.Core\EggIdentity.Core.csproj" />
+    <ProjectReference Include="..\EggIdentity.Auth\EggIdentity.Auth.csproj" />
   </ItemGroup>
 
   <ItemGroup>

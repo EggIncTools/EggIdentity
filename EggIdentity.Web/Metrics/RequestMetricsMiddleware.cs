@@ -1,3 +1,4 @@
+using EggIdentity.UI.Suite;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,7 +13,7 @@ public sealed class RequestMetricsMiddleware(
     public async Task InvokeAsync(HttpContext ctx) {
         await next(ctx);
 
-        if (!ctx.Request.Path.StartsWithSegments(options.PathPrefix)) return;
+        if (!ctx.Request.Path.StartsWithSegments(options.PathPrefix) || Speculation.IsSpeculative(ctx)) return;
 
         var status = ctx.Response.StatusCode;
         var limited = status == StatusCodes.Status429TooManyRequests;
