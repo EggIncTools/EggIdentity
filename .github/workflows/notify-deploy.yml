@@ -7,12 +7,16 @@ on:
         type: string
         required: true
       hook-url:
-        description: Public URL of the identity host. The job posts to <hook-url>/hooks/image-pushed.
+        description: Public URL of the identity host. The job posts to <hook-url><hook-path>.
         type: string
         required: true
+      hook-path:
+        type: string
+        default: /hooks/image-pushed
       digest:
+        description: Image digest. Leave empty for a packages-only notification (hook-path /hooks/packages-published) that records a build and reconciles pins without waiting on an image build.
         type: string
-        required: true
+        default: ""
       revision:
         type: string
         required: true
@@ -37,6 +41,7 @@ jobs:
         env:
           APP: ${{ inputs.app }}
           HOOK_URL: ${{ inputs.hook-url }}
+          HOOK_PATH: ${{ inputs.hook-path }}
           DIGEST: ${{ inputs.digest }}
           REVISION: ${{ inputs.revision }}
           VERSION: ${{ inputs.version }}
@@ -68,7 +73,7 @@ jobs:
             --argjson height "$HEIGHT_JSON" \
             --argjson packages "$PACKAGES" \
             '{app: $app, digest: $digest, revision: $revision, version: $version, height: $height, packages: $packages}')
-          STATUS=$(curl -sS --max-time 30 -o /tmp/notify-deploy.out -w '%{http_code}' -X POST "${HOOK_URL%/}/hooks/image-pushed" \
+          STATUS=$(curl -sS --max-time 30 -o /tmp/notify-deploy.out -w '%{http_code}' -X POST "${HOOK_URL%/}${HOOK_PATH}" \
             -H "Authorization: Bearer $HOOK_SECRET" \
             -H "Content-Type: application/json" \
             --data "$BODY") || STATUS="000"

@@ -1,4 +1,5 @@
 using System.Reflection;
+using EggIdentity.Contract;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -15,9 +16,10 @@ public static class AppVersion {
 
     public static IEndpointConventionBuilder MapAppVersion(this IEndpointRouteBuilder routes, string? version = null) {
         var served = version ?? Current;
+        var display = BuildVersion.Describe(served, null);
         return routes.MapGet(Path, (HttpContext ctx) => {
             ctx.Response.Headers.CacheControl = "no-store";
-            return Results.Json(new { version = served });
+            return Results.Json(new { version = served, display });
         }).AllowAnonymous();
     }
 }

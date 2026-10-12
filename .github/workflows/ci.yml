@@ -47,6 +47,21 @@ jobs:
       build-height: ${{ needs.identity.outputs.height }}
       build-sha: ${{ needs.identity.outputs.sha }}
 
+  notify-packages:
+    needs: [identity, pack]
+    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+    uses: ./.github/workflows/notify-deploy.yml
+    with:
+      app: eggidentity
+      hook-url: https://id.egginc.tools
+      hook-path: /hooks/packages-published
+      revision: ${{ needs.identity.outputs.sha }}
+      version: ${{ needs.identity.outputs.version }}
+      height: ${{ needs.identity.outputs.height }}
+      packages: ${{ needs.pack.outputs.packages }}
+    secrets:
+      hook-secret: ${{ secrets.DEPLOY_HOOK_SECRET }}
+
   notify:
     needs: [identity, pack, image]
     if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch

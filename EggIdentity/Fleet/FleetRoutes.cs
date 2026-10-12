@@ -15,6 +15,7 @@ namespace EggIdentity.Fleet;
 
 public static class FleetRoutes {
     public const string HookPath = "/hooks/image-pushed";
+    public const string PackagesHookPath = "/hooks/packages-published";
     private const string PlainText = "text/plain";
     private const string PinsUnconfigured = "pins not configured on the identity host";
     private const string BuildsUnconfigured = "builds not configured on the identity host";
@@ -222,6 +223,22 @@ public static class FleetRoutes {
             await RecordBuildAsync(runtime, service, app.Name, payload, ctx.RequestAborted);
             NotePins(runtime, service, app.Name, payload, ctx.RequestServices);
             return Results.Json(await service.StatusAsync(app.Name, ctx.RequestAborted), statusCode: StatusCodes.Status202Accepted);
+        });
+    }
+
+    public static IEndpointConventionBuilder MapPackagesHook(this IEndpointRouteBuilder routes, FleetRuntime runtime) {
+        ArgumentNullException.ThrowIfNull(routes);
+        ArgumentNullException.ThrowIfNull(runtime);
+        var service = runtime.Service;
+        return routes.MapPost(PackagesHookPath, async (HttpContext ctx, DeployHookPayload? payload) => {
+            if (!BearerMatches(ctx.Request, runtime.HookSecret))
+                return Results.Text("unauthorized", PlainText, null, StatusCodes.Status401Unauthorized);
+            if (payload is null || string.IsNullOrWhiteSpace(payload.App)) return Results.BadRequest("app is required");
+            if (await service.FindAppAsync(payload.App, ctx.RequestAborted) is not { } app) return Results.NotFound();
+
+            await RecordBuildAsync(runtime, service, app.Name, payload, ctx.RequestAborted);
+            NotePins(runtime, service, app.Name, payload, ctx.RequestServices);
+            return Results.StatusCode(StatusCodes.Status202Accepted);
         });
     }
 

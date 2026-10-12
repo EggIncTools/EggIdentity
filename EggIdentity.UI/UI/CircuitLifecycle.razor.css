@@ -1,0 +1,80 @@
+.rcn {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 2147483647;
+    display: none;
+    max-width: min(22rem, calc(100vw - 2rem));
+    padding: 0.55rem 0.8rem;
+    border: 1px solid color-mix(in oklab, currentColor 15%, transparent);
+    border-radius: 0.5rem;
+    background: var(--color-panel, Canvas);
+    color: var(--color-fg, CanvasText);
+    box-shadow: 0 6px 24px color-mix(in oklab, CanvasText 25%, transparent);
+    font-size: 0.85rem;
+    opacity: 0;
+    transform: translateY(0.5rem);
+    transition: opacity var(--motion-fast) var(--ease-standard), transform var(--motion-fast) var(--ease-standard);
+}
+
+.rcn.rcn-visible {
+    display: block;
+}
+
+.rcn.rcn-shown {
+    opacity: 1;
+    transform: none;
+}
+
+.rcn-state {
+    display: none;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.rcn.components-reconnect-show .rcn-reconnecting,
+.rcn.components-reconnect-retrying .rcn-reconnecting,
+.rcn.components-reconnect-paused .rcn-paused,
+.rcn.components-reconnect-failed .rcn-failed,
+.rcn.components-reconnect-resume-failed .rcn-resume-failed,
+.rcn.components-reconnect-rejected .rcn-rejected,
+.rcn.rcn-is-updated .rcn-updated,
+.rcn.rcn-is-back .rcn-back {
+    display: flex;
+}
+
+.rcn.rcn-is-updated .rcn-state:not(.rcn-updated),
+.rcn.rcn-is-back .rcn-state:not(.rcn-back) {
+    display: none;
+}
+
+.rcn-text {
+    margin: 0;
+    flex: 1;
+}
+
+.rcn-spinner {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    border: 2px solid color-mix(in oklab, currentColor 20%, transparent);
+    border-top-color: var(--color-accent, currentColor);
+    animation: rcn-spin 0.9s linear infinite;
+}
+
+@keyframes rcn-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rcn {
+        transition: none;
+    }
+
+    .rcn-spinner {
+        animation-duration: 3s;
+    }
+}

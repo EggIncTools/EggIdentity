@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Reflection.Emit;
+using EggIdentity.Contract;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Logging;
@@ -7,15 +8,16 @@ using Microsoft.Extensions.Logging;
 namespace EggIdentity.UI.Tests;
 
 public class AppVersionTests {
-    private sealed record VersionBody(string Version);
+    private sealed record VersionBody(string Version, string Display);
 
     [Fact]
-    public async Task MapAppVersion_ServesVersionUncached() {
+    public async Task MapAppVersion_ServesVersionAndDisplayUncached() {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Logging.ClearProviders();
         await using var app = builder.Build();
-        app.MapAppVersion("1.2.3+abc");
+        const string version = "257.0.0+abe9392f00d";
+        app.MapAppVersion(version);
         await app.StartAsync();
         using var client = app.GetTestClient();
 
@@ -24,7 +26,8 @@ public class AppVersionTests {
         res.EnsureSuccessStatusCode();
         Assert.Equal("no-store", res.Headers.CacheControl?.ToString());
         var body = await res.Content.ReadFromJsonAsync<VersionBody>();
-        Assert.Equal("1.2.3+abc", body?.Version);
+        Assert.Equal(version, body?.Version);
+        Assert.Equal(BuildVersion.Describe(version, null), body?.Display);
     }
 
     [Fact]

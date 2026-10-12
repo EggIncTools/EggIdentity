@@ -70,6 +70,7 @@ public static class Program {
         var revocations = app.Services.GetRequiredService<RevocationStore>();
         adminApi.MapFleetAdminApi(fleet, (token, ct) => FallbackRoutes.IsAdminTokenAsync(token, config, revocations, ct));
         app.MapFleetHook(fleet);
+        app.MapPackagesHook(fleet);
         if (config.BotEnabled) BotAdminRoutes.Map(adminApi);
     }
 
