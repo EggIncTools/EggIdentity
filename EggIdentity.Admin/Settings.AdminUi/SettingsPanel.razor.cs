@@ -288,7 +288,7 @@ public sealed partial class SettingsPanel : IDisposable {
         if (!string.IsNullOrEmpty(value) || field.Nullable) return value;
         return field.Kind switch {
             SettingKind.Bool => field.Default ?? "false",
-            SettingKind.Enum => field.Default ?? field.EnumValues.FirstOrDefault(),
+            SettingKind.Enum => field.Default ?? (field.EnumValues.Count > 0 ? field.EnumValues[0] : null),
             _ => value,
         };
     }
