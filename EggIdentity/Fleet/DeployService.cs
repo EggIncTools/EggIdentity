@@ -95,6 +95,7 @@ public sealed class DeployService(
 
     public async Task<DeployStatus?> CheckAsync(string name, CancellationToken ct) {
         if (await FindAppAsync(name, ct) is not { } app) return null;
+        if (!HasStack(app)) return Snapshot(app);
         var state = State(app.Name);
         var resolution = await ResolveAsync(app, ct);
         if (resolution.Target is not { } target) {
@@ -242,7 +243,7 @@ public sealed class DeployService(
 
     public async Task TickAsync(bool autoDeploy, CancellationToken ct) {
         foreach (var app in await AppsAsync(ct)) {
-            if (State(app.Name).Gate.InProgress) continue;
+            if (!HasStack(app) || State(app.Name).Gate.InProgress) continue;
             try {
                 var status = await CheckAsync(app.Name, ct);
                 if (autoDeploy && app.AutoDeploy && status is { UpdateAvailable: true }) await DeployAsync(app.Name, "poll", ct);
@@ -370,6 +371,8 @@ public sealed class DeployService(
             state.LatestVersion = state.RunningVersion;
         }
     }
+
+    private static bool HasStack(SuiteApp app) => !string.IsNullOrWhiteSpace(app.Stack);
 
     private async Task<Resolution> ResolveAsync(SuiteApp app, CancellationToken ct) {
         if (portainer is null) return new Resolution(null, PortainerMissing);

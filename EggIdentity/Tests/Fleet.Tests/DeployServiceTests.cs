@@ -126,6 +126,17 @@ public class DeployServiceTests {
     }
 
     [Fact]
+    public async Task Check_RowWithoutStack_SkipsSilently() {
+        var rig = Build(stack: null);
+
+        var status = await rig.Service.CheckAsync(App, CancellationToken.None);
+        await rig.Service.TickAsync(autoDeploy: true, CancellationToken.None);
+
+        Assert.Empty(Phases(rig.Ring));
+        Assert.Null(status!.Problem);
+    }
+
+    [Fact]
     public async Task Deploy_AmbiguousStack_RefusesNamingBothIds() {
         var rig = Build(stacks: [
             PortainerFakes.Parse(PortainerFakes.GitStack),
