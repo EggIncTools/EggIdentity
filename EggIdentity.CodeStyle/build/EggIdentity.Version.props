@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <Version Condition="'$(BUILD_HEIGHT)' != ''">$(BUILD_HEIGHT).0.0</Version>
+    <Version Condition="'$(BUILD_HEIGHT)' == ''">0.0.0</Version>
+    <SourceRevisionId Condition="'$(BUILD_SHA)' != ''">$(BUILD_SHA)</SourceRevisionId>
+  </PropertyGroup>
+</Project>

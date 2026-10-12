@@ -33,7 +33,7 @@ public class EmbedsTests {
         var e = EmbedRenderer.Render(DashboardEmbedDefaults.Default, DashboardVars.Build(snapshot));
 
         Assert.Equal("EggLedger", e.Title);
-        Assert.Contains(e.Fields, f => f.Name == "Version" && f.Value.ToString() == "v1.2.3");
+        Assert.Contains(e.Fields, f => f.Name == "Version" && f.Value.ToString() == "abc1234");
         Assert.Contains(e.Fields, f => f.Name == "Status" && f.Value.ToString() == "healthy");
         Assert.Contains(e.Fields, f => f.Name == "Build" && f.Value.ToString()!.Contains("abc1234"));
         Assert.Contains(e.Fields, f => f.Name == "Repo" && f.Value.ToString()!.Contains("github.com"));

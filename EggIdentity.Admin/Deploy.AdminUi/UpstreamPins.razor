@@ -1,0 +1,99 @@
+@inject IServiceProvider Services
+
+@if (_client is not null) {
+    <section class="up">
+        <div class="up-head">
+            <span class="up-title">Upstreams</span>
+        </div>
+
+        @if (!_sessionReady) {
+            <p class="up-muted">@SessionMissing</p>
+        } else {
+            @if (_error is not null) {
+                <p class="up-error">@_error</p>
+            }
+            @if (!_loaded) {
+                <p class="up-muted">Loading...</p>
+            } else if (_pins.Count == 0) {
+                <p class="up-muted">No upstream pins for this app.</p>
+            } else {
+                @foreach (var pin in _pins) {
+                    @PinRow(pin)
+                }
+            }
+        }
+    </section>
+}
+
+@code {
+    private RenderFragment PinRow(PinView pin) => __builder => {
+        var badge = Badge(pin);
+        var selected = Picked(pin);
+        var builds = BuildsOf(pin);
+        var writable = RowWritable(pin);
+        <div class="up-row" @key="RowKey(pin)">
+            <div class="up-row-head">
+                <span class="up-name">@pin.Upstream</span>
+                <span class="up-muted">@pin.Branch</span>
+                @if (pin.Error is not null) {
+                    <span class="badge badge-err" title="@pin.Error">Error</span>
+                } else {
+                    <span class="@badge.Css">@badge.Text</span>
+                }
+            </div>
+
+            <dl class="up-facts">
+                <dt>Committed</dt>
+                <dd>@VersionCell(pin, pin.Committed)</dd>
+                <dt>Desired</dt>
+                <dd>@VersionCell(pin, pin.Desired)</dd>
+                <dt>Latest</dt>
+                <dd>@VersionCell(pin, pin.Latest)</dd>
+            </dl>
+
+            @if (pin.Error is not null) {
+                <p class="up-error">@pin.Error</p>
+            }
+            @if (_buildErrors.TryGetValue(pin.Upstream, out var buildError)) {
+                <p class="up-error">Builds unavailable: @buildError</p>
+            }
+
+            <div class="up-controls">
+                <select class="up-picker" disabled="@(!writable)" aria-label="@($"Build of {pin.Upstream}")" @onchange="args => Pick(pin, args)">
+                    @if (selected is null) {
+                        <option value="" selected>Choose a build</option>
+                    } else if (!builds.Any(b => b.Version == selected)) {
+                        <option value="@selected" selected>@Describe(pin, selected)</option>
+                    }
+                    @foreach (var build in builds) {
+                        <option value="@build.Version" selected="@(build.Version == selected)">@BuildVersion.Describe(build.Version, build.Sha)</option>
+                    }
+                </select>
+                @if (IsArmed(pin, ArmKind.Pick)) {
+                    <button type="button" class="btn-mini btn-danger" disabled="@(!writable)" @onclick="() => ConfirmPickAsync(pin)">@ConfirmPinLabel(selected)</button>
+                }
+                <button type="button" class="btn-mini" disabled="@(!writable || pin.Latest is null || pin.Latest == pin.Desired)" @onclick="() => TakeLatestAsync(pin)">@TakeLatestLabel(pin)</button>
+                <label class="up-follow">
+                    <input type="checkbox" checked="@FollowChecked(pin)" disabled="@(!writable)" @onchange="args => FollowAsync(pin, args)"/>
+                    Follow latest
+                </label>
+                @if (IsArmed(pin, ArmKind.Follow)) {
+                    <button type="button" class="btn-mini btn-danger" disabled="@(!writable)" @onclick="() => ConfirmFollowAsync(pin)">Confirm follow latest</button>
+                }
+            </div>
+
+            @if (FollowChecked(pin) && IsSelfPin(pin)) {
+                <p class="up-warn">@SelfPinWarning</p>
+            }
+        </div>
+    };
+
+    private RenderFragment VersionCell(PinView pin, string? version) => __builder => {
+        var url = CommitUrl(pin, version);
+        if (url is null) {
+            <span>@Describe(pin, version)</span>
+        } else {
+            <a href="@url" target="_blank" rel="noopener noreferrer">@Describe(pin, version)</a>
+        }
+    };
+}

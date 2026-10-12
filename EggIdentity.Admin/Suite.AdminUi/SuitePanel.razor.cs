@@ -1,7 +1,6 @@
 using EggIdentity.Bot;
 using EggIdentity.Contract;
 using EggIdentity.Deploy;
-using EggIdentity.Deploy.AdminUi;
 using EggIdentity.UI;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
@@ -120,7 +119,10 @@ public sealed partial class SuitePanel : ComponentBase {
     private static string StatusText(SuiteAppView view) {
         if (!view.App.Enabled) return "disabled";
         if (view.IsLocal) return "this app";
-        if (view.Manifest is { } manifest) return string.IsNullOrEmpty(manifest.Version) ? "reachable" : DeployPanelFormat.ShortVersion(manifest.Version);
+        if (view.Manifest is { } manifest) {
+            var described = BuildVersion.Describe(manifest.Version, manifest.Revision);
+            return described.Length == 0 ? "reachable" : described;
+        }
         return view.ManifestError ?? "not administrable";
     }
 

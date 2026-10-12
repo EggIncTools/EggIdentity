@@ -8,8 +8,12 @@
             <span class="@FleetCss">@FleetSummary</span>
             <span class="fleet-tools">
                 <button type="button" class="btn-mini" disabled="@(_busy || _apps.Count == 0)" @onclick="CheckAllAsync">Check all</button>
+                <button type="button" class="btn-mini btn-danger" disabled="@(_busy || !_sessionReady)" title="@(_sessionReady ? null : SessionMissing)" @onclick="TakeLatestEverywhereAsync">@TakeLatestLabel</button>
             </span>
         </div>
+        @if (!_sessionReady) {
+            <p class="wb-note">@SessionMissing</p>
+        }
 
         @if (_loaded && _fleetError is null) {
             @if (_stacksError is not null) {

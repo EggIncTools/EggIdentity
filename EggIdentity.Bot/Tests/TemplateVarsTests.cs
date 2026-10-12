@@ -29,7 +29,7 @@ public class TemplateVarsTests {
             "{{ app_name }}|{{ version }}|{{ build_hash }}|{{ deploy_status }}|{{ up_since_unix }}|{{ repo_url }}|{{ extra.Mode }}",
             DashboardVars.Build(snapshot));
 
-        Assert.Equal("EGI|2.0.0|deadbeef|online|1700000000|https://github.com/x/y|Hosted", rendered);
+        Assert.Equal("EGI|#2 deadbee|deadbeef|online|1700000000|https://github.com/x/y|Hosted", rendered);
     }
 
     [Fact]

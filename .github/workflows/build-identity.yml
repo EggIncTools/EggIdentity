@@ -1,0 +1,30 @@
+name: build-identity
+
+on:
+  workflow_call:
+    outputs:
+      height:
+        value: ${{ jobs.identity.outputs.height }}
+      sha:
+        value: ${{ jobs.identity.outputs.sha }}
+      version:
+        value: ${{ jobs.identity.outputs.version }}
+
+jobs:
+  identity:
+    runs-on: ubuntu-latest
+    outputs:
+      height: ${{ steps.derive.outputs.height }}
+      sha: ${{ steps.derive.outputs.sha }}
+      version: ${{ steps.derive.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - id: derive
+        run: |
+          set -euo pipefail
+          HEIGHT=$(git rev-list --count HEAD)
+          echo "height=$HEIGHT" >> "$GITHUB_OUTPUT"
+          echo "sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          echo "version=$HEIGHT.0.0" >> "$GITHUB_OUTPUT"

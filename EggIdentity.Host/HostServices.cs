@@ -89,7 +89,7 @@ internal static class HostServices {
     private static HostRuntime RegisterSettings(
         WebApplicationBuilder builder, HostConfig config, NpgsqlDataSource dataSource) {
         var registry = SettingsRegistry.Compose(
-            [HostSettings.Provider, SessionSettings.Provider, FleetSettings.Provider], [SuiteApps.Provider]);
+            [HostSettings.Provider, SessionSettings.Provider, FleetSettings.Provider], [SuiteApps.Provider, SuiteUpstreams.Provider]);
         var store = new SettingsStore(dataSource, SecretProtector.FromEnvironment());
         var cache = new SettingsCache(registry, store, config.SharedFileValues.GetValueOrDefault);
 
@@ -103,7 +103,9 @@ internal static class HostServices {
 
     private static void RegisterFleet(WebApplicationBuilder builder) {
         builder.Services.AddSingleton(sp => FleetRuntime.Create(
-            sp.GetRequiredService<SettingsCache>(), logger: sp.GetRequiredService<ILoggerFactory>().CreateLogger("EggIdentity.Fleet")));
+            sp.GetRequiredService<SettingsCache>(), logger: sp.GetRequiredService<ILoggerFactory>().CreateLogger("EggIdentity.Fleet"),
+            builds: new UpstreamBuildStore(sp.GetRequiredService<NpgsqlDataSource>()),
+            pinStates: new PinStateStore(sp.GetRequiredService<NpgsqlDataSource>())));
         builder.Services.AddSingleton(sp => sp.GetRequiredService<FleetRuntime>().Service);
         builder.Services.AddTransient<IEnvSource>(sp => new FleetEnvSource(sp.GetRequiredService<DeployService>(), AppName));
         builder.Services.AddTransient<IRestartTrigger>(sp => new FleetRestartTrigger(sp.GetRequiredService<DeployService>(), AppName));

@@ -30,18 +30,27 @@ on:
       cache-scope:
         type: string
         default: "default"
+      build-height:
+        type: string
+        default: ""
+      build-sha:
+        type: string
+        default: ""
     secrets:
       PACKAGES_PAT:
         required: false
     outputs:
       digest:
         value: ${{ jobs.image.outputs.digest }}
+      version:
+        value: ${{ jobs.image.outputs.version }}
 
 jobs:
   image:
     runs-on: ubuntu-latest
     outputs:
       digest: ${{ steps.build.outputs.digest }}
+      version: ${{ steps.meta.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
@@ -55,17 +64,33 @@ jobs:
 
       - name: Compute image metadata
         id: meta
+        env:
+          IN_HEIGHT: ${{ inputs.build-height }}
+          IN_SHA: ${{ inputs.build-sha }}
         run: |
           NAME="ghcr.io/${GITHUB_REPOSITORY,,}${{ inputs.image-suffix }}"
           VERSION=""
           case "$GITHUB_REF" in refs/tags/*) VERSION="${GITHUB_REF_NAME#v}" ;; esac
-          if [ "${{ inputs.tags-mode }}" = "latest-sha" ]; then
+          REVISION="$GITHUB_SHA"
+          LABEL_VERSION="$GITHUB_REF_NAME"
+          if [ "${{ inputs.tags-mode }}" = "commit" ]; then
+            if [ -z "$IN_HEIGHT" ]; then
+              echo "tags-mode commit needs build-height" >&2
+              exit 1
+            fi
+            [ -n "$IN_SHA" ] && REVISION="$IN_SHA"
+            VERSION="$IN_HEIGHT.0.0"
+            LABEL_VERSION="$VERSION"
+            TAGS="${NAME}:${REVISION},${NAME}:latest"
+          elif [ "${{ inputs.tags-mode }}" = "latest-sha" ]; then
             TAGS="${NAME}:latest,${NAME}:${GITHUB_SHA}"
           else
             TAGS="${NAME}:${GITHUB_REF_NAME},${NAME}:latest"
           fi
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
+          echo "label-version=$LABEL_VERSION" >> "$GITHUB_OUTPUT"
           echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
 
       - name: Build and push image
@@ -82,11 +107,14 @@ jobs:
             APP_VERSION=${{ steps.meta.outputs.version }}
             ${{ inputs.build-args }}
             ${{ inputs.version-build-arg != '' && format('{0}={1}', inputs.version-build-arg, steps.meta.outputs.version) || '' }}
+            ${{ inputs.build-height != '' && format('BUILD_HEIGHT={0}', inputs.build-height) || '' }}
+            ${{ inputs.build-sha != '' && format('BUILD_SHA={0}', inputs.build-sha) || '' }}
           secrets: ${{ inputs.needs-pat && format('github_token={0}', secrets.PACKAGES_PAT) || '' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ github.ref_name }}
+            org.opencontainers.image.revision=${{ steps.meta.outputs.revision }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.label-version }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            ${{ inputs.tags-mode == 'commit' && format('tools.egginc.build.height={0}', inputs.build-height) || '' }}
           cache-from: type=registry,ref=${{ steps.meta.outputs.name }}:buildcache
           cache-to: type=registry,ref=${{ steps.meta.outputs.name }}:buildcache,mode=max

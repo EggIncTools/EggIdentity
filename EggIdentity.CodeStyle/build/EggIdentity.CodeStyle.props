@@ -1,4 +1,5 @@
 <Project>
+  <Import Project="$(MSBuildThisFileDirectory)EggIdentity.Version.props" />
   <ItemGroup>
     <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)EggIdentity.CodeStyle.globalconfig" />
   </ItemGroup>

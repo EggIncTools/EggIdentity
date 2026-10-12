@@ -71,7 +71,8 @@ public static class Program {
             Version = build.Version,
             Revision = build.Sha256,
         });
-        adminApi.MapFleetAdminApi(fleet);
+        var revocations = app.Services.GetRequiredService<RevocationStore>();
+        adminApi.MapFleetAdminApi(fleet, (token, ct) => FallbackRoutes.IsAdminTokenAsync(token, config, revocations, ct));
         app.MapFleetHook(fleet);
         if (config.BotEnabled) BotAdminRoutes.Map(adminApi);
     }

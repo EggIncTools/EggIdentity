@@ -8,6 +8,7 @@ public static class FleetSettings {
     public const string HookSecret = "deploy.hook_secret";
     public const string PullTimeout = "fleet.pull_timeout";
     public const string RedeployTimeout = "fleet.redeploy_timeout";
+    public const string GitHubToken = "github.fleet_token";
 
     private const string Category = "Fleet";
 
@@ -35,6 +36,11 @@ public static class FleetSettings {
             SettingKind.Duration, ApplyTier.Live, Sensitivity.Plain) {
             Default = "5m",
             Description = "Time for Portainer to bring the container up on the new image.",
+        },
+        new SettingDescriptor(
+            GitHubToken, "GITHUB_FLEET_TOKEN", "GitHub fleet token", Category,
+            SettingKind.Secret, ApplyTier.Live, Sensitivity.Secret) {
+            Description = "Fine-grained token with contents read and write on the app repos. Used only to commit upstream pins.",
         },
     ]);
 }

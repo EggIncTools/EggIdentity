@@ -29,7 +29,7 @@ public sealed class BotConfig {
     public Func<CancellationToken, Task<IReadOnlyList<BotAppSnapshot>>>? ServedApps { get; init; }
     public TimeSpan DashboardRefreshInterval { get; init; } = TimeSpan.FromMinutes(5);
 
-    public string CommitUrl(string version) => $"{RepoUrl}/commit/{version}";
+    public string CommitUrl(string sha) => $"{RepoUrl}/commit/{sha}";
 
     public BotConfig WithRegistration(DiscordRegistrationResponse registration) {
         ArgumentNullException.ThrowIfNull(registration);

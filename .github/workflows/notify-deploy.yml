@@ -19,6 +19,12 @@ on:
       version:
         type: string
         required: true
+      height:
+        type: string
+        default: ""
+      packages:
+        type: string
+        default: "[]"
     secrets:
       hook-secret:
         required: true
@@ -34,10 +40,34 @@ jobs:
           DIGEST: ${{ inputs.digest }}
           REVISION: ${{ inputs.revision }}
           VERSION: ${{ inputs.version }}
+          HEIGHT: ${{ inputs.height }}
+          PACKAGES: ${{ inputs.packages }}
           HOOK_SECRET: ${{ secrets.hook-secret }}
         run: |
           set -euo pipefail
-          BODY=$(printf '{"app":"%s","digest":"%s","revision":"%s","version":"%s"}' "$APP" "$DIGEST" "$REVISION" "$VERSION")
+          if [ -n "$HEIGHT" ]; then
+            if ! printf '%s' "$HEIGHT" | grep -Eq '^[0-9]+$'; then
+              echo "::error title=Invalid height input::height must be a whole number, got '$HEIGHT'"
+              exit 1
+            fi
+            VERSION="$HEIGHT.0.0"
+            HEIGHT_JSON="$HEIGHT"
+          else
+            HEIGHT_JSON="null"
+          fi
+          [ -z "$PACKAGES" ] && PACKAGES="[]"
+          if ! printf '%s' "$PACKAGES" | jq -e 'type == "array"' > /dev/null 2>&1; then
+            echo "::error title=Invalid packages input::packages must be a JSON array, got '$PACKAGES'"
+            exit 1
+          fi
+          BODY=$(jq -nc \
+            --arg app "$APP" \
+            --arg digest "$DIGEST" \
+            --arg revision "$REVISION" \
+            --arg version "$VERSION" \
+            --argjson height "$HEIGHT_JSON" \
+            --argjson packages "$PACKAGES" \
+            '{app: $app, digest: $digest, revision: $revision, version: $version, height: $height, packages: $packages}')
           STATUS=$(curl -sS --max-time 30 -o /tmp/notify-deploy.out -w '%{http_code}' -X POST "${HOOK_URL%/}/hooks/image-pushed" \
             -H "Authorization: Bearer $HOOK_SECRET" \
             -H "Content-Type: application/json" \

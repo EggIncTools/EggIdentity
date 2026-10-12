@@ -40,6 +40,10 @@
             <dd title="@CheckedTitle">@CheckedText</dd>
         </dl>
 
+        @if (!Compact) {
+            <UpstreamPins App="@AppName"/>
+        }
+
         <div class="dp-actions">
             <button type="button" class="btn-mini" disabled="@_working" @onclick="CheckNowAsync">Check now</button>
             <button type="button" class="btn-mini" disabled="@(!CanUpdate)" @onclick="UpdateNowAsync">@UpdateLabel</button>

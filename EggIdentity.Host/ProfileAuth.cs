@@ -9,9 +9,12 @@ public static class ProfileAuth {
         HttpContext ctx, SessionCookieOptions cookie, Func<string, CancellationToken, Task<bool>> isRevokedAsync, CancellationToken ct) =>
         (await TryGetPrincipalAsync(ctx, cookie, isRevokedAsync, ct))?.EggIdentityUserId();
 
+    public static Task<ClaimsPrincipal?> TryGetPrincipalAsync(
+        HttpContext ctx, SessionCookieOptions cookie, Func<string, CancellationToken, Task<bool>> isRevokedAsync, CancellationToken ct) =>
+        TryGetPrincipalAsync(ReadToken(ctx, cookie), cookie, isRevokedAsync, ct);
+
     public static async Task<ClaimsPrincipal?> TryGetPrincipalAsync(
-        HttpContext ctx, SessionCookieOptions cookie, Func<string, CancellationToken, Task<bool>> isRevokedAsync, CancellationToken ct) {
-        var token = ReadToken(ctx, cookie);
+        string? token, SessionCookieOptions cookie, Func<string, CancellationToken, Task<bool>> isRevokedAsync, CancellationToken ct) {
         if (string.IsNullOrEmpty(token)) return null;
 
         var principal = SessionToken.Validate(cookie, token, DateTimeOffset.UtcNow);
@@ -21,7 +24,7 @@ public static class ProfileAuth {
         return !string.IsNullOrEmpty(sid) && await isRevokedAsync(sid, ct) ? null : principal;
     }
 
-    private static string? ReadToken(HttpContext ctx, SessionCookieOptions cookie) {
+    internal static string? ReadToken(HttpContext ctx, SessionCookieOptions cookie) {
         if (ctx.Request.Headers.TryGetValue(IdentityWire.SessionHeader, out var header)) return header.ToString();
         return ctx.Request.Cookies.TryGetValue(cookie.CookieName, out var cookieValue) ? cookieValue : null;
     }

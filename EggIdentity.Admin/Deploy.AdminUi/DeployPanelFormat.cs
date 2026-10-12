@@ -14,12 +14,6 @@ public static class DeployPanelFormat {
         return $"{(int)age.TotalDays}d ago";
     }
 
-    public static string ShortRevision(string? revision) {
-        if (string.IsNullOrWhiteSpace(revision)) return "";
-        var trimmed = revision.Trim();
-        return trimmed.Length > 7 ? trimmed[..7] : trimmed;
-    }
-
     public static string ShortDigest(string? digest) {
         if (string.IsNullOrWhiteSpace(digest)) return "";
         var trimmed = digest.Trim();
@@ -28,25 +22,9 @@ public static class DeployPanelFormat {
         return hex.Length > 12 ? hex[..12] : hex;
     }
 
-    public static string ShortVersion(string? version) {
-        if (string.IsNullOrWhiteSpace(version)) return "";
-        var trimmed = version.Trim();
-        var plus = trimmed.IndexOf('+', StringComparison.Ordinal);
-        if (plus < 0) return trimmed;
-        var metadata = trimmed[(plus + 1)..];
-        return metadata.Length > 7 ? $"{trimmed[..plus]}+{metadata[..7]}" : trimmed;
-    }
-
     public static string VersionLine(string? version, string? revision, string? digest) {
-        var parts = new List<string>(3);
-        if (!string.IsNullOrWhiteSpace(version)) parts.Add(version.Trim());
-        var rev = ShortRevision(revision);
-        if (rev.Length > 0) parts.Add(rev);
-        if (parts.Count == 0) {
-            var dig = ShortDigest(digest);
-            if (dig.Length > 0) parts.Add(dig);
-        }
-        return string.Join(" ", parts);
+        var line = BuildVersion.Describe(version, revision);
+        return line.Length > 0 ? line : ShortDigest(digest);
     }
 
     public static string PhaseClass(DeployPhase phase) => "dp-phase-" + phase.ToString().ToLowerInvariant();

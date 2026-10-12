@@ -15,17 +15,42 @@ on:
       packages-auth:
         type: boolean
         default: false
+      build-height:
+        type: string
+        default: ""
+      build-sha:
+        type: string
+        default: ""
     secrets:
       PACKAGES_PAT:
         required: false
+    outputs:
+      packages:
+        value: ${{ jobs.pack-push.outputs.packages }}
 
 jobs:
   pack-push:
     runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.list.outputs.packages }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
+
+      - name: Export build identity
+        if: inputs.build-height != '' || inputs.build-sha != ''
+        env:
+          IN_HEIGHT: ${{ inputs.build-height }}
+          IN_SHA: ${{ inputs.build-sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "$IN_HEIGHT" ]; then
+            echo "BUILD_HEIGHT=$IN_HEIGHT" >> "$GITHUB_ENV"
+          fi
+          if [ -n "$IN_SHA" ]; then
+            echo "BUILD_SHA=$IN_SHA" >> "$GITHUB_ENV"
+          fi
 
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
         with:
@@ -52,6 +77,7 @@ jobs:
           set -euo pipefail
           targets=$(printf '%s' "${{ inputs.pack-targets }}" | sed '/^[[:space:]]*$/d')
           solution="${{ inputs.solution }}"
+          mkdir -p nupkgs
           if [ -n "$targets" ]; then
             dotnet new sln -n pack-targets -o pack-targets-sln
             while IFS= read -r proj; do
@@ -66,7 +92,18 @@ jobs:
             exit 1
           fi
 
+      - name: List packages
+        id: list
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(nupkgs/*.nupkg)
+          echo "count=${#files[@]}" >> "$GITHUB_OUTPUT"
+          PACKAGES=$(for f in "${files[@]}"; do basename "$f"; done | jq -Rnc '[inputs | select(test("^(.+)\\.([0-9]+\\.0\\.0)\\.nupkg$")) | capture("^(?<id>.+)\\.(?<version>[0-9]+\\.0\\.0)\\.nupkg$")]')
+          echo "packages=$PACKAGES" >> "$GITHUB_OUTPUT"
+
       - name: Push to GitHub Packages
+        if: steps.list.outputs.count != '0'
         run: |
           dotnet nuget push "nupkgs/*.nupkg" \
             --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \

@@ -95,6 +95,30 @@ public sealed class FleetClient {
         return await OutcomeAsync(response, ct);
     }
 
+    public async Task<IReadOnlyList<PinView>> GetPinsAsync(string session, CancellationToken ct) {
+        using var response = await SendAsync(HttpMethod.Get, "pins", null, ct, session);
+        return await ReadAsync<List<PinView>>(response, ct);
+    }
+
+    public async Task<IReadOnlyList<UpstreamBuildView>> GetBuildsAsync(string upstream, int limit, string session, CancellationToken ct) {
+        var path = $"upstreams/{Uri.EscapeDataString(upstream)}/builds?limit={limit.ToString(CultureInfo.InvariantCulture)}";
+        using var response = await SendAsync(HttpMethod.Get, path, null, ct, session);
+        return await ReadAsync<List<UpstreamBuildView>>(response, ct);
+    }
+
+    public async Task<string?> SetPinAsync(string app, string upstream, string? desiredVersion, bool followLatest, string session, CancellationToken ct) {
+        var path = $"pins/{Uri.EscapeDataString(app)}/{Uri.EscapeDataString(upstream)}";
+        var body = JsonContent.Create(new PinWriteRequest(desiredVersion, followLatest), options: Json);
+        using var response = await SendAsync(HttpMethod.Put, path, body, ct, session);
+        return await OutcomeAsync(response, ct);
+    }
+
+    public async Task<string?> TakeLatestAsync(string? app, string session, CancellationToken ct) {
+        var body = JsonContent.Create(new TakeLatestRequest(app), options: Json);
+        using var response = await SendAsync(HttpMethod.Post, "pins/take-latest", body, ct, session);
+        return await OutcomeAsync(response, ct);
+    }
+
     public async IAsyncEnumerable<DeployEvent> StreamEventsAsync(long? afterId, [EnumeratorCancellation] CancellationToken ct) {
         using var request = NewRequest(HttpMethod.Get, "events");
         request.Headers.Accept.Add(EventStream);
@@ -131,9 +155,10 @@ public sealed class FleetClient {
         return request;
     }
 
-    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, HttpContent? content, CancellationToken ct) {
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, HttpContent? content, CancellationToken ct, string? session = null) {
         using var request = NewRequest(method, path);
         request.Content = content;
+        if (session is not null) request.Headers.TryAddWithoutValidation(IdentityWire.SessionHeader, session);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(_options.CallTimeout);
         try {
@@ -166,9 +191,11 @@ public sealed class FleetClient {
     private static string Describe(HttpResponseMessage response, string body) {
         var code = ((int)response.StatusCode).ToString(CultureInfo.InvariantCulture);
         var text = body.Trim();
-        return response.StatusCode == HttpStatusCode.Unauthorized
-            ? $"fleet returned {code}: the identity API secret is wrong or missing"
-            : text.Length == 0 ? $"fleet returned {code}" : $"fleet returned {code}: {text}";
+        return response.StatusCode switch {
+            HttpStatusCode.Unauthorized => $"fleet returned {code}: the identity API secret is wrong or missing",
+            HttpStatusCode.Forbidden => $"fleet returned {code}: your admin session expired or is not an admin session; reload the page",
+            _ => text.Length == 0 ? $"fleet returned {code}" : $"fleet returned {code}: {text}",
+        };
     }
 
     private sealed class EnvEntryWire {

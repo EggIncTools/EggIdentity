@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace EggIdentity.Deploy.AdminUi;
 
 public sealed partial class FleetPanel : ComponentBase {
+    private const string SessionMissing = "Session forwarding not configured";
     private static readonly TimeSpan ConfirmWindow = TimeSpan.FromSeconds(5);
 
     private SettingsCache? _cache;
@@ -25,6 +26,9 @@ public sealed partial class FleetPanel : ComponentBase {
     private bool _busy;
     private string? _armedStack;
     private DateTimeOffset _armedAt;
+    private DateTimeOffset? _takeLatestArmedAt;
+    private ISessionTokenSource? _sessions;
+    private bool _sessionReady;
 
     private string FleetCss => _fleetError is null ? "fleet-summary" : "fleet-summary fleet-summary-down";
 
@@ -40,6 +44,8 @@ public sealed partial class FleetPanel : ComponentBase {
 
     private bool IsArmed(string stack) => _armedStack == stack && DateTimeOffset.UtcNow - _armedAt <= ConfirmWindow;
     private string RedeployLabel(string stack) => IsArmed(stack) ? "Confirm redeploy" : "Redeploy";
+    private bool TakeLatestArmed => _takeLatestArmedAt is { } at && DateTimeOffset.UtcNow - at <= ConfirmWindow;
+    private string TakeLatestLabel => TakeLatestArmed ? "Confirm take latest everywhere" : "Take latest everywhere";
 
     private IEnumerable<string> AppsOn(string stack) =>
         _apps.Where(a => string.Equals(a.Stack?.Trim(), stack, StringComparison.OrdinalIgnoreCase)).Select(a => a.Name);
@@ -48,8 +54,10 @@ public sealed partial class FleetPanel : ComponentBase {
         _cache = Services.GetService<SettingsCache>();
         _client = Services.GetService<FleetClient>();
         _toasts = Services.GetService<ToastService>();
+        _sessions = Services.GetService<ISessionTokenSource>();
         if (_cache is null || _client is null) return;
 
+        _sessionReady = await SessionAsync() is not null;
         var snapshot = await _cache.GetAsync();
         _apps = [.. snapshot.Collection<SuiteApp>(SuiteApps.Key).Where(a => a.Enabled).OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase)];
         _loaded = true;
@@ -114,6 +122,36 @@ public sealed partial class FleetPanel : ComponentBase {
             if (failure is null) _toasts?.Push(StatusNoteKind.Ok, $"Redeploy of {stack} requested.");
             else _toasts?.Push(StatusNoteKind.Error, failure);
             await LoadFleetAsync(_client);
+        } catch (Exception e) when (IsFleetFailure(e)) {
+            _toasts?.Push(StatusNoteKind.Error, e.Message);
+        } finally {
+            _busy = false;
+        }
+    }
+
+    private async Task<string?> SessionAsync() {
+        if (_sessions is null) return null;
+        var token = await _sessions.GetAsync(CancellationToken.None);
+        return string.IsNullOrWhiteSpace(token) ? null : token;
+    }
+
+    private async Task TakeLatestEverywhereAsync() {
+        if (_busy || _client is null) return;
+        if (!TakeLatestArmed) {
+            _takeLatestArmedAt = DateTimeOffset.UtcNow;
+            return;
+        }
+
+        _takeLatestArmedAt = null;
+        _busy = true;
+        try {
+            if (await SessionAsync() is not { } session) {
+                _sessionReady = false;
+                return;
+            }
+            var failure = await _client.TakeLatestAsync(null, session, CancellationToken.None);
+            if (failure is null) _toasts?.Push(StatusNoteKind.Ok, "Every pin now targets its latest build.");
+            else _toasts?.Push(StatusNoteKind.Error, failure);
         } catch (Exception e) when (IsFleetFailure(e)) {
             _toasts?.Push(StatusNoteKind.Error, e.Message);
         } finally {

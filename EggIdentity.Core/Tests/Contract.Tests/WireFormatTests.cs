@@ -40,6 +40,19 @@ public class WireFormatTests {
     }
 
     [Fact]
+    public void DeployHookPayload_ReadsHeightAndPackages() {
+        var p = JsonSerializer.Deserialize<DeployHookPayload>(
+            """{"app":"eggidentity","digest":"sha256:a","revision":"abc","version":"142.0.0","height":142,"packages":[{"id":"EggIdentity.Core","version":"142.0.0"}]}""");
+
+        Assert.Equal(142, p?.Height);
+        Assert.Equal([new PublishedPackage("EggIdentity.Core", "142.0.0")], p?.Packages);
+    }
+
+    [Fact]
+    public void DeployHookPayload_OldShape_StillReads() =>
+        Assert.Null(JsonSerializer.Deserialize<DeployHookPayload>("""{"app":"a","digest":"d","revision":null,"version":null}""")?.Packages);
+
+    [Fact]
     public void LinkResultResponse_Conflict_MatchesWireShape() {
         var lr = new LinkResultResponse { Linked = false, Conflict = true, ConflictUsername = "bob", ConflictCreatedAt = DateTimeOffset.Parse("2026-01-01T00:00:00Z") };
         var json = System.Text.Json.JsonSerializer.Serialize(lr);

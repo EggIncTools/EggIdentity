@@ -109,6 +109,80 @@ public class FleetClientTests {
     }
 
     [Fact]
+    public async Task PinReadsAndWrites_SendSessionHeader() {
+        var handler = new FakeFleetHandler((_, _) => FakeFleetHandler.Json("[]"));
+        var client = TestFixtures.Client(handler);
+
+        await client.GetPinsAsync("sess-0", CancellationToken.None);
+        Assert.Null(await client.SetPinAsync(Ledger, "eggidentity", "142.0.0", false, "sess-1", CancellationToken.None));
+        Assert.Null(await client.TakeLatestAsync(null, "sess-2", CancellationToken.None));
+        await client.GetBuildsAsync("eggidentity", 20, "sess-3", CancellationToken.None);
+
+        Assert.Equal(4, handler.Requests.Count);
+        Assert.Equal(["sess-0"], handler.Requests[0].Headers.GetValues(IdentityWire.SessionHeader));
+        Assert.Equal(HttpMethod.Put, handler.Requests[1].Method);
+        Assert.Equal(FleetRoot + "pins/eggledger/eggidentity", handler.Requests[1].RequestUri!.AbsolutePath);
+        Assert.Equal(["sess-1"], handler.Requests[1].Headers.GetValues(IdentityWire.SessionHeader));
+        Assert.Equal(HttpMethod.Post, handler.Requests[2].Method);
+        Assert.Equal(FleetRoot + "pins/take-latest", handler.Requests[2].RequestUri!.AbsolutePath);
+        Assert.Equal(["sess-2"], handler.Requests[2].Headers.GetValues(IdentityWire.SessionHeader));
+        Assert.Equal(["sess-3"], handler.Requests[3].Headers.GetValues(IdentityWire.SessionHeader));
+        Assert.Contains("\"desiredVersion\":\"142.0.0\"", handler.Bodies[1], StringComparison.Ordinal);
+        Assert.Contains("\"followLatest\":false", handler.Bodies[1], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetPinsAsync_Forbidden_SurfacesAsHttpError() {
+        var handler = new FakeFleetHandler((_, _) => FakeFleetHandler.Text("pins need an admin session", HttpStatusCode.Forbidden));
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => TestFixtures.Client(handler).GetPinsAsync("user", CancellationToken.None));
+
+        Assert.Equal(HttpStatusCode.Forbidden, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetPinAsync_ForbiddenBody_IsTheReturnedError() {
+        var handler = new FakeFleetHandler((_, _) => FakeFleetHandler.Text("an admin session is required", HttpStatusCode.Forbidden));
+
+        var failure = await TestFixtures.Client(handler).SetPinAsync(Ledger, "EggIdentity", null, true, "sess", CancellationToken.None);
+
+        Assert.Equal("fleet returned 403: your admin session expired or is not an admin session; reload the page", failure);
+    }
+
+    [Fact]
+    public async Task GetPinsAsync_ParsesViews_WithStringAction() {
+        const string body = """
+            [{"app":"eggledger","upstream":"EggIdentity","branch":"main","committed":"140.0.0","desired":"142.0.0",
+              "followLatest":true,"latest":"142.0.0","pendingVersion":null,"error":null,"action":"Waiting"}]
+            """;
+        var handler = new FakeFleetHandler((req, _) => {
+            Assert.Equal(FleetRoot + "pins", req.RequestUri!.AbsolutePath);
+            return FakeFleetHandler.Json(body);
+        });
+
+        var pin = Assert.Single(await TestFixtures.Client(handler).GetPinsAsync("sess", CancellationToken.None));
+
+        Assert.Equal(PinAction.Waiting, pin.Action);
+        Assert.Equal("main", pin.Branch);
+        Assert.Equal("140.0.0", pin.Committed);
+        Assert.True(pin.FollowLatest);
+    }
+
+    [Fact]
+    public async Task GetBuildsAsync_EscapesUpstreamAndPassesLimit() {
+        var handler = new FakeFleetHandler((req, _) => {
+            Assert.Equal(FleetRoot + "upstreams/Egg%20Identity/builds", req.RequestUri!.AbsolutePath);
+            Assert.Equal("?limit=20", req.RequestUri.Query);
+            return FakeFleetHandler.Json("""[{"upstream":"Egg Identity","height":142,"sha":"abcdef0123","publishedAt":"2026-10-11T12:00:00+00:00"}]""");
+        });
+
+        var build = Assert.Single(await TestFixtures.Client(handler).GetBuildsAsync("Egg Identity", 20, "sess", CancellationToken.None));
+
+        Assert.Equal("142.0.0", build.Version);
+        Assert.Equal("abcdef0123", build.Sha);
+    }
+
+    [Fact]
     public async Task GetStackServicesAsync_EscapesStackAndParsesServices() {
         var handler = new FakeFleetHandler((req, _) => {
             Assert.Equal(FleetRoot + "portainer/stacks/ei%20servers/services", req.RequestUri!.AbsolutePath);

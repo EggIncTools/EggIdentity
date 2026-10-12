@@ -30,8 +30,11 @@ internal static class FallbackRoutes {
         });
     }
 
-    private static async Task<bool> IsAdminAsync(HttpContext ctx, HostConfig config, RevocationStore revocations, CancellationToken ct) =>
+    private static Task<bool> IsAdminAsync(HttpContext ctx, HostConfig config, RevocationStore revocations, CancellationToken ct) =>
+        IsAdminTokenAsync(config.SessionOptions is { } session ? ProfileAuth.ReadToken(ctx, session) : null, config, revocations, ct);
+
+    public static async Task<bool> IsAdminTokenAsync(string? token, HostConfig config, RevocationStore revocations, CancellationToken ct) =>
         config.SessionOptions is { } session
-        && await ProfileAuth.TryGetPrincipalAsync(ctx, session, revocations.IsRevokedAsync, ct) is { } principal
+        && await ProfileAuth.TryGetPrincipalAsync(token, session, revocations.IsRevokedAsync, ct) is { } principal
         && principal.IsAtLeast(UserRole.Admin);
 }

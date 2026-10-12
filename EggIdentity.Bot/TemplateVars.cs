@@ -29,7 +29,7 @@ public static class DashboardVars {
 
         return new Dictionary<string, object?> {
             ["app_name"] = snapshot.AppName,
-            ["version"] = snapshot.Version,
+            ["version"] = BuildVersion.Describe(snapshot.Version, snapshot.BuildHash),
             ["build_hash"] = snapshot.BuildHash,
             ["build_hash_short"] = DeployVars.ShortHash(snapshot.BuildHash),
             ["deploy_status"] = snapshot.DeployStatus,

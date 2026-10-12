@@ -15,6 +15,12 @@ on:
       format-gate:
         type: boolean
         default: false
+      build-height:
+        type: string
+        default: ""
+      build-sha:
+        type: string
+        default: ""
     secrets:
       PACKAGES_PAT:
         required: false
@@ -24,6 +30,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Export build identity
+        if: inputs.build-height != '' || inputs.build-sha != ''
+        env:
+          IN_HEIGHT: ${{ inputs.build-height }}
+          IN_SHA: ${{ inputs.build-sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "$IN_HEIGHT" ]; then
+            echo "BUILD_HEIGHT=$IN_HEIGHT" >> "$GITHUB_ENV"
+          fi
+          if [ -n "$IN_SHA" ]; then
+            echo "BUILD_SHA=$IN_SHA" >> "$GITHUB_ENV"
+          fi
 
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
         with:

@@ -17,6 +17,7 @@
   <ItemGroup>
     <None Include="build/EggIdentity.CodeStyle.props" Pack="true" PackagePath="build/" />
     <None Include="build/EggIdentity.CodeStyle.globalconfig" Pack="true" PackagePath="build/" />
+    <None Include="build/EggIdentity.Version.props" Pack="true" PackagePath="build/" />
   </ItemGroup>
 
 </Project>

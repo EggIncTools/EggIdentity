@@ -35,8 +35,14 @@ public sealed record DeployStatus(
     [JsonPropertyName("problem")] public string? Problem { get; init; }
 }
 
+public sealed record PublishedPackage(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("version")] string Version);
+
 public sealed record DeployHookPayload(
     [property: JsonPropertyName("app")] string App,
     [property: JsonPropertyName("digest")] string Digest,
     [property: JsonPropertyName("revision")] string? Revision,
-    [property: JsonPropertyName("version")] string? Version);
+    [property: JsonPropertyName("version")] string? Version,
+    [property: JsonPropertyName("height")] long? Height = null,
+    [property: JsonPropertyName("packages")] IReadOnlyList<PublishedPackage>? Packages = null);

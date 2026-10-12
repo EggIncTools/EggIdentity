@@ -38,7 +38,8 @@ public sealed class DeployToastBridge(IDeployEvents events, ToastService toasts,
 
     internal static string Text(DeployEvent evt) {
         if (evt.Phase != DeployPhase.ReleaseAvailable) return $"{evt.App}: {evt.Message}";
-        var what = !string.IsNullOrWhiteSpace(evt.Version) ? evt.Version.Trim() : DeployPanelFormat.ShortDigest(evt.Digest);
+        var what = BuildVersion.Describe(evt.Version, evt.ToRevision);
+        if (what.Length == 0) what = DeployPanelFormat.ShortDigest(evt.Digest);
         return what.Length == 0 ? $"{evt.App}: release available" : $"{evt.App}: {what} available";
     }
 }
