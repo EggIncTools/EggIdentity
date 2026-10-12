@@ -88,7 +88,7 @@
                                 @if (UsesEditor(field)) {
                                     @ValueEditor!(new FilterValueEditorContext(field, cond.Value, Options(field), missing, v => SetValue(rowIndex, member, v)))
                                 } else if (field.Kind == FilterValueKind.SearchableSelect) {
-                                    <ComboBoxPicker Value="@cond.Value" Options="@Combo(field)" Placeholder="@Labels.ClickToSelect"
+                                    <ComboBoxPicker Value="@cond.Value" Options="@Combo(field)" OptionTemplate="@ComboTemplate()" Placeholder="@Labels.ClickToSelect"
                                                     Class="@Css("", missing)" ValueChanged="v => SetValue(rowIndex, member, v)"/>
                                 } else if (field.Kind is FilterValueKind.Select or FilterValueKind.Set) {
                                     <select class="@Css("fb-select", missing)" value="@cond.Value" @onchange="e => SetValue(rowIndex, member, (string?)e.Value)">
@@ -111,8 +111,8 @@
                                         }
                                     </select>
                                 } else {
-                                    <input class="@Css("fb-select", missing)" type="@InputType(field)" value="@cond.Value"
-                                           @onchange="e => SetValue(rowIndex, member, (string?)e.Value)"/>
+                                    <input class="@Css("fb-select", missing)" type="@InputType(field)"
+                                           @bind:get="cond.Value" @bind:set="v => SetValue(rowIndex, member, v)"/>
                                 }
                             </div>
                         }

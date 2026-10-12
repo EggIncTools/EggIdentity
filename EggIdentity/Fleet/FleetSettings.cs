@@ -9,6 +9,8 @@ public static class FleetSettings {
     public const string PullTimeout = "fleet.pull_timeout";
     public const string RedeployTimeout = "fleet.redeploy_timeout";
     public const string GitHubToken = "github.fleet_token";
+    public const string CommitterName = "github.committer_name";
+    public const string CommitterEmail = "github.committer_email";
 
     private const string Category = "Fleet";
 
@@ -41,6 +43,18 @@ public static class FleetSettings {
             GitHubToken, "GITHUB_FLEET_TOKEN", "GitHub fleet token", Category,
             SettingKind.Secret, ApplyTier.Live, Sensitivity.Secret) {
             Description = "Fine-grained token with contents read and write on the app repos. Used only to commit upstream pins.",
+        },
+        new SettingDescriptor(
+            CommitterName, "GITHUB_COMMITTER_NAME", "Pin committer name", Category,
+            SettingKind.Text, ApplyTier.Live, Sensitivity.Plain) {
+            Default = GitCommitter.Default.Name,
+            Description = "Name shown on upstream pin commits.",
+        },
+        new SettingDescriptor(
+            CommitterEmail, "GITHUB_COMMITTER_EMAIL", "Pin committer email", Category,
+            SettingKind.Text, ApplyTier.Live, Sensitivity.Plain) {
+            Default = GitCommitter.Default.Email,
+            Description = "Email on upstream pin commits. GitHub shows the avatar of the account that has this email verified, so use a bot account's email or its users.noreply.github.com address.",
         },
     ]);
 }

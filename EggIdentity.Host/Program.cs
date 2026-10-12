@@ -57,6 +57,7 @@ public static class Program {
 
         if (config.ProfileEnabled) ProfileLinkRoutes.Map(app, config);
         if (sponsorSync is not null) SponsorRoutes.Map(app, config, sponsorSync);
+        DiscordDmRoutes.Map(app, config);
 
         IdentityApiRoutes.Map(app, config);
         DiscordRegistrationRoutes.Map(app);

@@ -57,6 +57,21 @@ public class IdentityApiClientTests {
     }
 
     [Fact]
+    public async Task GetDmReachabilityAsync_ParsesResponse() {
+        var (client, handler) = MakeClient(new HttpResponseMessage(HttpStatusCode.OK) {
+            Content = new StringContent("""{"state":"notInGuild","guildInviteUrl":"https://discord.gg/egg"}""", System.Text.Encoding.UTF8, "application/json"),
+        });
+
+        var result = await client.GetDmReachabilityAsync("sess", "egg incs", CancellationToken.None);
+
+        Assert.Equal(DmReachability.NotInGuild, result?.State);
+        Assert.Equal("https://discord.gg/egg", result?.GuildInviteUrl);
+        Assert.Equal("/profile/discord/dm-reachability", handler.LastRequest!.RequestUri!.AbsolutePath);
+        Assert.Equal("?app=egg%20incs", handler.LastRequest.RequestUri.Query);
+        Assert.Equal("sess", handler.LastRequest.Headers.GetValues(IdentityWire.SessionHeader).Single());
+    }
+
+    [Fact]
     public async Task GetSponsorStatusAsync_ParsesResponse() {
         var userId = Guid.NewGuid();
         var expected = new SponsorStatusResponse { IsSponsor = true, LastSyncedAt = DateTimeOffset.UtcNow };
@@ -295,6 +310,7 @@ public class IdentityApiClientTests {
             "SelectAvatarAsync", "GetSponsorStatusAsync", "GetSupporterStatusAsync", "RefreshSupporterStatusAsync",
             "SetPreferencesAsync", "GetConsentAsync", "SetConsentAsync", "SyncIdentitiesAsync", "ListMergesAsync",
             "GetDiscordRegistrationAsync", "GetGameAsync", "SetGameAsync", "GetSuiteToolsAsync",
+            "GetDmReachabilityAsync",
         };
         var actual = typeof(IdentityApiClient)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)

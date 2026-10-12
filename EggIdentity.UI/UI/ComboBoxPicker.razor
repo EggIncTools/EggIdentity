@@ -1,6 +1,5 @@
 <div class="@(string.IsNullOrEmpty(Class) ? "combo-wrap" : $"combo-wrap {Class}")" style="@AnchorStyle">
-    <input type="text" class="form-input combo-anchor" placeholder="@Placeholder" value="@_query"
-           @oninput="OnInput" @onfocus="OnFocus" @onfocusout="OnFocusOut" @onkeydown="OnKeyDown" @onkeydown:preventDefault="@_preventDefault"
+    <input type="text" class="form-input combo-anchor" placeholder="@Placeholder" @bind:get="_query" @bind:set="OnInput" @bind:event="oninput" @onfocus="OnFocus" @onfocusout="OnFocusOut" @onkeydown="OnKeyDown" @onkeydown:preventDefault="@_preventDefault"
            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
     @if (_open) {
         <div class="popover popover-combo">
@@ -9,7 +8,24 @@
             } else {
                 @foreach (var index in Enumerable.Range(0, _filtered.Count)) {
                     var option = _filtered[index];
-                    <button type="button" class="@OptionCss(index)" @onmousedown:preventDefault="true" @onclick="() => SelectAsync(option)">@option.Label</button>
+                    @if (StartsGroup(index) is { } group) {
+                        <div class="popover-combo-group">@group</div>
+                    }
+                    <button type="button" class="@OptionCss(index, option)" @onmousedown:preventDefault="true" @onclick="() => SelectAsync(option)">
+                        @if (OptionTemplate is not null) {
+                            @OptionTemplate(option)
+                        } else if (option.IsRich) {
+                            @if (!string.IsNullOrEmpty(option.Image)) {
+                                <img class="combo-opt-img" src="@option.Image" alt=""/>
+                            }
+                            <span class="combo-opt-label">@option.Label</span>
+                            @if (!string.IsNullOrEmpty(option.Badge)) {
+                                <span class="badge badge-muted combo-opt-badge">@option.Badge</span>
+                            }
+                        } else {
+                            @option.Label
+                        }
+                    </button>
                 }
             }
         </div>
@@ -22,6 +38,7 @@
     [Parameter] [EditorRequired] public IReadOnlyList<ComboOption> Options { get; set; } = [];
     [Parameter] public string? Placeholder { get; set; }
     [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment<ComboOption>? OptionTemplate { get; set; }
 
     readonly string _anchor = "--combo-" + Guid.NewGuid().ToString("N");
     List<ComboOption> _filtered = [];
@@ -53,16 +70,26 @@
         _open = false;
     }
 
-    void OnInput(ChangeEventArgs e) {
-        _query = e.Value?.ToString() ?? "";
+    void OnInput(string? value) {
+        _query = value ?? "";
         _filtered = FilterOptions(_query);
         _highlight = 0;
         _open = true;
     }
 
     List<ComboOption> FilterOptions(string query) {
-        if (string.IsNullOrWhiteSpace(query)) return Options.ToList();
-        return Options.Where(o => o.Label.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+        var matches = string.IsNullOrWhiteSpace(query) ? Options : Options.Where(o => Matches(o, query));
+        return [.. matches.GroupBy(o => o.Group ?? "").SelectMany(g => g)];
+    }
+
+    static bool Matches(ComboOption option, string query) =>
+        option.Label.Contains(query, StringComparison.OrdinalIgnoreCase)
+        || (option.Badge?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false);
+
+    string? StartsGroup(int index) {
+        var group = _filtered[index].Group;
+        if (string.IsNullOrEmpty(group)) return null;
+        return index > 0 && _filtered[index - 1].Group == group ? null : group;
     }
 
     async Task OnKeyDown(KeyboardEventArgs e) {
@@ -100,7 +127,9 @@
         await ValueChanged.InvokeAsync(option.Value);
     }
 
-    string OptionCss(int index) {
-        return index == _highlight ? "popover-combo-opt combo-highlighted" : "popover-combo-opt";
+    string OptionCss(int index, ComboOption option) {
+        var css = OptionTemplate is not null || option.IsRich ? "popover-combo-opt combo-opt-rich" : "popover-combo-opt";
+        if (index == _highlight) css += " combo-highlighted";
+        return string.IsNullOrEmpty(option.Class) ? css : $"{css} {option.Class}";
     }
 }

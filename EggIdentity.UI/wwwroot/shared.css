@@ -933,6 +933,12 @@
   .fb-select:hover {
     background-color: var(--filter-select-hover-bg,var(--color-panel));
   }
+  .combo-opt-label {
+    min-width: calc(var(--spacing) * 0);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .wb-rail {
     flex-shrink: 0;
     border-right-style: var(--tw-border-style);
@@ -1226,6 +1232,10 @@
     background-color: transparent;
     border: var(--suite-drawer-toggle-border,1px solid var(--color-border));
     border-radius: var(--suite-radius,0.375rem);
+  }
+  .combo-opt-badge {
+    margin-left: auto;
+    flex-shrink: 0;
   }
   .cal-now {
     position: absolute;
@@ -2074,6 +2084,11 @@
   .table-scroll > .data-table {
     overflow: clip;
   }
+  .popover-combo-opt.combo-opt-rich {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 1.5);
+  }
   .wb-pane-in {
     --pane-shift: var(--wb-pane-shift,-0.75rem);
     animation: pane-in var(--wb-morph-dur,var(--motion-morph,220ms)) var(--wb-morph-ease,var(--ease-standard,cubic-bezier(.2,0,0,1))) backwards;
@@ -2299,6 +2314,19 @@
     font-size: var(--filter-select-size,0.875rem);
     transition: background-color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,0,0,1)),border-color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,0,0,1)),box-shadow var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,0,0,1));
   }
+  .popover-combo-group {
+    padding-inline: calc(var(--spacing) * 2.5);
+    padding-top: calc(var(--spacing) * 2);
+    padding-bottom: calc(var(--spacing) * 1);
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-muted);
+    cursor: default;
+    -webkit-user-select: none;
+    user-select: none;
+  }
   .wb-entry-head {
     display: flex;
     align-items: flex-start;
@@ -2350,6 +2378,12 @@
     border-radius: var(--suite-tool-underline-height,2px);
     background: var(--tool,var(--color-accent));
     opacity: var(--suite-tool-underline-opacity,.55);
+  }
+  .combo-opt-img {
+    width: calc(var(--spacing) * 4);
+    height: calc(var(--spacing) * 4);
+    flex-shrink: 0;
+    object-fit: contain;
   }
   .toast.toast-err {
     border-left-color: var(--color-err);

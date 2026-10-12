@@ -46,7 +46,7 @@ public sealed class FleetRuntime(
                         current.Collection<SuiteUpstream>(SuiteUpstreams.UpstreamsKey),
                         current.Collection<AppPin>(SuiteUpstreams.PinsKey));
                 },
-                github ?? new GitHubRepoClient(new HttpClient { Timeout = GitHubCallTimeout }, () => GitHubToken(cache)),
+                github ?? new GitHubRepoClient(new HttpClient { Timeout = GitHubCallTimeout }, () => GitHubToken(cache), () => Committer(cache)),
                 builds,
                 pinStates,
                 () => GitHubToken(cache) is not null,
@@ -56,6 +56,13 @@ public sealed class FleetRuntime(
 
     private static string? GitHubToken(SettingsCache cache) =>
         cache.Current?.GetString(FleetSettings.GitHubToken) is { } token && !string.IsNullOrWhiteSpace(token) ? token.Trim() : null;
+
+    private static GitCommitter Committer(SettingsCache cache) => new(
+        Trimmed(cache, FleetSettings.CommitterName) ?? GitCommitter.Default.Name,
+        Trimmed(cache, FleetSettings.CommitterEmail) ?? GitCommitter.Default.Email);
+
+    private static string? Trimmed(SettingsCache cache, string key) =>
+        cache.Current?.GetString(key) is { } value && !string.IsNullOrWhiteSpace(value) ? value.Trim() : null;
 
     public async Task RunAsync(TimeSpan refreshInterval, CancellationToken ct) {
         if (!service.Configured && pins is null) return;

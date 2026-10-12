@@ -38,8 +38,8 @@
                         </select>
                     } else {
                         <input id="@FieldId(f)" class="form-input" type="@InputType(f)" autocomplete="off" disabled="@Locked(f)"
-                               value="@(f.IsSecret && Value(f) == Mask ? "" : Value(f))" placeholder="@Placeholder(f)"
-                               @oninput="e => Set(f, e.Value?.ToString())"/>
+                               placeholder="@Placeholder(f)"
+                               @bind:get="Shown(f)" @bind:set="v => Set(f, v)" @bind:event="oninput"/>
                     }
                     @if (_showHelp && f.Description is { Length: > 0 } description) {
                         <p class="suite-desc">@description</p>

@@ -10,6 +10,7 @@ public class DiscordRegistrationRoutesTests {
         DiscordAppId = "11",
         DiscordGuildId = "22",
         DiscordDashboardChannelId = "33",
+        DiscordInviteUrl = "https://discord.gg/egg",
     };
 
     [Fact]
@@ -21,6 +22,7 @@ public class DiscordRegistrationRoutesTests {
         Assert.Equal("11", registration.AppId);
         Assert.Equal("22", registration.GuildId);
         Assert.Equal("33", registration.DashboardChannelId);
+        Assert.Equal("https://discord.gg/egg", registration.GuildInviteUrl);
     }
 
     [Fact]

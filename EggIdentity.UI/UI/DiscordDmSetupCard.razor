@@ -1,0 +1,102 @@
+@using EggIdentity.Contract
+
+@switch (State) {
+    case null:
+        <StatusNote Kind="StatusNoteKind.Busy" Text="Checking whether the bot can message you..."/>
+        break;
+    case DmReachability.NoDiscordLink:
+        <StatusNote Kind="StatusNoteKind.Info" Text="Link a Discord account in your profile so the bot can message you.">
+            <Actions>
+                @if (!string.IsNullOrEmpty(ProfileUrl)) {
+                    <a class="btn-primary btn-mini" href="@ProfileUrl">Open profile</a>
+                }
+            </Actions>
+        </StatusNote>
+        break;
+    case DmReachability.NotInGuild:
+        <StatusNote Kind="StatusNoteKind.Warn" Text="@NotInGuildText">
+            <Actions>
+                @if (!string.IsNullOrEmpty(GuildInviteUrl)) {
+                    <a class="btn-primary btn-mini" href="@GuildInviteUrl" target="_blank" rel="noopener">Join server</a>
+                }
+                <button type="button" class="btn-secondary btn-mini" @onclick="RecheckAsync">Re-check</button>
+            </Actions>
+        </StatusNote>
+        break;
+    case DmReachability.Reachable:
+        <StatusNote Kind="StatusNoteKind.Ok" Text="The bot can message you on Discord.">
+            <Actions>
+                @if (OnSendTest is not null) {
+                    <button type="button" class="btn-primary btn-mini" disabled="@sending" @onclick="SendTestAsync">Send test DM</button>
+                }
+            </Actions>
+        </StatusNote>
+        @if (result is not null) {
+            <StatusNote Kind="@ResultKind(result)" Text="@ResultText(result, GuildName)"/>
+        }
+        break;
+    default:
+        <StatusNote Kind="StatusNoteKind.Warn" Text="Couldn't check whether the bot can message you.">
+            <Actions>
+                <button type="button" class="btn-secondary btn-mini" @onclick="RecheckAsync">Re-check</button>
+            </Actions>
+        </StatusNote>
+        break;
+}
+
+@code {
+    [Parameter] public DmReachability? State { get; set; }
+    [Parameter] public string? GuildInviteUrl { get; set; }
+    [Parameter] public string? ProfileUrl { get; set; }
+    [Parameter] public string? GuildName { get; set; }
+    [Parameter] public EventCallback OnRecheck { get; set; }
+    [Parameter] public Func<Task<DmSendResult>>? OnSendTest { get; set; }
+
+    bool sending;
+    DmSendResult? result;
+    DmReachability? lastState;
+
+    protected override void OnParametersSet() {
+        if (State == lastState) return;
+        lastState = State;
+        result = null;
+    }
+
+    string ServerName => string.IsNullOrWhiteSpace(GuildName) ? "the server" : GuildName;
+
+    string NotInGuildText => $"The bot can only message members of {ServerName}. Join it, then re-check.";
+
+    async Task RecheckAsync() {
+        result = null;
+        await OnRecheck.InvokeAsync();
+    }
+
+    async Task SendTestAsync() {
+        if (OnSendTest is null || sending) return;
+        sending = true;
+        result = null;
+        try {
+            result = await OnSendTest();
+        } catch (Exception exc) when (exc is not OperationCanceledException) {
+            result = new DmSendResult(DmSendStatus.Failed);
+        } finally {
+            sending = false;
+        }
+    }
+
+    internal static StatusNoteKind ResultKind(DmSendResult result) => result.Status switch {
+        DmSendStatus.Sent => StatusNoteKind.Ok,
+        DmSendStatus.CannotDm or DmSendStatus.RateLimited => StatusNoteKind.Warn,
+        _ => StatusNoteKind.Error,
+    };
+
+    internal static string ResultText(DmSendResult result, string? guildName) {
+        var server = string.IsNullOrWhiteSpace(guildName) ? "the server" : guildName;
+        return result.Status switch {
+            DmSendStatus.Sent => "Test DM sent. Check your Discord messages.",
+            DmSendStatus.CannotDm => $"Discord blocked the message. In {server}'s privacy settings, enable \"Allow DMs from other members in this server\", then try again.",
+            DmSendStatus.RateLimited => "Discord is rate limiting the bot. Try again in a moment.",
+            _ => "The test DM couldn't be sent. Try again later.",
+        };
+    }
+}

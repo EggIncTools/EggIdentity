@@ -172,6 +172,15 @@ public sealed class IdentityApiClient(HttpClient http) {
         return await resp.Content.ReadFromJsonAsync<ProfileGame>(cancellationToken: ct);
     }
 
+    public async Task<DmReachabilityResponse?> GetDmReachabilityAsync(string sessionToken, string appName, CancellationToken ct) {
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/profile/discord/dm-reachability?app={Uri.EscapeDataString(appName)}");
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
+        var resp = await http.SendAsync(req, ct);
+        if (resp.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Unauthorized) return null;
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<DmReachabilityResponse>(cancellationToken: ct);
+    }
+
     public async Task<bool> SetGameAsync(string sessionToken, ProfileGame game, CancellationToken ct) {
         using var req = new HttpRequestMessage(HttpMethod.Post, "/profile/game") { Content = JsonContent.Create(game) };
         req.Headers.Add(IdentityWire.SessionHeader, sessionToken);

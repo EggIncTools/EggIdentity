@@ -51,6 +51,8 @@ public sealed partial class SuiteAppEditor : ComponentBase {
 
     private string Value(FieldDescriptor field) => _values.GetValueOrDefault(field.Name) ?? "";
 
+    private string Shown(FieldDescriptor field) => field.IsSecret && Value(field) == Mask ? "" : Value(field);
+
     private bool IsOn(FieldDescriptor field) => string.Equals(Value(field), "true", StringComparison.OrdinalIgnoreCase);
 
     private void SetBool(FieldDescriptor field, object? state) => Set(field, state is true ? "true" : "false");

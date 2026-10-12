@@ -143,8 +143,7 @@
                 @if (!stack.Remove && !stack.Applied) {
                     <div class="sks-field">
                         <label class="sks-label" for="sksStackValue">Value</label>
-                        <input id="sksStackValue" class="form-input sks-input" type="text" value="@stack.Value"
-                               @oninput="e => stack.Value = e.Value?.ToString() ?? string.Empty"/>
+                        <input id="sksStackValue" class="form-input sks-input" type="text" @bind:get="stack.Value" @bind:set="v => stack.Value = v ?? string.Empty" @bind:event="oninput"/>
                     </div>
                 }
                 @if (stack.Applied) {
@@ -340,14 +339,14 @@
             </select>
         } else if (spec.Kind is SettingKind.StringList or SettingKind.CidrList) {
             <textarea id="@spec.Id" class="form-input sks-input sks-textarea" rows="4" disabled="@spec.Disabled"
-                      placeholder="one per line" value="@spec.Value" @oninput="e => spec.Set(e.Value?.ToString())"></textarea>
+                      placeholder="one per line" @bind:get="spec.Value" @bind:set="v => spec.Set(v)" @bind:event="oninput"></textarea>
         } else if (spec.Kind == SettingKind.Json) {
             <textarea id="@spec.Id" class="form-input sks-input sks-textarea sks-mono" rows="6" disabled="@spec.Disabled"
-                      placeholder="@spec.Placeholder" value="@spec.Value" @oninput="e => spec.Set(e.Value?.ToString())"></textarea>
+                      placeholder="@spec.Placeholder" @bind:get="spec.Value" @bind:set="v => spec.Set(v)" @bind:event="oninput"></textarea>
         } else {
             <input id="@spec.Id" class="form-input sks-input" type="@(spec.Password ? "password" : "text")" inputmode="@InputMode(spec.Kind)"
-                   disabled="@spec.Disabled" placeholder="@spec.Placeholder" value="@spec.Value" autocomplete="off"
-                   @oninput="e => spec.Set(e.Value?.ToString())"/>
+                   disabled="@spec.Disabled" placeholder="@spec.Placeholder" autocomplete="off"
+                   @bind:get="spec.Value" @bind:set="v => spec.Set(v)" @bind:event="oninput"/>
         }
     </text>;
 

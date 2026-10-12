@@ -40,8 +40,8 @@
                             <td>@r.Candidate.Service.Service</td>
                             <td>
                                 @if (r.Importable) {
-                                    <input class="form-input" type="text" autocomplete="off" disabled="@_busy" value="@r.Name"
-                                           aria-label="@($"App name for {r.Candidate.Service.Service}")" @oninput="e => r.Name = e.Value?.ToString() ?? string.Empty"/>
+                                    <input class="form-input" type="text" autocomplete="off" disabled="@_busy" aria-label="@($"App name for {r.Candidate.Service.Service}")"
+                                           @bind:get="r.Name" @bind:set="v => r.Name = v ?? string.Empty" @bind:event="oninput"/>
                                 } else {
                                     @r.Candidate.ExistingApp
                                 }

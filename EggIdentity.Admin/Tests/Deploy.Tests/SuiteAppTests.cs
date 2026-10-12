@@ -99,7 +99,7 @@ public class SuiteAppTests {
         var values = new Dictionary<string, string?> { ["discord_bot"] = mode };
         var registration = SuiteApps.Descriptor.Fields.Where(f => f.Name.StartsWith("discord_", StringComparison.Ordinal) && f.Name != "discord_bot").ToList();
 
-        Assert.Equal(4, registration.Count);
+        Assert.Equal(5, registration.Count);
         Assert.All(registration, f => Assert.Equal(visible, f.IsVisible(values)));
         Assert.True(SuiteApps.Descriptor.FindField("discord_bot")?.IsVisible(values));
     }

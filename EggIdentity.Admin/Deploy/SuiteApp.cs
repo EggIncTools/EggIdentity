@@ -30,6 +30,7 @@ public sealed record SuiteApp {
     public string? DiscordAppId { get; init; }
     public string? DiscordGuildId { get; init; }
     public string? DiscordDashboardChannelId { get; init; }
+    public string? DiscordInviteUrl { get; init; }
 
     public string ContainerName => string.IsNullOrWhiteSpace(Container) ? Name : Container.Trim();
 
@@ -142,6 +143,11 @@ public static class SuiteApps {
                 Group = DiscordGroup,
                 VisibleWhen = OwnBot,
                 Description = "Fallback dashboard channel until one is set in the bot config.",
+            },
+            new FieldDescriptor("discord_invite_url", "Guild invite URL", SettingKind.Url) {
+                Group = DiscordGroup,
+                VisibleWhen = OwnBot,
+                Description = "Join link shown to users who must share a guild with the bot before it can DM them.",
             },
         ],
         "name", "display_name") {

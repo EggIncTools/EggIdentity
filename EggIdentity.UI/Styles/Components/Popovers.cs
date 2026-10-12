@@ -19,5 +19,10 @@ internal static class Popovers {
         { ".popover-combo-opt", "block w-full text-left px-2.5 py-1.5 text-xs text-fg bg-transparent border-0 cursor-pointer truncate [font-family:inherit]" },
         { ".popover-combo-opt:hover", "bg-accent text-bg" },
         { ".popover-combo-opt.combo-highlighted", "bg-accent text-bg" },
+        { ".popover-combo-opt.combo-opt-rich", "flex items-center gap-1.5" },
+        { ".popover-combo-group", "px-2.5 pt-2 pb-1 text-xs font-semibold text-muted cursor-default select-none" },
+        { ".combo-opt-img", "w-4 h-4 shrink-0 [object-fit:contain]" },
+        { ".combo-opt-label", "min-w-0 truncate" },
+        { ".combo-opt-badge", "ml-auto shrink-0" },
     }.ToImmutableDictionary();
 }

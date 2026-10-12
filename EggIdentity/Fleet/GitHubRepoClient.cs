@@ -27,10 +27,12 @@ public interface IGitHubRepo {
     Task<bool> IsAncestorAsync(RepoRef repo, string ancestor, string head, CancellationToken ct);
 }
 
-public sealed class GitHubRepoClient(HttpClient http, Func<string?> token) : IGitHubRepo {
+public sealed record GitCommitter(string Name, string Email) {
+    public static readonly GitCommitter Default = new("EggIdentity Fleet", "fleet@egginc.tools");
+}
+
+public sealed class GitHubRepoClient(HttpClient http, Func<string?> token, Func<GitCommitter>? committer = null) : IGitHubRepo {
     public static readonly Uri BaseAddress = new("https://api.github.com/");
-    private const string CommitterName = "EggIdentity Fleet";
-    private const string CommitterEmail = "fleet@egginc.tools";
 
     public async Task<RepoFile?> GetFileAsync(RepoRef repo, string path, string branch, CancellationToken ct) {
         ArgumentNullException.ThrowIfNull(repo);
@@ -47,9 +49,10 @@ public sealed class GitHubRepoClient(HttpClient http, Func<string?> token) : IGi
     public async Task<RepoCommit> PutFileAsync(
         RepoRef repo, string path, string branch, string text, string blobSha, string message, CancellationToken ct) {
         ArgumentNullException.ThrowIfNull(repo);
+        var who = committer?.Invoke() ?? GitCommitter.Default;
         using var request = Request(HttpMethod.Put, Contents(repo, path));
         request.Content = JsonContent.Create(new PutBody(
-            message, Convert.ToBase64String(Encoding.UTF8.GetBytes(text)), blobSha, branch, new Committer(CommitterName, CommitterEmail)));
+            message, Convert.ToBase64String(Encoding.UTF8.GetBytes(text)), blobSha, branch, new Committer(who.Name, who.Email)));
         using var response = await http.SendAsync(request, ct);
         await EnsureAsync(response, ct);
         var body = await response.Content.ReadFromJsonAsync<PutResult>(ct);

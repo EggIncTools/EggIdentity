@@ -110,7 +110,13 @@ public sealed partial class FilterBuilder : ComponentBase {
         await ValidityChanged.InvokeAsync(state);
     }
 
-    private IReadOnlyList<ComboOption> Combo(FilterFieldDef field) => [.. Options(field).Select(o => new ComboOption(o.Value, o.Label))];
+    private IReadOnlyList<ComboOption> Combo(FilterFieldDef field) =>
+        [.. Options(field).Select(o => new ComboOption(o.Value, o.Label) { Group = o.Group, Badge = o.Badge, Image = o.Image, Class = o.Class })];
+
+    private RenderFragment<ComboOption>? ComboTemplate() =>
+        OptionTemplate is { } template
+            ? c => template(new FilterOption(c.Value, c.Label) { Group = c.Group, Badge = c.Badge, Image = c.Image, Class = c.Class })
+            : null;
 
     private string OptionLabel(FilterFieldDef field, string value) =>
         Options(field).FirstOrDefault(o => o.Value == value)?.Label ?? value;

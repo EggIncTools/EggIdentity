@@ -19,6 +19,7 @@ public static class DiscordRegistrationRoutes {
                 AppId = app.DiscordAppId,
                 GuildId = guild,
                 DashboardChannelId = app.DiscordDashboardChannelId,
+                GuildInviteUrl = app.DiscordInviteUrl,
             }
             : null;
 }

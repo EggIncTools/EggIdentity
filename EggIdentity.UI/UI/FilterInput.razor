@@ -40,4 +40,4 @@
     string WrapCss => string.IsNullOrWhiteSpace(WrapClass) ? "filter-field" : $"filter-field {WrapClass}";
 
     RenderFragment Field() => @<input type="search" class="@Class" id="@Id" placeholder="@Placeholder" aria-label="@AriaLabel"
-                                      disabled="@Disabled" value="@Value" @oninput="e => ValueChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty)" @attributes="Attrs"/>;}
+                                      disabled="@Disabled" @bind:get="Value" @bind:set="v => ValueChanged.InvokeAsync(v ?? string.Empty)" @bind:event="oninput" @attributes="Attrs"/>;}

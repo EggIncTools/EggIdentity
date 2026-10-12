@@ -14,4 +14,7 @@ public sealed class DiscordRegistrationResponse {
 
     [JsonPropertyName("dashboardChannelId")]
     public string? DashboardChannelId { get; set; }
+
+    [JsonPropertyName("guildInviteUrl")]
+    public string? GuildInviteUrl { get; set; }
 }
