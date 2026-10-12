@@ -177,30 +177,45 @@
 
     @if (_rowEdit is { } edit) {
         <ModalHost Open="true" Title="@(edit.IsNew ? $"Add {edit.Descriptor.Label}" : $"Edit {edit.Descriptor.Label}")"
-                   TitleId="sksRowEditTitle" OnClose="CloseRowEdit">
+                   TitleId="sksRowEditTitle" Width="ModalWidth.Large" OnClose="CloseRowEdit">
             <div class="modal-body sks-form">
-                @foreach (var field in EditableFields(edit)) {
-                    var spec = FieldSpec(edit, field);
-                    <div class="sks-field">
-                        <label class="sks-label" for="@spec.Id">
-                            @field.Label
-                            @if (field.Required) {
-                                <span class="sks-req">required</span>
-                            }
-                            @if (field.Legacy) {
-                                <span class="badge badge-muted sks-badge" title="Superseded, still in use">legacy</span>
-                            }
-                        </label>
-                        @if (field.Description is { Length: > 0 } fieldDescription) {
-                            <p class="sks-desc">@fieldDescription</p>
+                @foreach (var section in EditorSections(edit)) {
+                    <section class="sks-section">
+                        @if (section.Key.Length > 0) {
+                            <h4 class="sks-section-title">@section.Key</h4>
                         }
-                        @ControlView(spec)
-                    </div>
+                        <div class="sks-grid">
+                            @foreach (var field in section) {
+                                var spec = FieldSpec(edit, field);
+                                <div class="@(IsWide(field) ? "sks-field sks-field-wide" : "sks-field")">
+                                    <label class="sks-label" for="@spec.Id">
+                                        @field.Label
+                                        @if (field.Required) {
+                                            <span class="sks-req">required</span>
+                                        }
+                                        @if (field.Legacy) {
+                                            <span class="badge badge-muted sks-badge" title="Superseded, still in use">legacy</span>
+                                        }
+                                    </label>
+                                    @ControlView(spec)
+                                    @if (field.Description is { Length: > 0 } fieldDescription) {
+                                        <p class="sks-desc">@fieldDescription</p>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </section>
                 }
                 @if (edit.Error is not null) {
                     <p class="sks-error">@edit.Error</p>
                 }
                 <div class="sks-modal-actions">
+                    @if (!edit.IsNew && edit.Id is { } editId) {
+                        <button type="button" class="btn-mini btn-danger" disabled="@_busy" @onclick="DeleteFromEditAsync">
+                            @(IsConfirmingDelete(editId) ? "Confirm delete" : "Delete")
+                        </button>
+                    }
+                    <span class="sks-spacer"></span>
                     <button type="button" class="btn-secondary" @onclick="CloseRowEdit">Cancel</button>
                     <button type="button" class="btn-primary" disabled="@_busy" @onclick="SaveRowEditAsync">Save</button>
                 </div>
@@ -298,7 +313,15 @@
     </text>;
 
     private RenderFragment ControlView(ControlSpec spec) => @<text>
-        @if (spec.Kind == SettingKind.Bool) {
+        @if (spec.Kind == SettingKind.Bool && !spec.Nullable) {
+            var on = string.Equals(spec.Value, "true", StringComparison.OrdinalIgnoreCase);
+            <label class="sks-switch">
+                <input id="@spec.Id" type="checkbox" role="switch" class="sks-switch-input" disabled="@spec.Disabled" checked="@on"
+                       @onchange="@(e => spec.Set(e.Value is true ? "true" : "false"))"/>
+                <span class="sks-switch-track" aria-hidden="true"></span>
+                <span class="sks-switch-text">@(on ? "On" : "Off")</span>
+            </label>
+        } else if (spec.Kind == SettingKind.Bool) {
             <select id="@spec.Id" class="form-select sks-input" disabled="@spec.Disabled" value="@spec.Value"
                     @onchange="e => spec.Set(e.Value?.ToString())">
                 <option value="">unset</option>
@@ -308,7 +331,9 @@
         } else if (spec.Kind == SettingKind.Enum) {
             <select id="@spec.Id" class="form-select sks-input" disabled="@spec.Disabled" value="@spec.Value"
                     @onchange="e => spec.Set(e.Value?.ToString())">
-                <option value="">unset</option>
+                @if (spec.Nullable) {
+                    <option value="">unset</option>
+                }
                 @foreach (var option in spec.EnumValues) {
                     <option value="@option">@option</option>
                 }
@@ -346,29 +371,23 @@
                 <table class="data-table">
                     <thead>
                     <tr>
-                        @foreach (var field in VisibleFields(descriptor)) {
-                            <th>
-                                @field.Label
-                                @if (field.Legacy) {
-                                    <span class="badge badge-muted sks-badge" title="Superseded, still in use">legacy</span>
-                                }
-                            </th>
+                        @foreach (var field in descriptor.SummaryColumns()) {
+                            <th>@field.Label</th>
                         }
                         <th class="data-table-actions"></th>
                     </tr>
                     </thead>
                     <tbody>
                     @foreach (var row in context) {
-                        var id = row.Id;
+                        var key = descriptor.ResolvedKeyField;
                         <tr>
-                            @foreach (var field in VisibleFields(descriptor)) {
-                                <td class="@(IsSecret(field) ? "cell-clip sks-mono" : "cell-clip")">@row.Get(field.Name)</td>
+                            @foreach (var field in descriptor.SummaryColumns()) {
+                                <td class="@(string.Equals(field.Name, key, StringComparison.Ordinal) ? "cell-clip sks-cell-key" : "cell-clip")">
+                                    @CellView(field, row.Get(field.Name))
+                                </td>
                             }
                             <td class="sks-actions data-table-actions">
                                 <button type="button" class="btn-mini" disabled="@_busy" @onclick="() => OpenEdit(descriptor, row)">Edit</button>
-                                <button type="button" class="btn-mini btn-danger" disabled="@_busy" @onclick="() => DeleteAsync(descriptor, id)">
-                                    @(IsConfirmingDelete(id) ? "Confirm delete" : "Delete")
-                                </button>
                             </td>
                         </tr>
                     }
@@ -377,6 +396,24 @@
             </div>
         </WorkbenchLoad>
     </div>;
+
+    private RenderFragment CellView(FieldDescriptor field, string? stored) => @<text>
+        @{
+            var value = CellValue(field, stored);
+        }
+        @if (IsSecret(field)) {
+            <span class="@(string.IsNullOrEmpty(stored) ? "badge badge-muted sks-badge" : "badge badge-ok sks-badge")">@(string.IsNullOrEmpty(stored) ? "unset" : "set")</span>
+        } else if (field.Kind == SettingKind.Bool && !string.IsNullOrEmpty(value)) {
+            var on = string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+            <span class="@(on ? "badge badge-ok sks-badge" : "badge badge-muted sks-badge")">@(on ? "on" : "off")</span>
+        } else if (string.IsNullOrEmpty(value)) {
+            <span class="sks-empty">not set</span>
+        } else if (field.Kind == SettingKind.Url && IsLink(value)) {
+            <a class="sks-link" href="@value" target="_blank" rel="noopener noreferrer">@value</a>
+        } else {
+            @value
+        }
+    </text>;
 
     private RenderFragment DriftPane() => @<div class="sks-drift">
         <div class="sks-pane-head">

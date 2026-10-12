@@ -25,7 +25,8 @@ public sealed partial class SettingsPanel : IDisposable {
         Action<string?> Set,
         bool Disabled,
         string? Placeholder,
-        bool Password);
+        bool Password,
+        bool Nullable = true);
 
     internal sealed class StackEdit {
         public required string Key { get; init; }
@@ -38,6 +39,7 @@ public sealed partial class SettingsPanel : IDisposable {
     internal sealed class RowEdit {
         public required CollectionDescriptor Descriptor { get; init; }
         public bool IsNew { get; init; }
+        public string? Id { get; init; }
         public Dictionary<string, string?> Values { get; } = [with(StringComparer.Ordinal)];
         public HashSet<string> MaskedFields { get; } = [with(StringComparer.Ordinal)];
         public string? Error { get; set; }
@@ -270,6 +272,27 @@ public sealed partial class SettingsPanel : IDisposable {
     private static IReadOnlyList<FieldDescriptor> EditableFields(RowEdit edit) =>
         [.. edit.Descriptor.Fields.Where(f => (!f.Legacy || !string.IsNullOrEmpty(edit.Values.GetValueOrDefault(f.Name))) && f.IsVisible(edit.Values))];
 
+    private static IEnumerable<IGrouping<string, FieldDescriptor>> EditorSections(RowEdit edit) =>
+        EditableFields(edit).GroupBy(f => f.Group ?? "", StringComparer.Ordinal);
+
+    private static bool IsWide(FieldDescriptor field) =>
+        field.Kind is SettingKind.StringList or SettingKind.CidrList or SettingKind.Json;
+
+    private static string? CellValue(FieldDescriptor field, string? stored) =>
+        string.IsNullOrEmpty(stored) ? field.Default : stored;
+
+    private static bool IsLink(string? value) =>
+        Uri.TryCreate(value, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
+
+    private static string? Initial(FieldDescriptor field, string? value) {
+        if (!string.IsNullOrEmpty(value) || field.Nullable) return value;
+        return field.Kind switch {
+            SettingKind.Bool => field.Default ?? "false",
+            SettingKind.Enum => field.Default ?? field.EnumValues.FirstOrDefault(),
+            _ => value,
+        };
+    }
+
     private bool IsCarryingValue(CollectionDescriptor descriptor, FieldDescriptor field) =>
         _collectionRows.GetValueOrDefault(descriptor.Key)?.Any(r => !string.IsNullOrEmpty(r.Get(field.Name))) == true;
 
@@ -384,7 +407,8 @@ public sealed partial class SettingsPanel : IDisposable {
             },
             isId && !edit.IsNew,
             edit.MaskedFields.Contains(field.Name) ? "set, leave blank to keep" : field.Default,
-            secret);
+            secret,
+            field.Nullable);
     }
 
     private void Notify(StatusNoteKind kind, string text) {
@@ -508,12 +532,13 @@ public sealed partial class SettingsPanel : IDisposable {
 
     private void OpenAdd(CollectionDescriptor descriptor) {
         var edit = new RowEdit { Descriptor = descriptor, IsNew = true };
-        foreach (var f in descriptor.Fields) edit.Values[f.Name] = f.Default;
+        foreach (var f in descriptor.Fields) edit.Values[f.Name] = Initial(f, f.Default);
+        _confirmDeleteId = null;
         _rowEdit = edit;
     }
 
     private void OpenEdit(CollectionDescriptor descriptor, CollectionRow row) {
-        var edit = new RowEdit { Descriptor = descriptor, IsNew = false };
+        var edit = new RowEdit { Descriptor = descriptor, IsNew = false, Id = row.Id };
         foreach (var f in descriptor.Fields) {
             var stored = row.Get(f.Name);
             if (IsSecret(f)) {
@@ -521,9 +546,10 @@ public sealed partial class SettingsPanel : IDisposable {
                 if (!string.IsNullOrEmpty(stored)) edit.MaskedFields.Add(f.Name);
                 continue;
             }
-            edit.Values[f.Name] = ToControl(f.Kind, stored);
+            edit.Values[f.Name] = Initial(f, ToControl(f.Kind, stored));
         }
         edit.Values[descriptor.IdField] = row.Id;
+        _confirmDeleteId = null;
         _rowEdit = edit;
     }
 
@@ -561,8 +587,8 @@ public sealed partial class SettingsPanel : IDisposable {
         string.Equals(_confirmDeleteId, id, StringComparison.Ordinal)
         && DateTimeOffset.UtcNow - _confirmDeleteAt < DeleteConfirmWindow;
 
-    private async Task DeleteAsync(CollectionDescriptor descriptor, string id) {
-        if (_admin is null) return;
+    private async Task DeleteFromEditAsync() {
+        if (_admin is null || _rowEdit is not { IsNew: false, Id: { } id } edit) return;
         if (!IsConfirmingDelete(id)) {
             _confirmDeleteId = id;
             _confirmDeleteAt = DateTimeOffset.UtcNow;
@@ -570,17 +596,19 @@ public sealed partial class SettingsPanel : IDisposable {
             return;
         }
         _confirmDeleteId = null;
+        var descriptor = edit.Descriptor;
         _busy = true;
         try {
             var result = await _admin.DeleteRowAsync(descriptor.Key, id, CancellationToken.None);
             if (!result.Ok) {
-                _collectionErrors[descriptor.Key] = result.Error ?? "delete failed";
+                edit.Error = result.Error ?? "delete failed";
                 return;
             }
+            _rowEdit = null;
             await LoadCollectionAsync(descriptor.Key);
             Notify(StatusNoteKind.Ok, $"Deleted {descriptor.Label}: {id}.");
         } catch (Exception e) {
-            _collectionErrors[descriptor.Key] = e.Message;
+            edit.Error = e.Message;
         } finally {
             _busy = false;
         }

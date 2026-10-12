@@ -146,6 +146,8 @@ public static class SuiteApps {
         ],
         "name", "display_name") {
         Description = "One row per deployed app instance: what it is, where it runs, how it is administered, how it logs in and who speaks for it on Discord.",
+        KeyField = "name",
+        SummaryFields = ["name", "environment", "enabled", "public_url", "auto_deploy", "discord_bot"],
     };
 
     public static ICollectionProvider Provider { get; } = new StaticCollectionProvider([Descriptor]);
