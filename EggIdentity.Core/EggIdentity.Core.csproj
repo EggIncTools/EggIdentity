@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>EggIdentity</RootNamespace>
-    <Description>EggIdentity core: frozen wire DTOs and UserRole (Contract), the OR-of-AND filter engine (Filtering), retry/backoff/circuit-breaker and TtlSnapshot (Resilience), PeriodicScopedService (Hosting), and the declarative settings model (Settings).</Description>
+    <Description>EggIdentity core: frozen wire DTOs and UserRole (Contract), the key/value filter model, evaluator and codec (Filters), retry/backoff/circuit-breaker and TtlSnapshot (Resilience), PeriodicScopedService (Hosting), and the declarative settings model (Settings).</Description>
   </PropertyGroup>
 
   <ItemGroup>

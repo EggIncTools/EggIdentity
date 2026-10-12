@@ -1,0 +1,142 @@
+@using EggIdentity.Filters
+
+<div class="@(ReadOnly ? "fb fb-readonly" : "fb")" data-options-version="@OptionsVersion">
+    @for (var r = 0; r < CurrentDraft.Rows.Count; r++) {
+        var rowIndex = r;
+        var row = CurrentDraft.Rows[rowIndex];
+        if (ReadOnly && FilterValidator.IsBlank(row.Head)) {
+            continue;
+        }
+        if (rowIndex > 0) {
+            <div class="fb-divider">@Labels.And</div>
+        }
+        @for (var m = 0; m <= row.Or.Count; m++) {
+            var member = m;
+            var cond = Get(rowIndex, member);
+            if (ReadOnly && FilterValidator.IsBlank(cond)) {
+                continue;
+            }
+            var field = Field(cond.Field);
+            var problem = Problem(cond);
+            <div class="@(member > 0 ? "fb-row fb-or" : "fb-row")">
+                @if (member > 0) {
+                    <span class="fb-chip">@Labels.Or</span>
+                }
+                @if (ReadOnly) {
+                    <span class="fb-readonly-value">@(field?.Label ?? cond.Field)</span>
+                    @if (field is not null && IsBool(field)) {
+                        <span class="fb-is">@Labels.Is</span>
+                        <span class="fb-readonly-value">@cond.Op</span>
+                    } else if (field is not null) {
+                        <span class="fb-is">@OpLabel(field, cond.Op)</span>
+                        <span class="fb-readonly-value">@OptionLabel(field, cond.Value)</span>
+                    }
+                } else {
+                    <div class="fb-field">
+                        <select class="@Css("fb-select", FilterValidator.IsBlank(cond) && member > 0)" value="@cond.Field"
+                                @onchange="e => SetField(rowIndex, member, (string?)e.Value)">
+                            <option value="">@Labels.Field</option>
+                            @if (field is null && cond.Field.Length > 0) {
+                                <option value="@cond.Field">@cond.Field</option>
+                            }
+                            @foreach (var group in Fields.GroupBy(f => f.Group ?? "")) {
+                                @if (group.Key.Length == 0) {
+                                    @foreach (var f in group) {
+                                        <option value="@f.Key">@f.Label</option>
+                                    }
+                                } else {
+                                    <optgroup label="@group.Key">
+                                        @foreach (var f in group) {
+                                            <option value="@f.Key">@f.Label</option>
+                                        }
+                                    </optgroup>
+                                }
+                            }
+                        </select>
+                    </div>
+                    @if (field is not null) {
+                        <div class="fb-op">
+                            @if (IsBool(field)) {
+                                <span class="fb-is">@Labels.Is</span>
+                            } else {
+                                var ops = Ops(field);
+                                var op = OpOf(cond, field);
+                                <select class="@Css("fb-select", op.Length == 0)" value="@op" disabled="@(ops.Count == 1)"
+                                        @onchange="e => SetOp(rowIndex, member, (string?)e.Value)">
+                                    @if (op.Length == 0) {
+                                        <option value="">@Labels.Select</option>
+                                    } else if (!ops.Any(o => o.Value == op)) {
+                                        <option value="@op">@op</option>
+                                    }
+                                    @foreach (var o in ops) {
+                                        <option value="@o.Value">@o.Label</option>
+                                    }
+                                </select>
+                            }
+                        </div>
+                        @if (IsBool(field)) {
+                            <div class="fb-value">
+                                <select class="fb-select" value="@cond.Op" @onchange="e => SetOp(rowIndex, member, (string?)e.Value)">
+                                    @foreach (var o in Ops(field)) {
+                                        <option value="@o.Value">@o.Label</option>
+                                    }
+                                </select>
+                            </div>
+                        } else if (OpOf(cond, field).Length > 0) {
+                            var missing = string.IsNullOrWhiteSpace(cond.Value);
+                            <div class="fb-value">
+                                @if (UsesEditor(field)) {
+                                    @ValueEditor!(new FilterValueEditorContext(field, cond.Value, Options(field), missing, v => SetValue(rowIndex, member, v)))
+                                } else if (field.Kind == FilterValueKind.SearchableSelect) {
+                                    <ComboBoxPicker Value="@cond.Value" Options="@Combo(field)" Placeholder="@Labels.ClickToSelect"
+                                                    Class="@Css("", missing)" ValueChanged="v => SetValue(rowIndex, member, v)"/>
+                                } else if (field.Kind is FilterValueKind.Select or FilterValueKind.Set) {
+                                    <select class="@Css("fb-select", missing)" value="@cond.Value" @onchange="e => SetValue(rowIndex, member, (string?)e.Value)">
+                                        <option value="">@Labels.Select</option>
+                                        @if (!missing && !Options(field).Any(o => o.Value == cond.Value)) {
+                                            <option value="@cond.Value">@cond.Value</option>
+                                        }
+                                        @foreach (var group in Options(field).GroupBy(o => o.Group ?? "")) {
+                                            @if (group.Key.Length == 0) {
+                                                @foreach (var o in group) {
+                                                    <option value="@o.Value" class="@o.Class">@o.Label</option>
+                                                }
+                                            } else {
+                                                <optgroup label="@group.Key">
+                                                    @foreach (var o in group) {
+                                                        <option value="@o.Value" class="@o.Class">@o.Label</option>
+                                                    }
+                                                </optgroup>
+                                            }
+                                        }
+                                    </select>
+                                } else {
+                                    <input class="@Css("fb-select", missing)" type="@InputType(field)" value="@cond.Value"
+                                           @onchange="e => SetValue(rowIndex, member, (string?)e.Value)"/>
+                                }
+                            </div>
+                        }
+                    }
+                    @if (problem is not null) {
+                        <span class="fb-warn" title="@($"{Labels.Incomplete}: {problem}")" aria-label="@($"{Labels.Incomplete}: {problem}")">
+                            <Icon Name="triangle-alert" Class="icon-sm"/>
+                        </span>
+                    }
+                    @if (member == 0 && ShowOr(row)) {
+                        <button type="button" class="fb-btn fb-or-btn" title="@Labels.AddOrTooltip" disabled="@(!OrEnabled(row))"
+                                @onclick="() => AddOr(rowIndex)">@Labels.AddOr</button>
+                    }
+                    @if (member > 0 || !FilterValidator.IsBlank(cond)) {
+                        var label = member == 0 ? Labels.RemoveAnd : Labels.RemoveOr;
+                        <button type="button" class="fb-btn fb-remove" title="@label" aria-label="@label" @onclick="() => Remove(rowIndex, member)">
+                            <Icon Name="x" Class="icon-sm"/>
+                        </button>
+                    }
+                }
+            </div>
+        }
+    }
+    @if (ChildContent is not null) {
+        <div class="fb-footer">@ChildContent</div>
+    }
+</div>

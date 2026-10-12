@@ -150,7 +150,19 @@ public static class SharedLiterals {
             margin-left: 0;
           }
         }
+        @container (max-width: 34rem) {
+          .fb-row {
+            flex-wrap: wrap;
+          }
+          .fb-field, .fb-op {
+            flex: 1 1 calc(50% - 0.5rem);
+          }
+          .fb-value {
+            flex-basis: 100%;
+          }
+        }
         @media (prefers-reduced-motion: reduce) {
+          .fb-select, .fb-btn,
           .modal-card, .modal-card.wb-card, .wb-rail, .wb-main, .wb-drawer, .wb-drawer.wb-drawer-open, .wb-drawer-tab, .tooltip-floating, .popover, .toast, .cal-period, .cal-row, .suite-tool, .fab-bubble, .progress-fill, .caret, .mask, .menu, .menu.open, .drop-zone {
             transition: none;
           }

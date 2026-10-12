@@ -26,7 +26,7 @@ public static class ComponentClasses {
         .AddRange(Tooltips.Applies)
         .AddRange(Prose.Applies)
         .AddRange(Workbench.Applies)
-        .AddRange(Filters.Applies)
+        .AddRange(Components.Filters.Applies)
         .AddRange(Calendar.Applies)
         .AddRange(Components.Icons.Applies)
         .AddRange(Rarity.Applies)
