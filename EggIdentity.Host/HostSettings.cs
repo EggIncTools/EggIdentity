@@ -6,7 +6,6 @@ public static class HostSettings {
     private const string Core = "Core";
     private const string Identity = "Identity: SSO";
     private const string Login = "Identity: login";
-    private const string Discord = "Discord";
     private const string Sponsors = "Sponsors";
     private const string Storage = "Storage";
     private const string Build = "Build";
@@ -14,6 +13,8 @@ public static class HostSettings {
     public const string LoginSweepIntervalMinutes = "identity.login_sweep_interval_minutes";
     public const string ReconcileIntervalMinutes = "identity.reconcile_interval_minutes";
     public const string TokenDecryptionKey = "authentik.token_decryption_key";
+    public const string SponsorPat = "github.sponsor_pat";
+    public const string SponsorWebhookSecret = "github.sponsor_webhook_secret";
     public const string SponsorTarget = "github.sponsor_target";
     public const string SponsorRoleId = "discord.sponsor_role_id";
 
@@ -63,28 +64,19 @@ public static class HostSettings {
             Description = "Service-account token with read access to users and read/delete on user source connections. Set to make Authentik's connected services the source of truth for linked identities: every login and link reconciles against it, and unlinking here also disconnects in Authentik. Unset, linked identities come only from token claims.",
         },
         new SettingDescriptor(
-            "discord.token", "DISCORD_TOKEN", "Bot token", Discord,
-            SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
-            Description = "Set to enable the bot at startup.",
-        },
-        new SettingDescriptor(
-            "discord.guild_id", "DISCORD_GUILD_ID", "Guild id", Discord,
-            SettingKind.Snowflake, ApplyTier.RestartRequired, Sensitivity.Plain),
-        new SettingDescriptor(
-            "bot.config_file", "EGGIDENTITY_BOT_CONFIG_FILE", "Bot config file", Discord,
-            SettingKind.Path, ApplyTier.Bootstrap, Sensitivity.Plain) { Default = "/etc/eggidentity/bot.env" },
-        new SettingDescriptor(
-            "github.sponsor_pat", "GITHUB_SPONSOR_PAT", "GitHub sponsor token", Sponsors,
+            SponsorPat, "GITHUB_SPONSOR_PAT", "GitHub sponsor token", Sponsors,
             SettingKind.Secret, ApplyTier.RestartRequired, Sensitivity.Secret),
         new SettingDescriptor(
-            "github.sponsor_webhook_secret", "GITHUB_SPONSOR_WEBHOOK_SECRET", "Sponsor webhook secret", Sponsors,
+            SponsorWebhookSecret, "GITHUB_SPONSOR_WEBHOOK_SECRET", "Sponsor webhook secret", Sponsors,
             SettingKind.Secret, ApplyTier.RestartRequired, Sensitivity.Secret),
         new SettingDescriptor(
             SponsorTarget, "GITHUB_SPONSOR_TARGET", "Sponsor target account", Sponsors,
-            SettingKind.Text, ApplyTier.RestartRequired, Sensitivity.Plain),
+            SettingKind.Text, ApplyTier.RestartRequired, Sensitivity.Plain) { Default = SponsorConfig.DefaultTarget },
         new SettingDescriptor(
             SponsorRoleId, "DISCORD_SPONSOR_ROLE_ID", "Sponsor role id", Sponsors,
-            SettingKind.Snowflake, ApplyTier.RestartRequired, Sensitivity.Plain),
+            SettingKind.Snowflake, ApplyTier.RestartRequired, Sensitivity.Plain) {
+            Description = "Granted in the guild of the eggidentity suite.apps row's Discord registration.",
+        },
         new SettingDescriptor(
             "avatar.storage_dir", "AVATAR_STORAGE_DIR", "Avatar storage directory", Storage,
             SettingKind.Path, ApplyTier.Bootstrap, Sensitivity.Plain),

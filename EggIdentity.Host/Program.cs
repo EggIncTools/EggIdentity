@@ -1,7 +1,6 @@
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
-using EggIdentity.Db;
 using EggIdentity.Fallback;
 using EggIdentity.Fleet;
 using EggIdentity.Settings.Api;
@@ -14,14 +13,17 @@ public static class Program {
     private const string HubOrigin = "https://egginc.tools";
 
     public static async Task Main(string[] args) {
-        var config = HostConfig.FromEnvironment();
+        var envConfig = HostConfig.FromEnvironment();
+        var runtime = await HostServices.CreateRuntimeAsync(envConfig);
+        var config = envConfig.WithSettings(await runtime.SettingsCache.GetAsync(), Environment.GetEnvironmentVariable);
+        if (config.DiscordRegistration is null) Console.Error.WriteLine("eggidentity: no Discord registration for this instance, bot disabled");
 
         var builder = WebApplication.CreateBuilder(args);
-        var runtime = HostServices.Register(builder, config);
+        HostServices.Register(builder, config, runtime);
 
         var app = builder.Build();
         ConfigurePipeline(app, config);
-        await InitializeAsync(app, config, runtime);
+        StartBackground(app, config, runtime);
         MapRoutes(app, config);
 
         await app.RunAsync();
@@ -34,13 +36,7 @@ public static class Program {
         IdentityApiRoutes.UseBearerGate(app, config);
     }
 
-    private static async Task InitializeAsync(WebApplication app, HostConfig config, HostRuntime runtime) {
-        await using (var conn = await Database.WaitForAsync(runtime.DataSource))
-            await Migrator.MigrateAsync(conn, Path.Combine(AppContext.BaseDirectory, "Migrations"));
-
-        await runtime.SettingsStore.MigrateAsync();
-        await runtime.SettingsCache.GetAsync();
-
+    private static void StartBackground(WebApplication app, HostConfig config, HostRuntime runtime) {
         var stopping = app.Lifetime.ApplicationStopping;
         _ = new SettingsChangeListener(runtime.DataSource, runtime.SettingsCache).RunAsync(stopping);
         _ = app.Services.GetRequiredService<FleetRuntime>().RunAsync(FleetRuntime.DefaultRefreshInterval, stopping);

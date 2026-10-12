@@ -3,13 +3,15 @@ using Discord.WebSocket;
 using EggIdentity.Bot;
 using EggIdentity.Contract;
 using EggIdentity.Db;
+using EggIdentity.DbClone;
 using EggIdentity.Fleet;
 using Npgsql;
 
 namespace EggIdentity.Host;
 
 public sealed class BotHostedService(
-    string configFilePath, string postgresConnectionString, SuiteBotApps suiteApps, DeployService fleet, TimeProvider? time = null) : IHostedService {
+    DiscordRegistrationResponse registration, string? repoUrl, string postgresConnectionString, SuiteBotApps suiteApps, DeployService fleet,
+    TimeProvider? time = null) : IHostedService {
     private readonly TimeProvider _time = time ?? TimeProvider.System;
 
     public EggIdentityBot? Bot { get; private set; }
@@ -18,9 +20,14 @@ public sealed class BotHostedService(
         var build = BuildInfo.Build(Environment.GetEnvironmentVariable, Assembly.GetExecutingAssembly());
         var startedAt = _time.GetUtcNow();
 
+        var repo = repoUrl?.Trim() ?? "";
         var builder = new EggIdentityBotBuilder()
-            .WithConfigFile(configFilePath)
-            .WithEnvFallback(key => key == "POSTGRES_CONNECTION_STRING" ? postgresConnectionString : Environment.GetEnvironmentVariable(key))
+            .WithConfigFile("")
+            .WithEnvFallback(key => key switch {
+                "POSTGRES_CONNECTION_STRING" => postgresConnectionString,
+                "REPO_URL" => repo,
+                _ => null,
+            })
             .WithName("EggIdentity")
             .WithBuild(build)
             .WithMigrationsLocation("BotMigrations", "eggidentity_bot_migrations")
@@ -29,11 +36,11 @@ public sealed class BotHostedService(
                 Version = build.Version,
                 BuildHash = build.Sha256,
                 UptimeSince = startedAt,
-                RepoUrl = "https://github.com/EggIncTools/eggidentity",
+                RepoUrl = repo,
             }))
             .WithServedApps(ServedSnapshotsAsync);
 
-        var cfg = builder.BuildConfig();
+        var cfg = builder.BuildConfig().WithRegistration(registration);
 
         try {
             Bot = await EggIdentityBot.StartAsync(cfg, builder);
@@ -59,7 +66,9 @@ public sealed class BotHostedService(
         var deployStateStore = new DeployStateStore(dataSource);
         var tracker = new DeployVersionTracker(deployStateStore, notifier);
         try {
-            await tracker.CheckAndNotifyAsync(HostServices.AppName, Environment.GetEnvironmentVariable("GIT_SHA") ?? "", cfg.Build.Version, cancellationToken);
+            await tracker.CheckAndNotifyAsync(
+                EnvironmentSettings.Instance(Environment.GetEnvironmentVariable, HostServices.AppName),
+                Environment.GetEnvironmentVariable("GIT_SHA") ?? "", cfg.Build.Version, cancellationToken);
         } catch (Exception ex) {
             Console.Error.WriteLine($"eggidentity: deploy self-report failed, continuing: {ex.Message}");
         }

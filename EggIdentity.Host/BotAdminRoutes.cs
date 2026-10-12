@@ -1,18 +1,10 @@
 using EggIdentity.Bot;
-using EggIdentity.Contract;
 
 namespace EggIdentity.Host;
 
 internal static class BotAdminRoutes {
     public static void Map(RouteGroupBuilder group) {
-        var capability = new AdminCapability(AdminCapabilities.Bot);
-
-        group.MapGet("/bot", async (BotHostedService bot, CancellationToken ct) =>
-            bot.Bot?.ConfigService is not { } admin ? Unconfigured() : Results.Ok(await admin.GetAsync(ct)))
-            .WithMetadata(capability);
-
-        group.MapPut("/bot", async (BotConfigInput body, BotHostedService bot, CancellationToken ct) =>
-            bot.Bot?.ConfigService is not { } admin ? Unconfigured() : Results.Ok(await admin.SaveAsync(body, ct)));
+        group.MapBotAdminApi(sp => sp.GetService<BotHostedService>()?.Bot?.ConfigService);
 
         group.MapGet("/bot/{app}", async (string app, BotHostedService bot, SuiteBotApps served, CancellationToken ct) =>
             await ServedAsync(app, bot, served, ct) is not { } admin ? NotServed(app) : Results.Ok(await admin.GetAsync(ct)));
@@ -27,11 +19,6 @@ internal static class BotAdminRoutes {
         var apps = await served.ServedAsync(ct);
         return apps.Any(a => string.Equals(a.Name, app, StringComparison.OrdinalIgnoreCase)) ? running.ConfigServiceFor(app) : null;
     }
-
-    private static IResult Unconfigured() =>
-        Results.Json(
-            new SaveResult(false, "this app's bot is not running", null),
-            statusCode: StatusCodes.Status503ServiceUnavailable);
 
     private static IResult NotServed(string app) =>
         Results.Json(

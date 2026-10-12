@@ -12,10 +12,8 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
     dotnet publish EggIdentity.Host/EggIdentity.Host.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-rc.1 AS runtime
-ARG BUILD_HEIGHT
 ARG BUILD_SHA
 ENV GIT_SHA=$BUILD_SHA
-ENV APP_VERSION=${BUILD_HEIGHT}.0.0
 WORKDIR /app
 COPY --from=build /app/publish .
 

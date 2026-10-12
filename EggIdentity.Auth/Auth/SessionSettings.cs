@@ -10,7 +10,7 @@ public static class SessionSettings {
 
     private const string Category = "Identity: SSO";
 
-    public static ISettingsProvider Provider { get; } = new StaticSettingsProvider([
+    public static ISettingsProvider Provider { get; } = SharedProviders.Register(new StaticSettingsProvider([
         new SettingDescriptor(
             Secret, "EGGIDENTITY_SESSION_SECRET", "Session signing secret", Category,
             SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
@@ -32,5 +32,5 @@ public static class SessionSettings {
             SettingKind.Text, ApplyTier.Bootstrap, Sensitivity.Plain) {
             Description = "Parent domain, shared by every consuming app.",
         },
-    ]);
+    ]));
 }

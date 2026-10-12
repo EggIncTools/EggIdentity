@@ -1,16 +1,18 @@
 using EggIdentity.Auth;
-using EggIdentity.Bot;
+using EggIdentity.Contract;
+using EggIdentity.DbClone;
+using EggIdentity.Deploy;
 using EggIdentity.Settings;
 
 namespace EggIdentity.Host;
 
-internal sealed class HostConfig {
+internal sealed record HostConfig {
     public required string ConnString { get; init; }
     public required string ApiSecret { get; init; }
     public required string Port { get; init; }
     public string? AdminIds { get; init; }
-    public int SweepIntervalMinutes { get; init; }
-    public int ReconcileIntervalMinutes { get; init; }
+    public int SweepIntervalMinutes { get; init; } = 10;
+    public int ReconcileIntervalMinutes { get; init; } = 30;
 
     public string? LocalLoginKey { get; init; }
     public string? AuthentikAuthority { get; init; }
@@ -25,9 +27,28 @@ internal sealed class HostConfig {
     public SponsorConfig? SponsorConfig { get; init; }
     public bool SponsorEnabled { get; init; }
 
-    public required string BotConfigFilePath { get; init; }
-    public required IReadOnlyDictionary<string, string> SharedFileValues { get; init; }
-    public bool BotEnabled { get; init; }
+    public DiscordRegistrationResponse? DiscordRegistration { get; init; }
+    public string? RepoUrl { get; init; }
+    public bool BotEnabled => DiscordRegistration is not null;
+
+    public HostConfig WithSettings(SettingsSnapshot snapshot, Func<string, string?> environment) {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(environment);
+        var self = snapshot.Collection<SuiteApp>(SuiteApps.Key).FirstOrDefault(a =>
+            string.Equals(a.Name, EnvironmentSettings.Instance(environment, HostServices.AppName), StringComparison.OrdinalIgnoreCase));
+        var registration = EnvironmentSettings.DiscordAllowed(environment) ? DiscordRegistrationRoutes.ToResponse(self) : null;
+        var sponsor = SponsorConfig.From(snapshot, registration);
+        var sweep = snapshot.GetInt(HostSettings.LoginSweepIntervalMinutes, 10);
+        var reconcile = snapshot.GetInt(HostSettings.ReconcileIntervalMinutes, 30);
+        return this with {
+            SweepIntervalMinutes = sweep > 0 ? sweep : 10,
+            ReconcileIntervalMinutes = reconcile > 0 ? reconcile : 30,
+            DiscordRegistration = registration,
+            RepoUrl = self?.RepoUrl,
+            SponsorConfig = sponsor,
+            SponsorEnabled = sponsor is not null && SessionOptions is not null,
+        };
+    }
 
     private static string? ReadPemOrFile(string envKey, string? value) {
         if (string.IsNullOrWhiteSpace(value)) return null;
@@ -50,21 +71,12 @@ internal sealed class HostConfig {
 
         var sessionOptions = SessionCookieOptions.FromEnvironment();
         var avatarStorageDir = Environment.GetEnvironmentVariable("AVATAR_STORAGE_DIR");
-        var sponsorConfig = SponsorConfig.FromEnvironment();
-
-        var botConfigFilePath = Environment.GetEnvironmentVariable("EGGIDENTITY_BOT_CONFIG_FILE")
-            ?? "/etc/eggidentity/bot.env";
-        var botEnabled = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISCORD_TOKEN"));
 
         return new HostConfig {
             ConnString = connString,
             ApiSecret = apiSecret,
             Port = Environment.GetEnvironmentVariable("IDENTITY_API_PORT") ?? "8090",
             AdminIds = Environment.GetEnvironmentVariable("IDENTITY_ADMIN_DISCORD_IDS"),
-            SweepIntervalMinutes =
-                int.TryParse(Environment.GetEnvironmentVariable("IDENTITY_LOGIN_SWEEP_INTERVAL_MINUTES"), out var m) ? m : 10,
-            ReconcileIntervalMinutes =
-                int.TryParse(Environment.GetEnvironmentVariable("IDENTITY_RECONCILE_INTERVAL_MINUTES"), out var r) && r > 0 ? r : 30,
             LocalLoginKey = Environment.GetEnvironmentVariable("EGGIDENTITY_LOCAL_KEY"),
             AuthentikAuthority = authentikAuthority,
             AuthentikTokenDecryptionKey = authentikTokenDecryptionKey,
@@ -73,11 +85,6 @@ internal sealed class HostConfig {
             SessionOptions = sessionOptions,
             AvatarStorageDir = avatarStorageDir,
             ProfileEnabled = loginWidgetEnabled && sessionOptions is not null && !string.IsNullOrEmpty(avatarStorageDir),
-            SponsorConfig = sponsorConfig,
-            SponsorEnabled = sponsorConfig is not null && sessionOptions is not null,
-            BotConfigFilePath = botConfigFilePath,
-            SharedFileValues = BotConfigLoader.ParseFile(botConfigFilePath),
-            BotEnabled = botEnabled,
         };
     }
 }

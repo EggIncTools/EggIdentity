@@ -1,4 +1,6 @@
 using EggIdentity.Auth;
+using EggIdentity.Db;
+using EggIdentity.DbClone;
 using EggIdentity.Deploy;
 using EggIdentity.Fallback;
 using EggIdentity.Fleet;
@@ -13,16 +15,32 @@ namespace EggIdentity.Host;
 
 internal sealed record HostRuntime(
     NpgsqlDataSource DataSource,
+    SettingsRegistry Registry,
     SettingsStore SettingsStore,
     SettingsCache SettingsCache);
 
 internal static class HostServices {
     public const string AppName = "eggidentity";
 
-    public static HostRuntime Register(WebApplicationBuilder builder, HostConfig config) {
+    public static async Task<HostRuntime> CreateRuntimeAsync(HostConfig config) {
+        var dataSource = NpgsqlDataSource.Create(config.ConnString);
+        await using (var conn = await Database.WaitForAsync(dataSource))
+            await Migrator.MigrateAsync(conn, Path.Combine(AppContext.BaseDirectory, "Migrations"));
+
+        var registry = SettingsRegistry.Compose(
+            [HostSettings.Provider, SessionSettings.Provider, EnvironmentSettings.Provider, FleetSettings.Provider],
+            [SuiteApps.Provider, SuiteUpstreams.Provider]);
+        var store = new SettingsStore(dataSource, SecretProtector.FromEnvironment());
+        await store.MigrateAsync();
+        var cache = new SettingsCache(registry, store);
+        await cache.GetAsync();
+        return new HostRuntime(dataSource, registry, store, cache);
+    }
+
+    public static void Register(WebApplicationBuilder builder, HostConfig config, HostRuntime runtime) {
         builder.WebHost.UseUrls($"http://*:{config.Port}");
 
-        var dataSource = NpgsqlDataSource.Create(config.ConnString);
+        var dataSource = runtime.DataSource;
         builder.Services.AddSingleton(dataSource);
         builder.Services.TryAddSingleton(TimeProvider.System);
         builder.Services.AddSingleton(AdminAllowlist.FromConfig(config.AdminIds));
@@ -39,10 +57,8 @@ internal static class HostServices {
         RegisterSponsors(builder, config);
         RegisterLoginWidget(builder, config);
         RegisterBot(builder, config);
-        var runtime = RegisterSettings(builder, config, dataSource);
+        RegisterSettings(builder, runtime);
         RegisterFleet(builder);
-
-        return runtime;
     }
 
     private static void RegisterSponsors(WebApplicationBuilder builder, HostConfig config) {
@@ -78,27 +94,19 @@ internal static class HostServices {
     }
 
     private static void RegisterBot(WebApplicationBuilder builder, HostConfig config) {
-        if (!config.BotEnabled) return;
+        if (config.DiscordRegistration is not { } registration) return;
 
         builder.Services.AddSingleton<SuiteBotApps>();
         builder.Services.AddSingleton(sp => new BotHostedService(
-            config.BotConfigFilePath, config.ConnString, sp.GetRequiredService<SuiteBotApps>(), sp.GetRequiredService<DeployService>()));
+            registration, config.RepoUrl, config.ConnString, sp.GetRequiredService<SuiteBotApps>(), sp.GetRequiredService<DeployService>()));
         builder.Services.AddHostedService(sp => sp.GetRequiredService<BotHostedService>());
     }
 
-    private static HostRuntime RegisterSettings(
-        WebApplicationBuilder builder, HostConfig config, NpgsqlDataSource dataSource) {
-        var registry = SettingsRegistry.Compose(
-            [HostSettings.Provider, SessionSettings.Provider, FleetSettings.Provider], [SuiteApps.Provider, SuiteUpstreams.Provider]);
-        var store = new SettingsStore(dataSource, SecretProtector.FromEnvironment());
-        var cache = new SettingsCache(registry, store, config.SharedFileValues.GetValueOrDefault);
-
-        builder.Services.AddSingleton(registry);
-        builder.Services.AddSingleton(store);
-        builder.Services.AddSingleton(cache);
-        builder.Services.AddSingleton(new SettingsAdminService(registry, store, cache));
-
-        return new HostRuntime(dataSource, store, cache);
+    private static void RegisterSettings(WebApplicationBuilder builder, HostRuntime runtime) {
+        builder.Services.AddSingleton(runtime.Registry);
+        builder.Services.AddSingleton(runtime.SettingsStore);
+        builder.Services.AddSingleton(runtime.SettingsCache);
+        builder.Services.AddSingleton(new SettingsAdminService(runtime.Registry, runtime.SettingsStore, runtime.SettingsCache));
     }
 
     private static void RegisterFleet(WebApplicationBuilder builder) {

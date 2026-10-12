@@ -6,33 +6,36 @@ public sealed class SettingsRegistry {
     private readonly Dictionary<string, CollectionDescriptor> _collectionsByKey = [];
     private readonly List<CollectionDescriptor> _collections = [];
 
-    public SettingsRegistry(IEnumerable<ISettingsProvider> providers) : this(providers, [], null) {
+    public SettingsRegistry(IEnumerable<ISettingsProvider> providers) : this(providers, [], new HashSet<ISettingsProvider>()) {
     }
 
     public SettingsRegistry(IEnumerable<ISettingsProvider> settings, IEnumerable<ICollectionProvider> collections)
-        : this(settings, collections, null) {
+        : this(settings, collections, new HashSet<ISettingsProvider>()) {
     }
 
     private SettingsRegistry(
-        IEnumerable<ISettingsProvider> settings, IEnumerable<ICollectionProvider> collections, string? frameworkKey) {
+        IEnumerable<ISettingsProvider> settings, IEnumerable<ICollectionProvider> collections, IReadOnlySet<ISettingsProvider> shared) {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(collections);
 
-        foreach (var provider in settings) {
-            foreach (var d in provider.Describe()) {
-                if (frameworkKey is not null
-                    && string.Equals(d.Key, frameworkKey, StringComparison.Ordinal)
-                    && _byKey.ContainsKey(d.Key)) {
-                    continue;
-                }
-                if (!_byKey.TryAdd(d.Key, d)) {
-                    throw new InvalidOperationException(
-                        $"duplicate setting key \"{d.Key}\" from {provider.GetType().Name}");
-                }
-                _ordered.Add(d);
-            }
-        }
+        var ordered = settings.ToList();
+        foreach (var provider in ordered.Where(p => !shared.Contains(p))) Add(provider, skipDuplicates: false);
+        foreach (var provider in ordered.Where(shared.Contains)) Add(provider, skipDuplicates: true);
+        AddCollections(collections);
+    }
 
+    private void Add(ISettingsProvider provider, bool skipDuplicates) {
+        foreach (var d in provider.Describe()) {
+            if (skipDuplicates && _byKey.ContainsKey(d.Key)) continue;
+            if (!_byKey.TryAdd(d.Key, d)) {
+                throw new InvalidOperationException(
+                    $"duplicate setting key \"{d.Key}\" from {provider.GetType().Name}");
+            }
+            _ordered.Add(d);
+        }
+    }
+
+    private void AddCollections(IEnumerable<ICollectionProvider> collections) {
         foreach (var provider in collections) {
             foreach (var c in provider.Describe()) {
                 Check(c, provider);
@@ -49,7 +52,7 @@ public sealed class SettingsRegistry {
         IEnumerable<ISettingsProvider> settings, IEnumerable<ICollectionProvider> collections) {
         ArgumentNullException.ThrowIfNull(settings);
         return new SettingsRegistry(
-            [SettingsFrameworkSettings.Provider, .. settings], collections, SettingsFrameworkSettings.EncryptionKey);
+            [SettingsFrameworkSettings.Provider, .. settings], collections, SharedProviders.All);
     }
 
     public IReadOnlyList<SettingDescriptor> All => _ordered;

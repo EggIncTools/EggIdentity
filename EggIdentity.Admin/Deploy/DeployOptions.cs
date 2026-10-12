@@ -1,4 +1,5 @@
 using EggIdentity.Resilience;
+using EggIdentity.Settings;
 
 namespace EggIdentity.Deploy;
 
@@ -6,6 +7,21 @@ public sealed record DeployOptions(string BaseUrl, string AppName, string Secret
     public const string HttpClientName = "eggidentity-fleet";
     public const string BaseUrlEnv = "IDENTITY_API_URL";
     public const string SecretEnv = "IDENTITY_API_SECRET";
+    public const string BaseUrlKey = "identity.api_url";
+    public const string SecretKey = "identity.api_secret";
+
+    public static ISettingsProvider Provider { get; } = SharedProviders.Register(new StaticSettingsProvider([
+        new SettingDescriptor(
+            BaseUrlKey, BaseUrlEnv, "Identity API URL", "Identity: SSO",
+            SettingKind.Url, ApplyTier.Bootstrap, Sensitivity.Plain) {
+            Description = "Base URL of the identity host, used for fleet, deploy and Discord registration calls.",
+        },
+        new SettingDescriptor(
+            SecretKey, SecretEnv, "Identity API secret", "Identity: SSO",
+            SettingKind.Secret, ApplyTier.Bootstrap, Sensitivity.Secret) {
+            Description = "Bearer for the identity host's server-to-server API.",
+        },
+    ]));
     public const string FleetPrefix = "admin/api/fleet/";
     public static readonly TimeSpan MaxReconnectCeiling = TimeSpan.FromSeconds(60);
 

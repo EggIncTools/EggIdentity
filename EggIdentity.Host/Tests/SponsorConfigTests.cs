@@ -1,69 +1,49 @@
+using EggIdentity.Auth;
+using EggIdentity.Contract;
+using EggIdentity.Settings;
+
 namespace EggIdentity.Host.Tests;
 
 public class SponsorConfigTests {
-    private static readonly string[] AllVars = [
-        "GITHUB_SPONSOR_PAT", "GITHUB_SPONSOR_TARGET", "GITHUB_SPONSOR_WEBHOOK_SECRET",
-        "DISCORD_TOKEN", "DISCORD_GUILD_ID", "DISCORD_SPONSOR_ROLE_ID",
+    private static readonly DiscordRegistrationResponse Registration = new() { Token = "bottoken", GuildId = "guild-1" };
+
+    private static SettingsSnapshot Snapshot(params (string Key, string Value)[] values) {
+        var registry = SettingsRegistry.Compose([HostSettings.Provider, SessionSettings.Provider], []);
+        return new SettingsSnapshot(registry, values.ToDictionary(v => v.Key, v => (string?)v.Value), environment: _ => null);
+    }
+
+    private static readonly (string, string)[] Required = [
+        (HostSettings.SponsorPat, "pat-1"),
+        (HostSettings.SponsorWebhookSecret, "whsecret"),
+        (HostSettings.SponsorRoleId, "role-1"),
     ];
 
-    private static void ClearAll() {
-        foreach (var v in AllVars) Environment.SetEnvironmentVariable(v, null);
+    [Fact]
+    public void From_AllRequiredSet_TakesDiscordFromRegistrationWithDefaultTarget() {
+        var config = SponsorConfig.From(Snapshot(Required), Registration);
+
+        Assert.NotNull(config);
+        Assert.Equal("pat-1", config.GitHubPat);
+        Assert.Equal(SponsorConfig.DefaultTarget, config.GitHubTarget);
+        Assert.Equal("whsecret", config.GitHubWebhookSecret);
+        Assert.Equal("bottoken", config.DiscordBotToken);
+        Assert.Equal("guild-1", config.DiscordGuildId);
+        Assert.Equal("role-1", config.DiscordRoleId);
     }
 
     [Fact]
-    public void FromEnvironment_AllRequiredVarsSet_ReturnsConfigWithDefaultTarget() {
-        ClearAll();
-        try {
-            Environment.SetEnvironmentVariable("GITHUB_SPONSOR_PAT", "pat-1");
-            Environment.SetEnvironmentVariable("GITHUB_SPONSOR_WEBHOOK_SECRET", "whsecret");
-            Environment.SetEnvironmentVariable("DISCORD_TOKEN", "bottoken");
-            Environment.SetEnvironmentVariable("DISCORD_GUILD_ID", "guild-1");
-            Environment.SetEnvironmentVariable("DISCORD_SPONSOR_ROLE_ID", "role-1");
+    public void From_TargetOverridden_UsesOverride() {
+        var config = SponsorConfig.From(Snapshot([.. Required, (HostSettings.SponsorTarget, "SomeOtherOrg")]), Registration);
 
-            var config = SponsorConfig.FromEnvironment();
-
-            Assert.NotNull(config);
-            Assert.Equal("pat-1", config.GitHubPat);
-            Assert.Equal("DavidArthurCole", config.GitHubTarget);
-            Assert.Equal("whsecret", config.GitHubWebhookSecret);
-            Assert.Equal("bottoken", config.DiscordBotToken);
-            Assert.Equal("guild-1", config.DiscordGuildId);
-            Assert.Equal("role-1", config.DiscordRoleId);
-        } finally {
-            ClearAll();
-        }
+        Assert.NotNull(config);
+        Assert.Equal("SomeOtherOrg", config.GitHubTarget);
     }
 
     [Fact]
-    public void FromEnvironment_TargetOverridden_UsesOverride() {
-        ClearAll();
-        try {
-            Environment.SetEnvironmentVariable("GITHUB_SPONSOR_PAT", "pat-1");
-            Environment.SetEnvironmentVariable("GITHUB_SPONSOR_TARGET", "SomeOtherOrg");
-            Environment.SetEnvironmentVariable("GITHUB_SPONSOR_WEBHOOK_SECRET", "whsecret");
-            Environment.SetEnvironmentVariable("DISCORD_TOKEN", "bottoken");
-            Environment.SetEnvironmentVariable("DISCORD_GUILD_ID", "guild-1");
-            Environment.SetEnvironmentVariable("DISCORD_SPONSOR_ROLE_ID", "role-1");
-
-            var config = SponsorConfig.FromEnvironment();
-
-            Assert.Equal("SomeOtherOrg", config!.GitHubTarget);
-        } finally {
-            ClearAll();
-        }
-    }
+    public void From_MissingRequiredSetting_ReturnsNull() =>
+        Assert.Null(SponsorConfig.From(Snapshot((HostSettings.SponsorPat, "pat-1")), Registration));
 
     [Fact]
-    public void FromEnvironment_MissingRequiredVar_ReturnsNull() {
-        ClearAll();
-        try {
-            Environment.SetEnvironmentVariable("GITHUB_SPONSOR_PAT", "pat-1");
-
-            var config = SponsorConfig.FromEnvironment();
-
-            Assert.Null(config);
-        } finally {
-            ClearAll();
-        }
-    }
+    public void From_NoRegistration_ReturnsNull() =>
+        Assert.Null(SponsorConfig.From(Snapshot(Required), null));
 }

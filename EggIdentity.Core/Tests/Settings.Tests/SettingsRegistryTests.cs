@@ -96,7 +96,7 @@ public class SettingsRegistryTests {
     }
 
     [Fact]
-    public void Compose_LetsTheFrameworkDescriptorWinOverAConsumerCopy() {
+    public void Compose_LetsTheAppDescriptorWinOverASharedCopy() {
         var copy = new SettingDescriptor(
             SettingsFrameworkSettings.EncryptionKey, "SOMETHING_ELSE", "Copy", "Elsewhere",
             SettingKind.Text, ApplyTier.Live, Sensitivity.Plain);
@@ -104,8 +104,19 @@ public class SettingsRegistryTests {
         var registry = SettingsRegistry.Compose(
             [new StaticSettingsProvider([copy, Descriptor("a.one", "A_ONE")])], []);
 
-        Assert.Equal(SettingsFrameworkSettings.EncryptionKeyEnv, registry.Require(SettingsFrameworkSettings.EncryptionKey).EnvKey);
+        Assert.Equal("SOMETHING_ELSE", registry.Require(SettingsFrameworkSettings.EncryptionKey).EnvKey);
         Assert.Equal(2, registry.All.Count);
+    }
+
+    [Fact]
+    public void Compose_SkipsSharedProviderKeysTheAppAlreadyDeclares() {
+        var shared = SharedProviders.Register(new StaticSettingsProvider([Descriptor("shared.one", "SHARED_ONE"), Descriptor("shared.two", "SHARED_TWO")]));
+        var own = new StaticSettingsProvider([Descriptor("shared.one", "APP_ONE")]);
+
+        var registry = SettingsRegistry.Compose([shared, own], []);
+
+        Assert.Equal("APP_ONE", registry.Require("shared.one").EnvKey);
+        Assert.Equal("SHARED_TWO", registry.Require("shared.two").EnvKey);
     }
 
     [Fact]
