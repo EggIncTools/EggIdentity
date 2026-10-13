@@ -102,6 +102,15 @@ jobs:
           PACKAGES=$(for f in "${files[@]}"; do basename "$f"; done | jq -Rnc '[inputs | select(test("^(.+)\\.([0-9]+\\.0\\.0)\\.nupkg$")) | capture("^(?<id>.+)\\.(?<version>[0-9]+\\.0\\.0)\\.nupkg$")]')
           echo "packages=$PACKAGES" >> "$GITHUB_OUTPUT"
 
+      - name: Upload packages
+        if: steps.list.outputs.count != '0'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: nupkgs
+          path: nupkgs/*.nupkg
+          retention-days: 1
+          if-no-files-found: ignore
+
       - name: Push to GitHub Packages
         if: steps.list.outputs.count != '0'
         run: |
