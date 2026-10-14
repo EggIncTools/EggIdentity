@@ -76,8 +76,8 @@ internal static class SnapshotValidator {
             reason = $"\"{key}\" is not a measure on source \"{source.Id}\"";
             return false;
         }
-        if (aggregation == Aggregation.Distinct && !grainByKey.ContainsKey(key)) {
-            reason = $"distinct(\"{key}\") requires the key to be a grain dimension";
+        if (aggregation == Aggregation.Distinct && measure.DistinctBy is null && !grainByKey.ContainsKey(key)) {
+            reason = $"distinct(\"{key}\") requires the key to be a grain dimension or the measure to declare DistinctBy";
             return false;
         }
         reason = "";

@@ -24,12 +24,14 @@ internal sealed class MeasureCellStat {
     }
 }
 
+internal sealed record EntityValue(double? Number, IReadOnlyList<string> Texts);
+
 internal sealed class SnapshotCell(IReadOnlyList<string> keys) {
     public IReadOnlyList<string> Keys { get; } = keys;
     public long Rows { get; private set; }
     public HashSet<string> Samples { get; } = [];
     public Dictionary<string, MeasureCellStat> Measures { get; } = [];
-    public Dictionary<string, Dictionary<string, double?>> Entities { get; } = [];
+    public Dictionary<string, Dictionary<string, EntityValue>> Entities { get; } = [];
 
     public void AddRow() => Rows++;
 
@@ -41,7 +43,7 @@ internal sealed class SnapshotCell(IReadOnlyList<string> keys) {
                 seen = [];
                 Entities[measure.Key] = seen;
             }
-            seen.TryAdd(entity, number);
+            seen.TryAdd(entity, new EntityValue(number, [.. ReportValues.Texts(value(measure.Key))]));
             return;
         }
         if (!Measures.TryGetValue(measure.Key, out var stat)) {
@@ -187,11 +189,11 @@ internal static class SnapshotRollup {
 
     private static double EntitySum(SnapshotCell cell, string measureKey, bool count) {
         if (!cell.Entities.TryGetValue(measureKey, out var entities)) return 0;
-        return count ? entities.Count : entities.Values.Sum(v => v ?? 0);
+        return count ? entities.Count : entities.Values.Sum(v => v.Number ?? 0);
     }
 
     private static double EntityNumbers(SnapshotCell cell, string measureKey) =>
-        cell.Entities.TryGetValue(measureKey, out var entities) ? entities.Values.Count(v => v is not null) : 0;
+        cell.Entities.TryGetValue(measureKey, out var entities) ? entities.Values.Count(v => v.Number is not null) : 0;
 
     private static IReadOnlyList<string> TargetKeys(SnapshotCell cell, List<AxisPlan> plans) =>
         [.. plans.Select(p => Rekey(cell.Keys[p.GrainIndex], p.GrainBucket, p.QueryBucket))];
@@ -204,8 +206,8 @@ internal static class SnapshotRollup {
     private static double MergeMeasureSum(List<SnapshotCell> cells, string measureKey, Func<MeasureCellStat, double> selector) =>
         cells.Sum(c => MeasureValue(c, measureKey, selector));
 
-    private static List<double?> EntityValues(List<SnapshotCell> cells, string measureKey) {
-        Dictionary<string, double?> merged = [];
+    private static List<EntityValue> EntityValues(List<SnapshotCell> cells, string measureKey) {
+        Dictionary<string, EntityValue> merged = [];
         foreach (var cell in cells) {
             if (!cell.Entities.TryGetValue(measureKey, out var entities)) continue;
             foreach (var (entity, value) in entities) merged.TryAdd(entity, value);
@@ -215,7 +217,7 @@ internal static class SnapshotRollup {
 
     private static (double? Value, Distribution? Dist) AggregateEntities(List<SnapshotCell> cells, ReportMeasure measure, Aggregation aggregation, FanPlan fan) {
         var values = EntityValues(cells, measure.Key);
-        List<double> numbers = [.. values.OfType<double>()];
+        List<double> numbers = [.. values.Select(v => v.Number).OfType<double>()];
         var dist = measure.Kind == MeasureKind.Distribution ? Bucketize(numbers, measure.Binning) : null;
         if (fan.Declared && aggregation is Aggregation.Count or Aggregation.Sum or Aggregation.Avg) return (Fanned(cells, measure.Key, aggregation, fan), dist);
         double? value = aggregation switch {
@@ -224,7 +226,7 @@ internal static class SnapshotRollup {
             Aggregation.Avg => numbers.Count == 0 ? null : numbers.Average(),
             Aggregation.Min => numbers.Count == 0 ? null : numbers.Min(),
             Aggregation.Max => numbers.Count == 0 ? null : numbers.Max(),
-            Aggregation.Distinct => numbers.Distinct().Count(),
+            Aggregation.Distinct => values.SelectMany(v => v.Texts).Distinct(StringComparer.Ordinal).Count(),
             _ => null,
         };
         return (value, dist);

@@ -170,6 +170,43 @@ public class SnapshotReportEngineTests {
         Assert.Contains(validation.Rejections, r => r.Kind == ReportRejectionKind.MeasureNotMergeable && r.Key == MissionKey);
     }
 
+    private static readonly ReportMeasure Events = new("events", "Events") {
+        Aggregations = [Aggregation.Distinct],
+        Default = Aggregation.Distinct,
+        DistinctBy = MissionKey,
+    };
+
+    private static readonly ReportSource<Drop> EventSource = Source with {
+        Measures = [.. Source.Measures, Events],
+        Value = (d, key) => key == "events" ? FilterSubjectValue.Of(d.Mission) : Read(d, key),
+    };
+
+    private static readonly SnapshotSchema EventGrain = new(DropsSource, [new GroupKey("ship"), new GroupKey("item")], ["events"]);
+
+    private static ReportQuery EventsByShip { get; } = new(DropsSource) {
+        GroupBy = [new GroupKey("ship")],
+        Measures = [new MeasureRequest("events", Aggregation.Distinct)],
+    };
+
+    [Fact]
+    public void Allows_DistinctOnDistinctByMeasure() {
+        var engine = new SnapshotReportEngine<Drop>(EventSource, EventGrain, _ => ValueTask.FromResult<IReadOnlyList<Drop>>(Rows), _ => ValueTask.FromResult("v1"), new FixedClock(Now));
+        Assert.True(engine.Validate(EventsByShip, ReportTierCaps.Unlimited).Allowed);
+    }
+
+    [Fact]
+    public async Task Parity_DistinctOnDistinctByMeasureAcrossCollapsedItems() {
+        var live = new InMemoryReportEngine<Drop>(EventSource, _ => ValueTask.FromResult<IReadOnlyList<Drop>>(Rows), new FixedClock(Now));
+        var snapshot = new SnapshotReportEngine<Drop>(EventSource, EventGrain, _ => ValueTask.FromResult<IReadOnlyList<Drop>>(Rows), _ => ValueTask.FromResult("v1"), new FixedClock(Now));
+        var expected = await live.RunAsync(EventsByShip, ReportContext.Utc, CancellationToken.None);
+        var actual = await snapshot.RunAsync(EventsByShip, ReportContext.Utc, CancellationToken.None);
+        foreach (var row in expected.Rows) {
+            var match = actual.Rows.Single(r => r.Keys.SequenceEqual(row.Keys, StringComparer.Ordinal));
+            Assert.Equal(row.Values[0], match.Values[0]);
+        }
+        Assert.Equal(2, Row(actual, "henerprise").Values[0]);
+    }
+
     [Fact]
     public async Task Run_InvalidQuery_Throws() {
         var schema = new SnapshotSchema(DropsSource, [new GroupKey("ship")], [AirtimeKey, ValueKey, MissionKey]);
