@@ -1,6 +1,8 @@
 namespace EggIdentity.Reports;
 
-public sealed record SnapshotSchema(string Source, IReadOnlyList<GroupKey> Grain, IReadOnlyList<string> Measures);
+public sealed record SnapshotSchema(string Source, IReadOnlyList<GroupKey> Grain, IReadOnlyList<string> Measures) {
+    public IReadOnlyList<string> FanOut { get; init; } = [];
+}
 
 public interface ISnapshotEngine : IReportEngine {
     SnapshotSchema Schema { get; }

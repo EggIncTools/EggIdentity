@@ -113,6 +113,7 @@ internal static class SnapshotRollup {
         IEnumerable<SnapshotCell> cells, ReportQuery query, ReportSource<TRow> source, SnapshotSchema schema,
         IReadOnlyList<ReportDimension> grainDims, IReadOnlyList<MeasureRequest> measures) {
         var plans = PlanAxes(query, grainDims, schema);
+        var fan = FanPlan.Of(grainDims, plans, schema);
         var denominatorRequest = DenominatorRequest(source, query.Normalize);
 
         var byTarget = new Dictionary<string, (IReadOnlyList<string> Keys, List<SnapshotCell> Cells)>(StringComparer.Ordinal);
@@ -129,19 +130,17 @@ internal static class SnapshotRollup {
         var rows = new List<CubeRow>();
         var denominators = new Dictionary<string, double?>(StringComparer.Ordinal);
         foreach (var (id, entry) in byTarget) {
-            var samples = source.SampleKey is null
-                ? (int)entry.Cells.Sum(c => c.Rows)
-                : entry.Cells.SelectMany(c => c.Samples).Distinct(StringComparer.Ordinal).Count();
+            var samples = Samples(entry.Cells, source, fan);
             var values = new double?[measures.Count];
             var distributions = new Distribution?[measures.Count];
             for (var i = 0; i < measures.Count; i++) {
-                var (value, dist) = Aggregate(entry.Cells, measures[i], source, grainDims);
+                var (value, dist) = Aggregate(entry.Cells, measures[i], source, grainDims, fan);
                 values[i] = value;
                 distributions[i] = dist;
             }
             rows.Add(new CubeRow(entry.Keys, values, samples) { Distributions = distributions });
             if (denominatorRequest is { } dr) {
-                var (denomValue, _) = Aggregate(entry.Cells, dr, source, grainDims);
+                var (denomValue, _) = Aggregate(entry.Cells, dr, source, grainDims, fan);
                 denominators[id] = denomValue;
             }
         }
@@ -165,6 +164,35 @@ internal static class SnapshotRollup {
         throw new ArgumentException($"\"{key}\" is not a grain dimension", nameof(key));
     }
 
+    private sealed record FanPlan(bool Declared, List<int> Other) {
+        public static FanPlan Of(IReadOnlyList<ReportDimension> grainDims, List<AxisPlan> plans, SnapshotSchema schema) {
+            if (schema.FanOut.Count == 0) return new FanPlan(false, []);
+            var kept = plans.Select(p => p.GrainIndex).ToHashSet();
+            List<int> other = [];
+            for (var i = 0; i < grainDims.Count; i++) {
+                if (!kept.Contains(i) && !schema.FanOut.Contains(grainDims[i].Field.Key, StringComparer.Ordinal)) other.Add(i);
+            }
+            return new FanPlan(true, other);
+        }
+
+        public double Merge(List<SnapshotCell> cells, Func<SnapshotCell, double> selector) =>
+            cells.GroupBy(c => string.Join(Separator, Other.Select(i => c.Keys[i])), StringComparer.Ordinal).Sum(g => g.Max(selector));
+    }
+
+    private static int Samples<TRow>(List<SnapshotCell> cells, ReportSource<TRow> source, FanPlan fan) {
+        if (source.SampleKey is null) return (int)cells.Sum(c => c.Rows);
+        if (fan.Declared) return (int)fan.Merge(cells, c => c.Samples.Count);
+        return cells.SelectMany(c => c.Samples).Distinct(StringComparer.Ordinal).Count();
+    }
+
+    private static double EntitySum(SnapshotCell cell, string measureKey, bool count) {
+        if (!cell.Entities.TryGetValue(measureKey, out var entities)) return 0;
+        return count ? entities.Count : entities.Values.Sum(v => v ?? 0);
+    }
+
+    private static double EntityNumbers(SnapshotCell cell, string measureKey) =>
+        cell.Entities.TryGetValue(measureKey, out var entities) ? entities.Values.Count(v => v is not null) : 0;
+
     private static IReadOnlyList<string> TargetKeys(SnapshotCell cell, List<AxisPlan> plans) =>
         [.. plans.Select(p => Rekey(cell.Keys[p.GrainIndex], p.GrainBucket, p.QueryBucket))];
 
@@ -185,10 +213,11 @@ internal static class SnapshotRollup {
         return [.. merged.Values];
     }
 
-    private static (double? Value, Distribution? Dist) AggregateEntities(List<SnapshotCell> cells, ReportMeasure measure, Aggregation aggregation) {
+    private static (double? Value, Distribution? Dist) AggregateEntities(List<SnapshotCell> cells, ReportMeasure measure, Aggregation aggregation, FanPlan fan) {
         var values = EntityValues(cells, measure.Key);
         List<double> numbers = [.. values.OfType<double>()];
         var dist = measure.Kind == MeasureKind.Distribution ? Bucketize(numbers, measure.Binning) : null;
+        if (fan.Declared && aggregation is Aggregation.Count or Aggregation.Sum or Aggregation.Avg) return (Fanned(cells, measure.Key, aggregation, fan), dist);
         double? value = aggregation switch {
             Aggregation.Count => values.Count,
             Aggregation.Sum => numbers.Sum(),
@@ -199,6 +228,14 @@ internal static class SnapshotRollup {
             _ => null,
         };
         return (value, dist);
+    }
+
+    private static double? Fanned(List<SnapshotCell> cells, string measureKey, Aggregation aggregation, FanPlan fan) {
+        if (aggregation == Aggregation.Count) return fan.Merge(cells, c => EntitySum(c, measureKey, count: true));
+        var sum = fan.Merge(cells, c => EntitySum(c, measureKey, count: false));
+        if (aggregation == Aggregation.Sum) return sum;
+        var n = fan.Merge(cells, c => EntityNumbers(c, measureKey));
+        return n == 0 ? null : sum / n;
     }
 
     private static Distribution Bucketize(List<double> numbers, double? binning) {
@@ -262,11 +299,11 @@ internal static class SnapshotRollup {
     }
 
     private static (double? Value, Distribution? Dist) Aggregate<TRow>(
-        List<SnapshotCell> cells, MeasureRequest request, ReportSource<TRow> source, IReadOnlyList<ReportDimension> grainDims) {
+        List<SnapshotCell> cells, MeasureRequest request, ReportSource<TRow> source, IReadOnlyList<ReportDimension> grainDims, FanPlan fan) {
         if (request.IsRowCount) return (cells.Sum(c => (double)c.Rows), null);
         var measure = source.Measure(request.Key);
         if (measure is null) return (null, null);
-        if (measure.DistinctBy is not null) return AggregateEntities(cells, measure, request.Aggregation);
+        if (measure.DistinctBy is not null) return AggregateEntities(cells, measure, request.Aggregation, fan);
         var dist = measure.Kind == MeasureKind.Distribution ? MergeDistribution(cells, measure.Key) : null;
         return request.Aggregation switch {
             Aggregation.Count => (MergeMeasureSum(cells, measure.Key, s => s.Rows), dist),
