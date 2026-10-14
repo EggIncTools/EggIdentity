@@ -1,42 +1,50 @@
 @using System.Globalization
 @using EggIdentity.Reports
+@using EggIdentity.UI
 
 @if (_layout is not { } layout || _valueMatrix is not { } valueMatrix) {
-    <EmptyState Title="@Context.Labels.EmptyTitle" Hint="@Context.Labels.EmptyDescription"/>
+    <div class="report-note">@Context.Labels.NoData</div>
 } else {
+    var columns = LabeledColumns(layout);
     <div class="report-chart">
-        <table class="report-heat">
-            <thead>
-            <tr>
-                <th></th>
-                @foreach (var col in LabeledColumns(layout)) {
-                    <th class="report-heat-label">@col</th>
-                }
-            </tr>
-            </thead>
-            <tbody>
-            @for (var r = 0; r < layout.RowKeys.Count; r++) {
+        <div class="report-heat-wrap">
+            <table class="report-heat">
+                <thead>
                 <tr>
-                    <th class="report-heat-label">@LabelFor(layout.RowKeys[r], layout.RowLabels[r])</th>
-                    @for (var c = 0; c < layout.ColKeys.Count; c++) {
-                        var cell = layout.Cells[r][c];
-                        if (!cell.Hidden) {
-                            <td class="@CellClass(cell)" style="@CellStyle(cell)">
-                                @if (valueMatrix.Cells[r][c] is { } v) {
-                                    <span>@FormatPrimary(v)</span>
-                                    @if (_secondaryMatrix is { } secondaryMatrix && secondaryMatrix.Cells[r][c] is { } sv) {
-                                        <span class="report-heat-secondary">@FormatSecondary(sv)</span>
-                                    }
-                                }
-                            </td>
-                        } else {
-                            <td class="report-heat-cell"></td>
-                        }
+                    <th class="report-heat-corner"></th>
+                    @foreach (var col in columns) {
+                        <th class="report-heat-col"><Tooltip Class="report-trunc" Text="@col">@col</Tooltip></th>
                     }
                 </tr>
-            }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                @for (var r = 0; r < layout.RowKeys.Count; r++) {
+                    var rowLabel = LabelFor(layout.RowKeys[r], layout.RowLabels[r]);
+                    <tr>
+                        <th class="report-heat-row"><Tooltip Class="report-trunc" Text="@rowLabel">@rowLabel</Tooltip></th>
+                        @for (var c = 0; c < layout.ColKeys.Count; c++) {
+                            var cell = layout.Cells[r][c];
+                            if (cell.Hidden) {
+                                <td class="report-heat-cell"></td>
+                            } else {
+                                var value = valueMatrix.Cells[r][c];
+                                var colLabel = columns[c];
+                                double? secondary = _secondaryMatrix is { } secondaryMatrix && !Below(cell) ? secondaryMatrix.Cells[r][c] : null;
+                                <td class="@CellClass(cell, value)" style="@CellStyle(cell)">
+                                    <Tooltip Tag="div" Lines="@CellLines(rowLabel, colLabel, cell, value)">
+                                        <span>@Display(cell, value)</span>
+                                        @if (secondary is { } sv) {
+                                            <span class="report-heat-secondary">@FormatSecondary(sv)</span>
+                                        }
+                                    </Tooltip>
+                                </td>
+                            }
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
         @if (!string.IsNullOrEmpty(Context.Definition.View.Unit)) {
             <div class="report-unit">@Context.Definition.View.Unit</div>
         }
@@ -59,7 +67,7 @@
         get {
             var heat = Heat;
             if (heat?.ColorBy is not null && heat.Scale == HeatScale.Auto) {
-                return NormalizeKind.None;
+                return NormalizeKind.By;
             }
             return (heat?.Scale ?? HeatScale.Auto) switch {
                 HeatScale.Ratio => NormalizeKind.By,
@@ -98,7 +106,7 @@
             _secondaryKey = null;
         }
 
-        _layout = HeatmapGeometry.Layout(colorMatrix, ScaleKind, Context.Definition.Query.MinSample, view.Sample, Context.Style);
+        _layout = HeatmapGeometry.Layout(colorMatrix, ScaleKind, Context.Definition.Query.MinSample, view.Sample, Context.Style, _valueMatrix);
     }
 
     private IReadOnlyList<string> LabeledColumns(HeatmapLayout layout) => [.. layout.ColKeys.Select((k, i) => LabelFor(k, layout.ColLabels[i]))];
@@ -106,12 +114,36 @@
     private string LabelFor(string key, string fallback) =>
         Context.Definition.View.Labels.TryGetValue(key, out var custom) ? custom : fallback;
 
-    private static string CellClass(HeatCell cell) => cell.Muted ? "report-heat-cell report-dim" : "report-heat-cell";
+    private bool Below(HeatCell cell) => Context.Definition.View.Sample != SampleRule.Show && ReportProjection.BelowSample(cell.Samples, Context.Definition.Query.MinSample);
+
+    private bool Zero(HeatCell cell, double? value) => Below(cell) || (value ?? 0) == 0;
+
+    private string CellClass(HeatCell cell, double? value) {
+        var cls = "report-heat-cell";
+        if (Zero(cell, value)) {
+            cls += " report-heat-zero";
+        }
+        if (Below(cell)) {
+            cls += " report-dim";
+        }
+        return cls;
+    }
 
     private string CellStyle(HeatCell cell) {
         var view = Context.Definition.View;
-        var unfilled = view.Unfilled is { } u && ReportCodec.IsHex(u) ? u : null;
-        var color = view.Color is { } c && ReportCodec.IsHex(c) ? c : null;
+        string? unfilled = null;
+        if (view.Unfilled is { } u && ReportCodec.IsHex(u)) {
+            unfilled = u;
+        } else if (Context.Style.HeatLow is { } hl && ReportCodec.IsHex(hl)) {
+            unfilled = hl;
+        }
+
+        string? color = null;
+        if (view.Color is { } c && ReportCodec.IsHex(c)) {
+            color = c;
+        } else if (Context.Style.HeatHigh is { } hh && ReportCodec.IsHex(hh)) {
+            color = hh;
+        }
 
         var style = string.Create(CultureInfo.InvariantCulture, $"--heat:{cell.Intensity:0.###}");
 
@@ -123,30 +155,36 @@
             style += $";--heat-high:{color}";
         }
 
-        if (color is not null && unfilled is not null && HeatmapGeometry.Mix(unfilled, color, cell.Intensity) is { } mixed) {
-            var fg = HeatmapGeometry.IsLight(mixed, Context.Style) ? "dark" : "light";
-            return style + $";--heat-fg:var(--report-heat-fg-{fg})";
+        if (cell.Intensity == 0) {
+            return unfilled is not null && HeatmapGeometry.IsLight(unfilled, Context.Style) ? style + $";--heat-fg:{DarkFg}" : style;
         }
 
-        if (cell.Intensity >= 0.6) {
-            style += ";--heat-fg:var(--report-heat-fg-strong)";
+        if (unfilled is not null && color is not null && HeatmapGeometry.Mix(unfilled, color, cell.Intensity) is { } mixed) {
+            return style + $";--heat-fg:{(HeatmapGeometry.IsLight(mixed, Context.Style) ? DarkFg : LightFg)}";
+        }
+
+        if (cell.Intensity >= Context.Style.HeatStrongAt) {
+            style += ";--heat-fg:var(--report-heat-fg-strong,var(--color-bg))";
         }
 
         return style;
     }
 
-    private string FormatPrimary(double value) {
-        if (Heat?.Scale == HeatScale.Ratio) {
-            return "x" + value.ToString("0.00", CultureInfo.InvariantCulture);
+    private string Display(HeatCell cell, double? value) {
+        if (Below(cell)) {
+            return "-";
         }
-        return FormatValue(MeasureKey, value);
+        if (Heat?.Scale == HeatScale.Ratio) {
+            return value is { } v && v != 0 ? "x" + v.ToString("0.00", CultureInfo.InvariantCulture) : "-";
+        }
+        return Context.Compact(MeasureKey, value ?? 0);
     }
 
-    private string FormatSecondary(double value) => FormatValue(_secondaryKey ?? MeasureRequest.RowCountKey, value);
+    private const string DarkFg = "var(--report-heat-fg-dark,var(--color-bg))";
+    private const string LightFg = "var(--report-heat-fg-light,var(--color-fg))";
 
-    private string FormatValue(string measureKey, double value) {
-        var format = Context.Source?.Measure(measureKey)?.Format
-            ?? (measureKey == MeasureRequest.RowCountKey ? ValueFormat.Integer : ValueFormat.Decimal(2));
-        return format.Format(value);
-    }
+    private List<TooltipLine> CellLines(string rowLabel, string colLabel, HeatCell cell, double? value) =>
+        [new TooltipLine(rowLabel, Head: true), new TooltipLine($"{colLabel}: {Display(cell, value)}")];
+
+    private string FormatSecondary(double value) => Context.Compact(_secondaryKey ?? MeasureRequest.RowCountKey, value);
 }

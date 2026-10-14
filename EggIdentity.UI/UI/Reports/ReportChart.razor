@@ -1,7 +1,7 @@
 @if (ComponentType is { } type) {
     <DynamicComponent Type="@type" Parameters="@Parameters"/>
 } else {
-    <EmptyState Title="@Context.Labels.UnknownChart"/>
+    <div class="report-note">@Context.Labels.UnknownChart</div>
 }
 
 @code {

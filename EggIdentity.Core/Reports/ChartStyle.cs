@@ -21,6 +21,11 @@ public sealed record ChartStyle {
     public double HeatFloor { get; init; } = 0.12;
     public double HeatRatioSpan { get; init; } = 2;
     public double ContrastLuminance { get; init; } = 0.179;
+    public double SeriesLightness { get; init; } = 0.55;
+    public double HeatStrongAt { get; init; } = 0.6;
+    public string? HeatLow { get; init; }
+    public string? HeatHigh { get; init; }
+    public string? SeriesBase { get; init; }
 
     public double PlotWidth => Width - PadLeft - PadRight;
     public double PlotHeight => Height - PadTop - PadBottom;

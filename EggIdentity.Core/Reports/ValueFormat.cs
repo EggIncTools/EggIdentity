@@ -36,6 +36,13 @@ public sealed record ValueFormat(ValueFormatKind Kind, int Places = 0) {
         _ => Formatter?.Invoke(value) ?? value.ToString(CultureInfo.InvariantCulture),
     };
 
+    public string Axis(double value) => Kind switch {
+        ValueFormatKind.Integer => Math.Round(value).ToString("0", CultureInfo.InvariantCulture),
+        ValueFormatKind.Decimal => value.ToString(Places > 0 ? "0.0" : "0", CultureInfo.InvariantCulture),
+        ValueFormatKind.Percent => value.ToString("0", CultureInfo.InvariantCulture) + "%",
+        _ => Format(value),
+    };
+
     private static string Span(double seconds) {
         var total = (long)Math.Round(Math.Abs(seconds));
         var sign = seconds < 0 ? "-" : "";

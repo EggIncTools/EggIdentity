@@ -1,38 +1,52 @@
 @using System.Globalization
 @using EggIdentity.Reports
+@using EggIdentity.UI
 
 @if (Context.Cube.Dimensions.Count < 2 || Series.Count == 0 || Matrix.RowKeys.Count < 2) {
-    <EmptyState Title="@Context.Labels.EmptyTitle" Hint="@Context.Labels.EmptyDescription"/>
+    <div class="report-note">@Context.Labels.NoData</div>
 } else {
     <div class="report-chart">
-        <svg viewBox="@ViewBox" class="report-svg" style="@UnfilledStyle">
-            @foreach (var tick in Ticks) {
-                <line class="report-gridline" x1="@Fmt(Context.Style.PadLeft)" y1="@Fmt(tick.Y)" x2="@Fmt(Context.Style.Width - Context.Style.PadRight)" y2="@Fmt(tick.Y)"/>
-            }
-            @foreach (var line in Series) {
-                <polyline class="report-line" points="@ChartGeometry.Polyline(line.Points)" style="@SeriesStyle(line.Key)"/>
-            }
-            @foreach (var line in Series) {
-                @foreach (var p in line.Points) {
-                    @if (!Hidden(p)) {
-                        <circle class="@PointClass(Dimmed(p))" cx="@Fmt(p.X)" cy="@Fmt(p.Y)" r="2" style="@SeriesStyle(line.Key)"/>
+        <div class="report-plot report-marks" style="@UnfilledStyle">
+            <svg viewBox="@ViewBox" preserveAspectRatio="none" class="report-svg">
+                @foreach (var tick in Ticks) {
+                    <line class="report-gridline" x1="@Fmt(Context.Style.PadLeft)" y1="@Fmt(tick.Y)" x2="@Fmt(Context.Style.Width - Context.Style.PadRight)" y2="@Fmt(tick.Y)"/>
+                }
+                @foreach (var line in Series) {
+                    <polyline class="report-line" points="@ChartGeometry.Polyline(line.Points)" style="@SeriesStyle(line.Key)"/>
+                }
+            </svg>
+            <div class="report-overlay">
+                @foreach (var tick in Ticks) {
+                    <span class="report-ytick" style="@RightPos(Context.Style.PadLeft - Context.Style.TickInset, tick.Y)">@Context.Format(MeasureKey).Axis(tick.Value)</span>
+                }
+                @foreach (var p in ThinPoints) {
+                    <span class="report-xtick" style="@RightPos(p.X, Context.Style.Height - Context.Style.PadBottom + Context.Style.TickInset)">@ChartGeometry.XLabel(p.Key)</span>
+                }
+                @for (var si = 0; si < Series.Count; si++) {
+                    var line = Series[si];
+                    for (var pi = 0; pi < line.Points.Count; pi++) {
+                        var p = line.Points[pi];
+                        if (!Hidden(p)) {
+                            var si2 = si;
+                            var pi2 = pi;
+                            <span class="report-hit" style="@HitStyle(line.Key, p)" @onmouseenter="() => _hover = (si2, pi2)" @onmouseleave="() => _hover = null">
+                                <span class="@DotClass(Dimmed(p))"></span>
+                            </span>
+                        }
                     }
                 }
-            }
-        </svg>
-        <div class="report-axis">
-            @foreach (var tick in Ticks) {
-                <span class="report-ytick" style="@RightPos(Context.Style.PadLeft - Context.Style.TickInset, tick.Y)">@FormatValue(tick.Value)</span>
-            }
-            @foreach (var p in ThinPoints) {
-                <span class="report-xtick" style="@RightPos(p.X, Context.Style.Height - Context.Style.PadBottom + Context.Style.TickInset)">@ChartGeometry.XLabel(p.Key)</span>
-            }
+                @if (_hover is { } h && h.Series < Series.Count && h.Point < Series[h.Series].Points.Count) {
+                    var line = Series[h.Series];
+                    var p = line.Points[h.Point];
+                    <PointTooltip Visible="true" X="@(p.X / Context.Style.Width * 100)" Y="@(p.Y / Context.Style.Height * 100)" Lines="@PointLines(line, p)"/>
+                }
+            </div>
         </div>
         <div class="report-legend">
             @foreach (var line in Series) {
                 <span class="report-legend-item">
                     <span class="report-legend-swatch" style="@SeriesStyle(line.Key)"></span>
-                    <span class="report-slice-label">@LabelFor(line.Key)</span>
+                    <Tooltip Class="report-legend-label" Text="@LabelFor(line.Key)">@LabelFor(line.Key)</Tooltip>
                 </span>
             }
         </div>
@@ -51,6 +65,7 @@
     private double Max;
     private IReadOnlyList<YTick> Ticks = [];
     private IReadOnlyDictionary<string, string> _styles = new Dictionary<string, string>(StringComparer.Ordinal);
+    private (int Series, int Point)? _hover;
 
     private string MeasureKey => Context.Cube.Measures.Count > 0 ? Context.Cube.Measures[0].Key : MeasureRequest.RowCountKey;
 
@@ -69,7 +84,7 @@
         ThinPoints = Series.Count > 0 ? ChartGeometry.ThinLabels(Series[0].Points, Context.Style) : [];
         Max = ChartGeometry.Max(Matrix.Cells.SelectMany(r => r));
         Ticks = ChartGeometry.YTicks(Max, Context.Style);
-        _styles = Context.SeriesStyles([.. Series.Select(s => s.Key)]);
+        _styles = Context.SeriesStyles([.. Series.Select(s => s.Key)], series: true);
     }
 
     private string ViewBox => string.Create(CultureInfo.InvariantCulture, $"0 0 {Context.Style.Width} {Context.Style.Height}");
@@ -85,18 +100,22 @@
     private bool Hidden(ChartPoint point) =>
         Context.Definition.View.Sample == SampleRule.Hide && ReportProjection.BelowSample(point.Samples, Context.Definition.Query.MinSample);
 
-    private static string PointClass(bool dim) => dim ? "report-point report-dim" : "report-point";
+    private string HitStyle(string key, ChartPoint p) =>
+        string.Create(CultureInfo.InvariantCulture, $"left:{p.X / Context.Style.Width * 100:0.###}%;top:{p.Y / Context.Style.Height * 100:0.###}%;{SeriesStyle(key)}");
+
+    private static string DotClass(bool dim) => dim ? "report-dot report-mark report-dim" : "report-dot report-mark";
+
+    private IReadOnlyList<TooltipLine> PointLines(LineSeries line, ChartPoint p) =>
+        [new TooltipLine(LabelFor(line.Key), Head: true), new TooltipLine($"{ChartGeometry.XLabel(p.Key)}: {FormatValue(p.Value)}")];
+
+    private string FormatValue(double value) => Context.Format(MeasureKey).Format(value);
 
     private string LabelFor(string key) {
-        if (Context.Definition.View.Labels.TryGetValue(key, out var custom)) return custom;
+        if (Context.Definition.View.Labels.TryGetValue(key, out var custom)) {
+            return custom;
+        }
         var i = Matrix.ColKeys.ToList().IndexOf(key);
         return i >= 0 ? Matrix.ColLabels[i] : key;
-    }
-
-    private string FormatValue(double value) {
-        var format = Context.Source?.Measures.FirstOrDefault(m => string.Equals(m.Key, MeasureKey, StringComparison.Ordinal))?.Format
-            ?? (MeasureKey == MeasureRequest.RowCountKey ? ValueFormat.Integer : ValueFormat.Decimal(2));
-        return format.Format(value);
     }
 
     private string RightPos(double x, double y) =>

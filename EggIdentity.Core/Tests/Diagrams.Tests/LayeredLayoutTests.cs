@@ -9,6 +9,28 @@ public class LayeredLayoutTests {
         return node;
     }
 
+    [Theory]
+    [InlineData(DiagramDirection.Down)]
+    [InlineData(DiagramDirection.Right)]
+    public void SingleParentChainsStayInTheirColumn(DiagramDirection direction) {
+        var graph = Graph(
+            [.. new[] { "R", "P1", "P2", "P3", "S1", "S2", "S3", "S4" }.Select(id => new DiagramNode(id) { Width = 160, Height = 88 })],
+            [new DiagramEdge("R", "P1"), new DiagramEdge("P1", "P2"), new DiagramEdge("P2", "P3"),
+                new DiagramEdge("R", "S1"), new DiagramEdge("S1", "S2"), new DiagramEdge("S2", "S3"), new DiagramEdge("S3", "S4")]);
+
+        var layout = LayeredLayout.Layout(graph, ["R"], direction, DiagramStyle.Default);
+
+        double Cross(string id) {
+            return direction == DiagramDirection.Down ? At(layout, id).X : At(layout, id).Y;
+        }
+        Assert.Equal(Cross("P1"), Cross("P2"), 3);
+        Assert.Equal(Cross("P2"), Cross("P3"), 3);
+        Assert.Equal(Cross("S1"), Cross("S2"), 3);
+        Assert.Equal(Cross("S2"), Cross("S3"), 3);
+        Assert.Equal(Cross("S3"), Cross("S4"), 3);
+        Assert.NotEqual(Cross("P1"), Cross("S1"));
+    }
+
     [Fact]
     public void ChainRanksIncreaseByOne() {
         var graph = Graph(

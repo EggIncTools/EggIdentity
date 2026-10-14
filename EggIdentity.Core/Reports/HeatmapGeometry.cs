@@ -15,22 +15,22 @@ public static class HeatmapGeometry {
         return Math.Clamp(Math.Max(style.HeatFloor, raw), 0, 1);
     }
 
-    public static HeatmapLayout Layout(ReportMatrix matrix, NormalizeKind normalize, int? minSample, SampleRule rule, ChartStyle style) {
+    public static HeatmapLayout Layout(ReportMatrix matrix, NormalizeKind normalize, int? minSample, SampleRule rule, ChartStyle style, ReportMatrix? primary = null) {
         ArgumentNullException.ThrowIfNull(matrix);
         ArgumentNullException.ThrowIfNull(style);
         var max = ChartGeometry.Max(matrix.Cells.SelectMany(r => r));
         var cells = matrix.RowKeys
-            .Select((rk, r) => (IReadOnlyList<HeatCell>)[.. matrix.ColKeys.Select((ck, c) => Cell(matrix, r, c, max, normalize, minSample, rule, style))])
+            .Select((rk, r) => (IReadOnlyList<HeatCell>)[.. matrix.ColKeys.Select((ck, c) => Cell(matrix, primary ?? matrix, r, c, max, normalize, minSample, rule, style))])
             .ToList();
         return new HeatmapLayout(matrix.RowKeys, matrix.RowLabels, matrix.ColKeys, matrix.ColLabels, cells);
     }
 
-    private static HeatCell Cell(ReportMatrix matrix, int r, int c, double max, NormalizeKind normalize, int? minSample, SampleRule rule, ChartStyle style) {
+    private static HeatCell Cell(ReportMatrix matrix, ReportMatrix primary, int r, int c, double max, NormalizeKind normalize, int? minSample, SampleRule rule, ChartStyle style) {
         var value = matrix.Cells[r][c];
-        var samples = matrix.Samples[r][c];
+        var samples = primary.Samples[r][c];
         var below = ReportProjection.BelowSample(samples, minSample) && rule != SampleRule.Show;
-        var muted = below || (value ?? 0) == 0;
-        var intensity = muted ? 0 : Intensity(value ?? 0, max, normalize, style);
+        var muted = below || (primary.Cells[r][c] ?? 0) == 0;
+        var intensity = muted ? 0 : Math.Max(style.HeatFloor, (value ?? 0) > 0 ? Intensity(value ?? 0, max, normalize, style) : 0);
         return new HeatCell(matrix.RowKeys[r], matrix.ColKeys[c], value, samples, intensity, muted, below && rule == SampleRule.Hide);
     }
 

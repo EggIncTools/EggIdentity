@@ -1,40 +1,53 @@
 @using System.Globalization
 @using EggIdentity.Reports
+@using EggIdentity.UI
 
 @if (Context.Cube.Rows.Count == 0) {
-    <EmptyState Title="@Context.Labels.EmptyTitle" Hint="@Context.Labels.EmptyDescription"/>
+    <div class="report-note">@Context.Labels.NoData</div>
 } else {
-    <table class="report-table">
-        <thead>
-        <tr>
-            @foreach (var dim in Context.Cube.Dimensions) {
-                <th class="report-label">@DimensionHeader(dim)</th>
-            }
-            @foreach (var measure in Context.Cube.Measures) {
-                <th class="report-num">@MeasureHeader(measure)</th>
-            }
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (var row in Context.Cube.Rows) {
-            var below = ReportProjection.BelowSample(row.Samples, Context.Definition.Query.MinSample);
-            var dim = below && Context.Definition.View.Sample == SampleRule.Dim;
-            var blank = below && Context.Definition.View.Sample == SampleRule.Hide;
-            <tr class="@(dim ? "report-dim" : "")">
-                @for (var i = 0; i < row.Keys.Count; i++) {
-                    <td class="report-label">@DimensionValue(i, row.Keys[i])</td>
+    <div class="report-chart">
+        <div class="report-table-wrap">
+            <table class="report-table">
+                @if (ShowHeader) {
+                    <thead>
+                    <tr>
+                        @foreach (var dim in Context.Cube.Dimensions) {
+                            <th class="report-table-head">@DimensionHeader(dim)</th>
+                        }
+                        @foreach (var measure in Context.Cube.Measures) {
+                            <th class="report-table-head report-num">@MeasureHeader(measure)</th>
+                        }
+                    </tr>
+                    </thead>
                 }
-                @for (var i = 0; i < row.Values.Count; i++) {
-                    <td class="report-num">@(blank ? "" : FormatValue(i, row.Values[i]))</td>
+                <tbody>
+                @foreach (var row in Context.Cube.Rows) {
+                    var below = ReportProjection.BelowSample(row.Samples, Context.Definition.Query.MinSample);
+                    var dim = below && Context.Definition.View.Sample == SampleRule.Dim;
+                    var blank = below && Context.Definition.View.Sample == SampleRule.Hide;
+                    <tr class="@(dim ? "report-dim" : "")">
+                        @for (var i = 0; i < row.Keys.Count; i++) {
+                            var text = DimensionValue(i, row.Keys[i]);
+                            <td class="report-table-label"><Tooltip Class="report-trunc" Text="@text">@text</Tooltip></td>
+                        }
+                        @for (var i = 0; i < row.Values.Count; i++) {
+                            <td class="report-num">@(blank ? "" : FormatValue(i, row.Values[i]))</td>
+                        }
+                    </tr>
                 }
-            </tr>
+                </tbody>
+            </table>
+        </div>
+        @if (!string.IsNullOrEmpty(Context.Definition.View.Unit)) {
+            <div class="report-unit">@Context.Definition.View.Unit</div>
         }
-        </tbody>
-    </table>
+    </div>
 }
 
 @code {
     [Parameter, EditorRequired] public ChartContext Context { get; set; } = null!;
+
+    private bool ShowHeader => Context.Cube.Dimensions.Count + Context.Cube.Measures.Count > 2;
 
     private string DimensionHeader(string dimKey) {
         if (Context.Definition.View.Labels.TryGetValue(dimKey, out var custom)) return custom;
@@ -56,9 +69,6 @@
 
     private string FormatValue(int measureIndex, double? value) {
         if (value is not { } v) return "";
-        var measure = Context.Cube.Measures[measureIndex];
-        var format = Context.Source?.Measures.FirstOrDefault(m => string.Equals(m.Key, measure.Key, StringComparison.Ordinal))?.Format
-            ?? (measure.IsRowCount ? ValueFormat.Integer : ValueFormat.Decimal(2));
-        return format.Format(v);
+        return Context.Format(Context.Cube.Measures[measureIndex].Key).Format(v);
     }
 }

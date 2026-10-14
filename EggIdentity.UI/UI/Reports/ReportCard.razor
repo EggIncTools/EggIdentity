@@ -3,21 +3,25 @@
 
 <div class="report-card">
     <div class="report-card-head">
-        <div class="report-card-title">@Definition.Title</div>
-        @if (!string.IsNullOrEmpty(Definition.Description)) {
-            <div class="report-card-desc">@Definition.Description</div>
-        }
+        <div class="report-card-titles">
+            <div class="report-card-title" title="@Definition.Title">@Definition.Title</div>
+            @if (!string.IsNullOrEmpty(Definition.Description)) {
+                <div class="report-card-desc" title="@Definition.Description">@Definition.Description</div>
+            }
+        </div>
         @if (Actions is not null) {
             <div class="report-card-actions">@Actions</div>
         }
     </div>
     <div class="report-card-body">
         @if (Loading) {
-            <StatusNote Kind="StatusNoteKind.Busy" Text="@ChartLabels.Running"/>
+            <div class="report-note">@ChartLabels.Running</div>
         } else if (Error is not null) {
-            <StatusNote Kind="StatusNoteKind.Error" Text="@Error"/>
+            <div class="report-note report-note-err" role="alert">@Error</div>
         } else if (Cube is null || Cube.Rows.Count == 0) {
-            <EmptyState Title="@ChartLabels.EmptyTitle" Hint="@ChartLabels.EmptyDescription"/>
+            <div class="report-note">@ChartLabels.NoData</div>
+        } else if (Body is not null) {
+            @Body(BuildContext())
         } else {
             <ReportChart Context="BuildContext()" Renderers="Renderers"/>
         }
@@ -34,6 +38,7 @@
     [Parameter] public bool Loading { get; set; }
     [Parameter] public string? Error { get; set; }
     [Parameter] public RenderFragment? Actions { get; set; }
+    [Parameter] public RenderFragment<ChartContext>? Body { get; set; }
 
     private ReportLabels ChartLabels => Labels ?? ReportLabels.Default;
 

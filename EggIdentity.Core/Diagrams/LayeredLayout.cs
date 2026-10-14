@@ -251,6 +251,51 @@ public static class LayeredLayout {
         }
     }
 
+    private const int AlignPasses = 4;
+    private const double FreeWeight = 0.001;
+
+    private static double MedianOf(List<double> sorted) {
+        var n = sorted.Count;
+        return n % 2 == 1 ? sorted[n / 2] : (sorted[(n / 2) - 1] + sorted[n / 2]) / 2;
+    }
+
+    private static double[] Isotonic(List<string> bucket, double[] desired, double[] weight, Func<string, double> size, double gap) {
+        var n = bucket.Count;
+        var offset = new double[n];
+        for (var i = 1; i < n; i++) {
+            offset[i] = offset[i - 1] + size(bucket[i - 1]) + gap;
+        }
+
+        var blockValue = new List<double>(n);
+        var blockWeight = new List<double>(n);
+        var blockCount = new List<int>(n);
+        for (var i = 0; i < n; i++) {
+            blockValue.Add(desired[i] - offset[i]);
+            blockWeight.Add(weight[i]);
+            blockCount.Add(1);
+            while (blockValue.Count > 1 && blockValue[^2] > blockValue[^1]) {
+                var w = blockWeight[^2] + blockWeight[^1];
+                var v = ((blockValue[^2] * blockWeight[^2]) + (blockValue[^1] * blockWeight[^1])) / w;
+                var c = blockCount[^2] + blockCount[^1];
+                blockValue.RemoveAt(blockValue.Count - 1);
+                blockWeight.RemoveAt(blockWeight.Count - 1);
+                blockCount.RemoveAt(blockCount.Count - 1);
+                blockValue[^1] = v;
+                blockWeight[^1] = w;
+                blockCount[^1] = c;
+            }
+        }
+
+        var placed = new double[n];
+        var k = 0;
+        for (var b = 0; b < blockValue.Count; b++) {
+            for (var j = 0; j < blockCount[b]; j++, k++) {
+                placed[k] = blockValue[b] + offset[k];
+            }
+        }
+        return placed;
+    }
+
     private static double Median(List<int> values) {
         var n = values.Count;
         if (n % 2 == 1) {
@@ -322,26 +367,53 @@ public static class LayeredLayout {
             }
         }
 
-        for (var r = maxRank; r >= minRank; r--) {
-            double? prevCross = null;
-            double? prevSize = null;
-            foreach (var id in rankBuckets[r]) {
-                List<string> children = forwardByFrom.TryGetValue(id, out var outgoing)
-                    ? [.. outgoing.Select(e => e.To).Distinct()]
-                    : [];
-                if (children.Count == 0) {
-                    prevCross = cross[id];
-                    prevSize = CrossSize(id);
-                    continue;
+        var childrenOf = new Dictionary<string, List<string>>();
+        var parentsOf = new Dictionary<string, List<string>>();
+        foreach (var pair in forwardByFrom) {
+            foreach (var to in pair.Value.Select(e => e.To).Distinct()) {
+                if (!childrenOf.TryGetValue(pair.Key, out var kids)) {
+                    kids = [];
+                    childrenOf[pair.Key] = kids;
                 }
+                kids.Add(to);
+                if (!parentsOf.TryGetValue(to, out var parents)) {
+                    parents = [];
+                    parentsOf[to] = parents;
+                }
+                parents.Add(pair.Key);
+            }
+        }
 
-                var meanCenter = children.Average(childId => cross[childId] + (CrossSize(childId) / 2));
-                var desired = meanCenter - (CrossSize(id) / 2);
-                var minAllowed = prevCross.HasValue ? prevCross.Value + prevSize!.Value + style.NodeGap : double.NegativeInfinity;
-                var newCross = Math.Max(cross[id], Math.Max(desired, minAllowed));
-                cross[id] = newCross;
-                prevCross = newCross;
-                prevSize = CrossSize(id);
+        double Center(string id) {
+            return cross[id] + (CrossSize(id) / 2);
+        }
+
+        void Align(List<string> bucket, Dictionary<string, List<string>> neighborsOf) {
+            var desired = new double[bucket.Count];
+            var weight = new double[bucket.Count];
+            for (var i = 0; i < bucket.Count; i++) {
+                var id = bucket[i];
+                if (neighborsOf.TryGetValue(id, out var neighbors) && neighbors.Count > 0) {
+                    List<double> centers = [.. neighbors.Select(Center).OrderBy(c => c)];
+                    desired[i] = MedianOf(centers) - (CrossSize(id) / 2);
+                    weight[i] = 1;
+                } else {
+                    desired[i] = cross[id];
+                    weight[i] = FreeWeight;
+                }
+            }
+            var placed = Isotonic(bucket, desired, weight, CrossSize, style.NodeGap);
+            for (var i = 0; i < bucket.Count; i++) {
+                cross[bucket[i]] = placed[i];
+            }
+        }
+
+        for (var pass = 0; pass < AlignPasses; pass++) {
+            for (var r = maxRank; r >= minRank; r--) {
+                Align(rankBuckets[r], childrenOf);
+            }
+            for (var r = minRank; r <= maxRank; r++) {
+                Align(rankBuckets[r], parentsOf);
             }
         }
 

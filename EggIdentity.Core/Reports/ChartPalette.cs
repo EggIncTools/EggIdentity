@@ -36,9 +36,9 @@ public static class ChartPalette {
         return Hex(F(0), F(8), F(4));
     }
 
-    public static IReadOnlyList<string> Slices(string baseColor, int count) {
+    public static IReadOnlyList<string> Slices(string baseColor, int count, double? lightness = null) {
         if (count <= 0 || Hsl(baseColor) is not { } hsl) return [];
-        return [.. Enumerable.Range(0, count).Select(i => FromHsl(Mod(hsl.H + (double)i * 360 / count, 360), hsl.S, hsl.L))];
+        return [.. Enumerable.Range(0, count).Select(i => FromHsl(Mod(hsl.H + (double)i * 360 / count, 360), hsl.S, lightness ?? hsl.L))];
     }
 
     public static IReadOnlyDictionary<string, int> Slots(IEnumerable<string> keys, int slots) {
@@ -50,12 +50,12 @@ public static class ChartPalette {
         return map;
     }
 
-    public static IReadOnlyList<SeriesColor> Resolve(IReadOnlyList<string> keys, ReportView view, ChartStyle style) {
+    public static IReadOnlyList<SeriesColor> Resolve(IReadOnlyList<string> keys, ReportView view, ChartStyle style, double? lightness = null) {
         ArgumentNullException.ThrowIfNull(keys);
         ArgumentNullException.ThrowIfNull(view);
         ArgumentNullException.ThrowIfNull(style);
         var slots = Slots(keys, style.SeriesSlots);
-        var derived = view.Color is { } c ? Slices(c, keys.Count) : [];
+        var derived = (view.Color ?? style.SeriesBase) is { } c ? Slices(c, keys.Count, lightness) : [];
         return [.. keys.Select((k, i) => new SeriesColor(slots[k], Override(view, k) ?? (i < derived.Count ? derived[i] : null)))];
     }
 

@@ -2,22 +2,23 @@
 @using EggIdentity.Reports
 
 @if (Context.Cube.Rows.Count == 0) {
-    <EmptyState Title="@Context.Labels.EmptyTitle" Hint="@Context.Labels.EmptyDescription"/>
+    <div class="report-note">@Context.Labels.NoData</div>
 } else {
     <div class="report-chart" style="@UnfilledStyle">
-        <div class="report-bars">
+        <div class="report-bars report-marks">
             @foreach (var bar in Bars) {
                 var dim = Dimmed(bar);
-                <div class="@RowClass(dim)" title="@($"{LabelFor(bar.Key, bar.Label)} {FormatValue(bar.Value)}")">
-                    <span class="report-bar-label">@LabelFor(bar.Key, bar.Label)</span>
-                    <span class="report-bar-track"><span class="report-bar-fill" style="@FillStyle(bar)"></span></span>
+                var label = Context.Label(bar.Key, bar.Label);
+                <div class="@RowClass(dim)">
+                    <Tooltip Class="report-bar-label" Text="@label">@label</Tooltip>
+                    <span class="report-bar-track"><Tooltip Class="report-bar-fill report-mark" Style="@FillStyle(bar)" Lines="@BarLines(bar)"/></span>
                     <span class="report-bar-value">@FormatValue(bar.Value)</span>
                 </div>
             }
+            @if (!string.IsNullOrEmpty(Context.Definition.View.Unit)) {
+                <div class="report-unit">@Context.Definition.View.Unit</div>
+            }
         </div>
-        @if (!string.IsNullOrEmpty(Context.Definition.View.Unit)) {
-            <div class="report-unit">@Context.Definition.View.Unit</div>
-        }
     </div>
 }
 
@@ -60,12 +61,12 @@
 
     private string SeriesStyle(string key) => _styles.GetValueOrDefault(key, "");
 
-    private string LabelFor(string key, string fallback) =>
-        Context.Definition.View.Labels.TryGetValue(key, out var custom) ? custom : fallback;
-
-    private string FormatValue(double value) {
-        var format = Context.Source?.Measures.FirstOrDefault(m => string.Equals(m.Key, MeasureKey, StringComparison.Ordinal))?.Format
-            ?? (MeasureKey == MeasureRequest.RowCountKey ? ValueFormat.Integer : ValueFormat.Decimal(2));
-        return format.Format(value);
+    private IReadOnlyList<TooltipLine> BarLines(BarItem bar) {
+        var label = Context.Label(bar.Key, bar.Label);
+        var unit = Context.Definition.View.Unit;
+        var unitSuffix = string.IsNullOrEmpty(unit) ? "" : $" {unit}";
+        return [new TooltipLine(label, Head: true), new TooltipLine(FormatValue(bar.Value) + unitSuffix)];
     }
+
+    private string FormatValue(double value) => Context.Format(MeasureKey).Format(value);
 }

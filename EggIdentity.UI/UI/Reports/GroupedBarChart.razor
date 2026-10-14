@@ -1,20 +1,24 @@
 @using System.Globalization
 @using EggIdentity.Reports
+@using EggIdentity.UI
 
 @if (Context.Cube.Dimensions.Count < 2) {
-    <EmptyState Title="@Context.Labels.EmptyTitle" Hint="@Context.Labels.EmptyDescription"/>
+    <div class="report-note">@Context.Labels.NoData</div>
 } else {
     <div class="report-chart">
-        <div class="report-groups">
+        <div class="report-groups report-marks">
             @foreach (var row in Layout.Rows) {
+                var rowLabel = Context.Label(row.Key, row.Label);
                 <div class="report-group">
-                    <span class="report-bar-label">@LabelFor(row.Key, row.Label)</span>
+                    <Tooltip Class="report-group-label" Text="@rowLabel">@rowLabel</Tooltip>
                     <div class="report-group-bars">
                         @foreach (var cell in CellsFor(row)) {
-                            <div class="@RowClass(Dimmed(cell))" title="@($"{LabelFor(cell.ColKey, ColLabel(cell.ColKey))} {FormatValue(cell.Value)}")">
-                                <span class="report-bar-track"><span class="report-bar-fill" style="@FillStyle(cell)"></span></span>
-                                <span class="report-bar-value">@FormatValue(cell.Value)</span>
-                            </div>
+                            if (cell.Value > 0) {
+                                <div class="report-group-row">
+                                    <Tooltip Class="@BarClass(Dimmed(cell))" Style="@FillStyle(cell)" Lines="@CellLines(row, cell)"/>
+                                    <span class="report-group-value">@FormatValue(cell.Value)</span>
+                                </div>
+                            }
                         }
                     </div>
                 </div>
@@ -22,9 +26,10 @@
         </div>
         <div class="report-legend">
             @foreach (var key in Layout.ColKeys) {
+                var colLabel = Context.Label(key, ColLabel(key));
                 <span class="report-legend-item">
                     <span class="report-legend-swatch" style="@SeriesStyle(key)"></span>
-                    <span class="report-slice-label">@LabelFor(key, ColLabel(key))</span>
+                    <Tooltip Class="report-legend-label" Text="@colLabel">@colLabel</Tooltip>
                 </span>
             }
         </div>
@@ -46,16 +51,13 @@
     protected override void OnParametersSet() {
         Matrix = ReportProjection.Matrix(Context.Cube, MeasureKey, Context.Cube.Dimensions[0], Context.Cube.Dimensions[1], Context.Source);
         Layout = BarGeometry.Grouped(Matrix, Context.Style, Context.Cube.Normalized, Context.Labels.Other);
-        _styles = Context.SeriesStyles(Layout.ColKeys);
+        _styles = Context.SeriesStyles(Layout.ColKeys, series: true);
     }
 
     private string ColLabel(string key) {
         var i = Layout.ColKeys.ToList().IndexOf(key);
         return i >= 0 ? Layout.ColLabels[i] : key;
     }
-
-    private string LabelFor(string key, string fallback) =>
-        Context.Definition.View.Labels.TryGetValue(key, out var custom) ? custom : fallback;
 
     private IReadOnlyList<GroupedBarCell> CellsFor(GroupedBarRow row) {
         var hide = Context.Definition.View.Sample == SampleRule.Hide;
@@ -67,14 +69,16 @@
 
     private string SeriesStyle(string key) => _styles.GetValueOrDefault(key, "");
 
-    private string FormatValue(double value) {
-        var format = Context.Source?.Measures.FirstOrDefault(m => string.Equals(m.Key, MeasureKey, StringComparison.Ordinal))?.Format
-            ?? (MeasureKey == MeasureRequest.RowCountKey ? ValueFormat.Integer : ValueFormat.Decimal(2));
-        return format.Format(value);
+    private static string BarClass(bool dim) => dim ? "report-group-bar report-mark report-dim" : "report-group-bar report-mark";
+
+    private IReadOnlyList<TooltipLine> CellLines(GroupedBarRow row, GroupedBarCell cell) {
+        var rowLabel = Context.Label(row.Key, row.Label);
+        var colLabel = Context.Label(cell.ColKey, ColLabel(cell.ColKey));
+        return [new TooltipLine(colLabel, Head: true), new TooltipLine($"{rowLabel}: {FormatValue(cell.Value)}")];
     }
+
+    private string FormatValue(double value) => Context.Compact(MeasureKey, value);
 
     private string FillStyle(GroupedBarCell cell) =>
         string.Create(CultureInfo.InvariantCulture, $"width:{Math.Clamp(cell.Width, 0, 100):0.###}%;{SeriesStyle(cell.ColKey)}");
-
-    private static string RowClass(bool dim) => dim ? "report-bar report-dim" : "report-bar";
 }
