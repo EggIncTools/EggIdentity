@@ -1,20 +1,22 @@
 namespace EggIdentity.Auth;
 
 public sealed class SessionCookieOptions {
+    public const int DefaultTtlMinutes = 10080;
+
     public required string SigningSecret { get; init; }
     public string? PreviousSigningSecret { get; init; }
     public string CookieName { get; init; } = "eggidentity_session";
     public string? CookieDomain { get; init; }
     public string Issuer { get; init; } = "eggidentity";
     public string Audience { get; init; } = "eggidentity-apps";
-    public TimeSpan Ttl { get; init; } = TimeSpan.FromMinutes(480);
+    public TimeSpan Ttl { get; init; } = TimeSpan.FromMinutes(DefaultTtlMinutes);
 
     public static SessionCookieOptions? FromEnvironment() {
         var secret = Environment.GetEnvironmentVariable("EGGIDENTITY_SESSION_SECRET");
         if (string.IsNullOrEmpty(secret)) return null;
 
         var ttlMinutes = int.TryParse(Environment.GetEnvironmentVariable("EGGIDENTITY_SESSION_TTL_MINUTES"), out var m) && m > 0
-            ? m : 480;
+            ? m : DefaultTtlMinutes;
 
         return new SessionCookieOptions {
             SigningSecret = secret,

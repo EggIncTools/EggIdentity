@@ -97,16 +97,25 @@ public static class AuthentikAspNetAuth {
         CookieValidatePrincipalContext ctx, IdentityApiClient identity, string userIdClaimType, string roleClaimType) {
         if (ctx.Principal is not { } principal) return;
         var sid = principal.FindFirstValue(SessionClaims.SessionId);
-        if (!string.IsNullOrEmpty(sid) && await identity.IsRevokedAsync(sid, ctx.HttpContext.RequestAborted)) {
+        var userIdClaim = principal.FindFirstValue(userIdClaimType);
+        var userId = Guid.TryParse(userIdClaim, out var parsed) ? parsed : (Guid?)null;
+        bool revoked;
+        IdentityUserResponse? user;
+        try {
+            revoked = !string.IsNullOrEmpty(sid) && await identity.IsRevokedAsync(sid, ctx.HttpContext.RequestAborted);
+            user = revoked || userId is null ? null : await identity.GetAsync(userId.Value, ctx.HttpContext.RequestAborted);
+        } catch (Exception ex) when (ex is not OperationCanceledException) {
+            ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("AuthentikAspNetAuth")
+                .LogWarning(ex, "Identity API unreachable while validating a session; keeping the session");
+            return;
+        }
+
+        if (revoked) {
             ctx.RejectPrincipal();
             await ctx.HttpContext.SignOutAsync(ctx.Scheme.Name);
             return;
         }
 
-        var userIdClaim = principal.FindFirstValue(userIdClaimType);
-        if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var userId)) return;
-
-        var user = await identity.GetAsync(userId, ctx.HttpContext.RequestAborted);
         if (user is null) return;
 
         var currentRole = principal.FindFirstValue(roleClaimType);

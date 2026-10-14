@@ -25,7 +25,7 @@ public static class SessionSettings {
         new SettingDescriptor(
             TtlMinutes, "EGGIDENTITY_SESSION_TTL_MINUTES", "Session lifetime (minutes)", Category,
             SettingKind.Number, ApplyTier.RestartRequired, Sensitivity.Plain) {
-            Default = "43200",
+            Default = SessionCookieOptions.DefaultTtlMinutes.ToString(System.Globalization.CultureInfo.InvariantCulture),
         },
         new SettingDescriptor(
             CookieDomain, "EGGIDENTITY_SESSION_COOKIE_DOMAIN", "Session cookie domain", Category,
