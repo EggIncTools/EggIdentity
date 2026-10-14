@@ -1,0 +1,62 @@
+@using EggIdentity.Diagrams
+
+<div class="diagram">
+    <div class="diagram-tools">
+        <button type="button" class="diagram-tool" aria-label="@Labels.ZoomOut" disabled="@(!CanZoomOut)" @onclick="ZoomOut">-</button>
+        <button type="button" class="diagram-tool" aria-label="@Labels.ZoomIn" disabled="@(!CanZoomIn)" @onclick="ZoomIn">+</button>
+        <button type="button" class="diagram-tool" aria-label="@Labels.Fit" @onclick="Fit">@Labels.Fit</button>
+    </div>
+    <div class="diagram-stage" style="width:@((_layout.Width * Zoom).ToString("0.##"))px;height:@((_layout.Height * Zoom).ToString("0.##"))px">
+        <div class="diagram-canvas" style="width:@(_layout.Width.ToString("0.##"))px;height:@(_layout.Height.ToString("0.##"))px;transform:scale(@(Zoom.ToString("0.###")))">
+            <svg class="diagram-edges" width="@(_layout.Width.ToString("0.##"))" height="@(_layout.Height.ToString("0.##"))" viewBox="0 0 @(_layout.Width.ToString("0.##")) @(_layout.Height.ToString("0.##"))">
+                @foreach (var edge in _layout.Edges) {
+                    <path class="diagram-edge @(edge.IsBack ? "diagram-edge-back" : "") @(EdgeClass?.Invoke(edge))"
+                          d="@edge.Path"
+                          style="@(EdgeStyle?.Invoke(edge) ?? $"stroke-width:{edge.Width.ToString("0.##")};opacity:{edge.Opacity.ToString("0.##")}")">
+                        @if (edge.Edge.Label is not null) {
+                            <title>@edge.Edge.Label</title>
+                        }
+                    </path>
+                }
+            </svg>
+            @foreach (var edge in _layout.Edges) {
+                @if (EdgeLabelTemplate is not null) {
+                    <div class="diagram-edge-label" style="left:@(edge.LabelX.ToString("0.##"))px;top:@(edge.LabelY.ToString("0.##"))px;transform:translate(-50%,-50%)">
+                        @EdgeLabelTemplate(edge)
+                    </div>
+                } else if (edge.Edge.Label is not null) {
+                    <div class="diagram-edge-label" style="left:@(edge.LabelX.ToString("0.##"))px;top:@(edge.LabelY.ToString("0.##"))px;transform:translate(-50%,-50%)">
+                        @edge.Edge.Label
+                    </div>
+                }
+            }
+            @foreach (var node in _layout.Nodes) {
+                var nodeAriaLabel = AriaLabel(node.Node);
+                var selected = IsSelected(node.Node.Id);
+                var collapsed = IsCollapsed(node.Node.Id);
+                var hasChildren = HasChildren(node.Node.Id);
+                <button type="button"
+                        @ref="_nodeRefs[node.Node.Id]"
+                        class="diagram-node @NodeClass?.Invoke(node) @(selected ? "diagram-node-selected" : "")"
+                        style="left:@(node.X.ToString("0.##"))px;top:@(node.Y.ToString("0.##"))px;width:@(node.Width.ToString("0.##"))px;height:@(node.Height.ToString("0.##"))px"
+                        aria-label="@nodeAriaLabel"
+                        aria-pressed="@(selected ? "true" : "false")"
+                        aria-expanded="@(hasChildren ? (collapsed ? "false" : "true") : null)"
+                        @onclick="() => SelectAsync(node.Node.Id)"
+                        @onkeydown="e => OnNodeKeyDown(node.Node.Id, e)"
+                        @onkeydown:preventDefault="_preventArrowDefault">
+                    @NodeTemplate(node)
+                </button>
+                @if (hasChildren) {
+                    <button type="button"
+                            class="diagram-node-toggle"
+                            style="@ToggleStyle(node)"
+                            aria-label="@Labels.ToggleAriaLabel(nodeAriaLabel, collapsed)"
+                            @onclick="() => ToggleCollapsedAsync(node.Node.Id)">
+                        @(collapsed ? "+" : "-")
+                    </button>
+                }
+            }
+        </div>
+    </div>
+</div>

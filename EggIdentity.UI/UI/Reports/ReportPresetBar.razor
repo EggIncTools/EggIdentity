@@ -1,0 +1,20 @@
+@using EggIdentity.Reports
+
+@if (Presets.Count > 0) {
+    <div class="report-presets" role="group" aria-label="@Labels.Presets">
+        @foreach (var preset in Presets) {
+            <button type="button" class="@Class(preset)" aria-pressed="@(Active(preset) ? "true" : "false")" title="@preset.Description" @onclick="() => Select(preset)">@preset.Title</button>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ReportPreset> Presets { get; set; } = [];
+    [Parameter] public ReportDefinition? Value { get; set; }
+    [Parameter] public EventCallback<ReportDefinition> ValueChanged { get; set; }
+    [Parameter] public ReportLabels Labels { get; set; } = ReportLabels.Default;
+
+    private bool Active(ReportPreset preset) => Value is not null && string.Equals(preset.Definition.Id, Value.Id, StringComparison.Ordinal);
+    private string Class(ReportPreset preset) => Active(preset) ? "report-preset report-preset-active" : "report-preset";
+    private Task Select(ReportPreset preset) => ValueChanged.InvokeAsync(preset.Definition);
+}

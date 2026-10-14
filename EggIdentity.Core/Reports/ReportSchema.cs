@@ -61,6 +61,7 @@ public interface IReportSource {
     IReadOnlyList<ReportDimension> Dimensions { get; }
     IReadOnlyList<ReportMeasure> Measures { get; }
     FilterCatalog Catalog { get; }
+    IReadOnlyList<ReportPreset> Presets { get; }
     ReportDimension? Dimension(string key);
     ReportMeasure? Measure(string key);
 }
@@ -74,6 +75,7 @@ public sealed record ReportSource<TRow>(
     public string? SampleKey { get; init; }
     public string? Scope { get; init; }
     public FilterSet Defaults { get; init; } = FilterSet.Empty;
+    public IReadOnlyList<ReportPreset> Presets { get; init; } = [];
 
     public FilterCatalog Catalog => new(Id, [.. Dimensions.Select(d => d.Field)], Defaults);
 

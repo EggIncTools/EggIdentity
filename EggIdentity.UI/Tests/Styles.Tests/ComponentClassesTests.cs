@@ -26,6 +26,7 @@ public class ComponentClassesTests {
             + Components.Calendar.Applies.Count
             + Components.Reports.Applies.Count
             + Components.Icons.Applies.Count
+            + Components.Diagrams.Applies.Count
             + Components.Brand.Applies.Count
             + Components.Consent.Applies.Count
             + Components.Rarity.Applies.Count

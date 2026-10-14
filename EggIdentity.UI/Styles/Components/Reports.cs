@@ -59,5 +59,14 @@ internal static class Reports {
         { ".report-grid-heading", "uppercase text-xs font-bold tracking-wide text-muted" },
         { ".report-grid-cell", "flex flex-col min-w-0 min-h-0" },
         { ".report-grid-tools", "flex items-center justify-end gap-1" },
+        { ".report-reason", "text-xs [color:var(--report-reason-color,var(--color-warn))]" },
+        { ".report-presets", "flex flex-row flex-wrap items-center [gap:var(--report-preset-gap,0.375rem)]" },
+        { ".report-preset", "inline-flex items-center px-2 h-7 rounded-full border cursor-pointer text-xs [color:var(--color-muted)] [border-color:var(--color-border)] [background-color:transparent]" },
+        { ".report-preset:hover", "[color:var(--color-fg)] [border-color:var(--report-preset-hover-border,var(--color-accent))]" },
+        { ".report-preset-active", "[color:var(--report-preset-active-fg,var(--color-accent))] [border-color:var(--report-preset-active-border,var(--color-accent))] [background-color:color-mix(in_srgb,var(--color-accent)_12%,transparent)]" },
+        { ".report-explorer", "flex flex-col [gap:var(--report-explorer-gap,0.75rem)]" },
+        { ".report-explorer-body", "grid [grid-template-columns:minmax(0,var(--report-explorer-builder-w,22rem))_minmax(0,1fr)] [gap:var(--report-explorer-gap,0.75rem)]" },
+        { ".report-explorer-builder", "min-w-0" },
+        { ".report-explorer-result", "min-w-0" },
     }.ToImmutableDictionary();
 }

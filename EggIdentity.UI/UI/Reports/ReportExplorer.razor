@@ -1,0 +1,13 @@
+<div class="report-explorer" aria-busy="@(Loading ? "true" : "false")" data-failed="@Failed">
+    <ReportPresetBar Presets="RunnablePresets" Value="Value" ValueChanged="OnValueChanged" Labels="Labels"/>
+    <div class="report-explorer-body">
+        @if (ShowBuilder) {
+            <div class="report-explorer-builder">
+                <ReportBuilder Sources="Sources" Value="Value" ValueChanged="OnValueChanged" Labels="BuilderLabels" Cost="Cost" Tier="Tier" Registry="Registry"/>
+            </div>
+        }
+        <div class="report-explorer-result">
+            <ReportCard Definition="Value" Cube="Cube" Source="CurrentSource" Style="Style" Labels="Labels" Renderers="Renderers" Loading="Loading" Error="Error"/>
+        </div>
+    </div>
+</div>

@@ -13,6 +13,8 @@ public sealed partial class ReportBuilder : ComponentBase {
     [Parameter] public IReadOnlyList<string> Charts { get; set; } = ReportCharts.BuiltIn;
     [Parameter] public IReportCostEstimator? Cost { get; set; }
     [Parameter] public ReportBuilderLabels Labels { get; set; } = ReportBuilderLabels.Default;
+    [Parameter] public ReportTier Tier { get; set; } = ReportTier.Live;
+    [Parameter] public ReportEngineRegistry? Registry { get; set; }
 
     private static ReportDefinition Empty { get; } = new(ReportCodec.CurrentVersion, "", "", new ReportQuery(""), new ReportView(ReportCharts.Table));
 
@@ -20,6 +22,7 @@ public sealed partial class ReportBuilder : ComponentBase {
     private ReportView View => Value.View;
     private IReportSource? Source => Sources.FirstOrDefault(s => string.Equals(s.Id, Query.Source, StringComparison.Ordinal));
     private ReportCost? EstimatedCost => Cost?.Estimate(Query);
+    private bool Gated => Tier == ReportTier.Snapshot && Registry is not null;
 
     private IReadOnlyList<string> SortKeyOptions =>
         Source is null ? [] : [.. Source.Dimensions.Select(d => d.Key), .. Source.Measures.Select(m => m.Key), MeasureRequest.RowCountKey];
@@ -41,6 +44,41 @@ public sealed partial class ReportBuilder : ComponentBase {
     };
 
     private static T? Head<T>(IReadOnlyList<T>? list) where T : class => list is { Count: > 0 } ? list[0] : null;
+
+    private string? Reason(ReportQuery probe) {
+        if (!Gated) return null;
+        var validation = Registry!.Validate(probe, Tier);
+        return validation.Allowed ? null : string.Join(" ", validation.Rejections.Select(r => r.Message));
+    }
+
+    private string? DimensionReason(string key) =>
+        Reason(Query with { GroupBy = [new GroupKey(key)], Measures = [], Filters = FilterSet.Empty, Normalize = Normalize.None, Sort = [], Having = [] });
+
+    private string? BucketReason(int index, TimeBucket bucket) {
+        var groupBy = Query.GroupBy.ToList();
+        groupBy[index] = groupBy[index] with { Bucket = bucket };
+        return Reason(Query with { GroupBy = groupBy, Measures = [], Filters = FilterSet.Empty, Normalize = Normalize.None, Sort = [], Having = [] });
+    }
+
+    private string? MeasureReason(string key, Aggregation aggregation) =>
+        Reason(Query with { GroupBy = [], Measures = [new MeasureRequest(key, aggregation)], Filters = FilterSet.Empty, Normalize = Normalize.None, Sort = [], Having = [] });
+
+    private string? QueryReason => Reason(Query);
+
+    private IReadOnlyList<FilterFieldDef> FilterFields {
+        get {
+            if (Source is not { } source) return [];
+            if (!Gated) return source.Catalog.Fields;
+            return [.. source.Catalog.Fields.Where(f => Reason(Query with {
+                GroupBy = [],
+                Measures = [],
+                Normalize = Normalize.None,
+                Sort = [],
+                Having = [],
+                Filters = new FilterSet([new FilterCondition(f.Key, "=", "x")], []),
+            }) is null)];
+        }
+    }
 
     private Task Emit(ReportDefinition next) => ValueChanged.InvokeAsync(next);
 

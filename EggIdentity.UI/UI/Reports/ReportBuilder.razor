@@ -34,13 +34,13 @@
                     <select class="form-select" value="@g.Dimension" @onchange="e => SetGroupByDimension(index, (string?)e.Value)">
                         <option value="">@Labels.GroupByDimension</option>
                         @foreach (var d in source.Dimensions) {
-                            <option value="@d.Key">@d.Field.Label</option>
+                            <option value="@d.Key" disabled="@(DimensionReason(d.Key) is not null)" title="@DimensionReason(d.Key)">@d.Field.Label</option>
                         }
                     </select>
                     @if (dim is { Buckets.Count: > 0 }) {
                         <select class="form-select" value="@(g.Bucket?.ToString() ?? "")" @onchange="e => SetGroupByBucket(index, ParseBucket((string?)e.Value))">
                             @foreach (var b in dim.Buckets) {
-                                <option value="@b">@b</option>
+                                <option value="@b" disabled="@(BucketReason(index, b) is not null)" title="@BucketReason(index, b)">@b</option>
                             }
                         </select>
                         @if (g.Bucket is not null) {
@@ -66,13 +66,13 @@
                     <select class="form-select" value="@(m.IsRowCount ? MeasureRequest.RowCountKey : m.Key)" @onchange="e => SetMeasureKey(index, (string?)e.Value)">
                         <option value="@MeasureRequest.RowCountKey">@Labels.RowCount</option>
                         @foreach (var mm in source.Measures) {
-                            <option value="@mm.Key">@mm.Label</option>
+                            <option value="@mm.Key" disabled="@(MeasureReason(mm.Key, mm.Default) is not null)" title="@MeasureReason(mm.Key, mm.Default)">@mm.Label</option>
                         }
                     </select>
                     @if (measure is not null) {
                         <select class="form-select" value="@m.Aggregation" @onchange="e => SetMeasureAggregation(index, ParseAggregation((string?)e.Value))">
                             @foreach (var agg in measure.Aggregations) {
-                                <option value="@agg">@Labels.AggregationLabel(agg)</option>
+                                <option value="@agg" disabled="@(MeasureReason(m.Key, agg) is not null)" title="@MeasureReason(m.Key, agg)">@Labels.AggregationLabel(agg)</option>
                             }
                         </select>
                     }
@@ -84,7 +84,7 @@
 
         <div class="report-builder-section">
             <div class="report-builder-head">@Labels.Filters</div>
-            <FilterBuilder Fields="source.Catalog.Fields" Value="Query.Filters" ValueChanged="SetFilters"/>
+            <FilterBuilder Fields="FilterFields" Value="Query.Filters" ValueChanged="SetFilters"/>
         </div>
 
         <div class="report-builder-section">
@@ -210,6 +210,10 @@
             <div class="@($"report-cost {CostClass(estimate.Level)}")">
                 @Labels.Cost: @estimate.Level@(estimate.Note is null ? "" : $" - {estimate.Note}")
             </div>
+        }
+
+        @if (QueryReason is { } reason) {
+            <div class="report-reason">@reason</div>
         }
     }
 </div>

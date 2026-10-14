@@ -13,11 +13,11 @@
     </div>
     <div class="report-card-body">
         @if (Loading) {
-            <StatusNote Kind="StatusNoteKind.Busy" Text="Running..."/>
+            <StatusNote Kind="StatusNoteKind.Busy" Text="@ChartLabels.Running"/>
         } else if (Error is not null) {
             <StatusNote Kind="StatusNoteKind.Error" Text="@Error"/>
         } else if (Cube is null || Cube.Rows.Count == 0) {
-            <EmptyState Title="No data"/>
+            <EmptyState Title="@ChartLabels.EmptyTitle" Hint="@ChartLabels.EmptyDescription"/>
         } else {
             <ReportChart Context="BuildContext()" Renderers="Renderers"/>
         }
@@ -35,6 +35,8 @@
     [Parameter] public string? Error { get; set; }
     [Parameter] public RenderFragment? Actions { get; set; }
 
+    private ReportLabels ChartLabels => Labels ?? ReportLabels.Default;
+
     private ChartContext BuildContext() =>
-        new(Cube!, Definition, Source, Style ?? ChartStyle.Default, Labels ?? ReportLabels.Default);
+        new(Cube!, Definition, Source, Style ?? ChartStyle.Default, ChartLabels);
 }

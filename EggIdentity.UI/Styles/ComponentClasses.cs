@@ -30,6 +30,7 @@ public static class ComponentClasses {
         .AddRange(Calendar.Applies)
         .AddRange(Components.Reports.Applies)
         .AddRange(Components.Icons.Applies)
+        .AddRange(Components.Diagrams.Applies)
         .AddRange(Rarity.Applies)
         .AddRange(Suite.Applies);
 }

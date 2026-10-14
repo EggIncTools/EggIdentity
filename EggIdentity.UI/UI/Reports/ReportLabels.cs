@@ -11,4 +11,6 @@ public sealed record ReportLabels {
     public string BelowSampleTooltip { get; init; } = "Below the minimum sample size";
     public string TableHeaderFallback { get; init; } = "Value";
     public string Other { get; init; } = "Other";
+    public string Running { get; init; } = "Running...";
+    public string Presets { get; init; } = "Presets";
 }

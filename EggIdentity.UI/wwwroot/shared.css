@@ -66,6 +66,22 @@
   .suite-drawer {
     position: relative;
   }
+  .diagram-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding-inline: calc(var(--spacing) * 2);
+    height: var(--diagram-tool-size,1.8rem);
+    min-width: var(--diagram-tool-size,1.8rem);
+    border-radius: var(--radius-md);
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+    color: var(--color-muted);
+    border: 1px solid var(--color-border);
+    background-color: transparent;
+    transition: background-color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,0,0,1)),color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,0,0,1));
+  }
   .filter-glass {
     position: absolute;
     left: calc(var(--spacing) * 2);
@@ -148,6 +164,20 @@
     border-bottom: var(--suite-bar-border,1px solid var(--color-border));
     font-size: var(--suite-font-size,clamp(0.875rem, 1.05vw, 1.125rem));
     user-select: none;
+  }
+  .diagram-node {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: left;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    border-style: var(--tw-border-style);
+    border-width: 1px;
+    border-color: var(--diagram-node-border,var(--color-border));
+    background-color: var(--diagram-node-bg,var(--color-panel));
+    transition: border-color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,0,0,1)),box-shadow var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,0,0,1));
   }
   .report-builder-remove {
     display: inline-flex;
@@ -444,6 +474,15 @@
     pointer-events: none;
     anchor-name: var(--tt-anchor);
   }
+  .report-preset-active {
+    color: var(--report-preset-active-fg,var(--color-accent));
+    border-color: var(--report-preset-active-border,var(--color-accent));
+    background-color: color-mix(in srgb,var(--color-accent) 12%,transparent);
+  }
+  .diagram-tool:hover {
+    color: var(--color-accent2);
+    background-color: var(--diagram-tool-hover-bg,var(--color-panel2));
+  }
   .icon-xs {
     --icon-size: 0.75rem;
   }
@@ -615,6 +654,9 @@
   .filter-add-btn.filter-add-outer {
     border-style: dashed;
   }
+  .report-explorer-result {
+    min-width: calc(var(--spacing) * 0);
+  }
   .suite-provider:hover {
     background: var(--suite-item-hover-bg,var(--color-panel));
     color: var(--suite-item-hover-fg,var(--suite-panel-fg,var(--color-fg)));
@@ -723,6 +765,21 @@
   .filter-remove-btn:hover {
     background-color: color-mix(in srgb,var(--color-err) 15%,transparent);
   }
+  .diagram-node-toggle {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: calc(infinity * 1px);
+    width: var(--diagram-toggle-size,1.1rem);
+    height: var(--diagram-toggle-size,1.1rem);
+    font-size: var(--diagram-toggle-font-size,0.65rem);
+    color: var(--diagram-toggle-fg,var(--color-muted));
+    border: 1px solid var(--color-border);
+    background-color: var(--diagram-toggle-bg,var(--color-panel));
+    transition: background-color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,0,0,1)),color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,0,0,1));
+  }
   .report-chart {
     width: 100%;
     height: auto;
@@ -817,6 +874,19 @@
     border-radius: var(--radius-md);
     overflow: hidden;
     border-collapse: collapse;
+  }
+  .diagram-edge-label {
+    position: absolute;
+    padding-inline: calc(var(--spacing) * 1.5);
+    border-radius: calc(infinity * 1px);
+    border-style: var(--tw-border-style);
+    border-width: 1px;
+    border-color: var(--color-border);
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+    pointer-events: none;
+    background-color: var(--diagram-edge-label-bg,var(--color-panel));
+    color: var(--diagram-edge-label-fg,var(--color-muted));
   }
   .modal-sentinel {
     position: fixed;
@@ -1164,6 +1234,9 @@
   .suite-inline.suite-account .suite-account-panel {
     position-area: bottom span-right;
   }
+  .diagram-edge-back {
+    stroke-dasharray: var(--diagram-edge-back-dash,4 3);
+  }
   .drag-panel {
     position: fixed;
     z-index: 1100;
@@ -1183,9 +1256,20 @@
     --tw-shadow: 0 6px 18px rgba(0,0,0,.4);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
+  .report-presets {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--report-preset-gap,0.375rem);
+  }
   .fb-btn.fb-or-btn:disabled {
     opacity: var(--filter-or-disabled-opacity,0.4);
     cursor: not-allowed;
+  }
+  .diagram-stage {
+    position: relative;
+    overflow: visible;
   }
   span.tooltip-trigger {
     display: inline-block;
@@ -1206,6 +1290,10 @@
   .wb-entry.selected {
     border-color: var(--color-accent);
     background-color: color-mix(in oklab,var(--color-accent) 10%,transparent);
+  }
+  .diagram-node-selected {
+    border-color: var(--diagram-node-selected-border,var(--color-accent));
+    box-shadow: var(--diagram-node-selected-ring,0 0 0 1px var(--color-accent));
   }
   .tooltip-host:hover .tooltip-toggle {
     opacity: 100%;
@@ -1347,6 +1435,21 @@
     justify-content: center;
     border-radius: var(--suite-bar-tool-radius,0);
     padding: var(--suite-tool-padding,0.3rem 0.95rem);
+  }
+  .report-preset {
+    display: inline-flex;
+    align-items: center;
+    padding-inline: calc(var(--spacing) * 2);
+    height: calc(var(--spacing) * 7);
+    border-radius: calc(infinity * 1px);
+    border-style: var(--tw-border-style);
+    border-width: 1px;
+    cursor: pointer;
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+    color: var(--color-muted);
+    border-color: var(--color-border);
+    background-color: transparent;
   }
   .icon-btn .icon {
     --icon-size: 1.125rem;
@@ -1513,6 +1616,11 @@
     border-color: transparent;
     border-top-color: var(--tooltip-border,var(--color-border));
   }
+  .report-reason {
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+    color: var(--report-reason-color,var(--color-warn));
+  }
   .icon-btn {
     display: inline-flex;
     align-items: center;
@@ -1632,6 +1740,10 @@
     border-radius: calc(infinity * 1px);
     flex-shrink: 0;
   }
+  .diagram-node:focus-visible {
+    outline: none;
+    box-shadow: var(--diagram-focus-ring,0 0 0 2px var(--color-accent));
+  }
   .tooltip-floating.tooltip-err {
     color: var(--color-err);
     --tooltip-border: var(--color-err);
@@ -1732,6 +1844,10 @@
     cursor: pointer;
     --tw-leading: 1;
   }
+  .report-preset:hover {
+    color: var(--color-fg);
+    border-color: var(--report-preset-hover-border,var(--color-accent));
+  }
   .wb-entry-name {
     font-family: var(--font-mono);
     color: var(--color-fg);
@@ -1782,6 +1898,11 @@
     height: var(--suite-height,3.5rem);
     background: var(--suite-tabs-bg,var(--color-panel));
     border-top: var(--suite-tabs-border,1px solid var(--color-border));
+  }
+  .report-explorer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--report-explorer-gap,0.75rem);
   }
   .tooltip-toggle {
     opacity: 0%;
@@ -1854,6 +1975,10 @@
     --tw-font-weight: var(--font-weight-semibold);
     font-weight: var(--font-weight-semibold);
     color: var(--color-fg);
+  }
+  .diagram-tool:disabled {
+    opacity: var(--diagram-tool-disabled-opacity,0.45);
+    cursor: not-allowed;
   }
   .progress {
     position: relative;
@@ -1951,6 +2076,19 @@
   .btn-accent:disabled {
     cursor: not-allowed;
     opacity: 40%;
+  }
+  .diagram-tools {
+    position: sticky;
+    top: calc(var(--spacing) * 0);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 1);
+    padding: var(--diagram-tools-padding,0.35rem);
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 1px;
+    border-color: var(--color-border);
+    background-color: var(--diagram-tools-bg,var(--color-panel));
   }
   .report-point:hover {
     r: var(--report-point-hover-r,5);
@@ -2159,6 +2297,11 @@
     font-weight: var(--suite-font-weight,inherit);
     line-height: var(--suite-line-height,inherit);
   }
+  .report-explorer-body {
+    display: grid;
+    grid-template-columns: minmax(0,var(--report-explorer-builder-w,22rem)) minmax(0,1fr);
+    gap: var(--report-explorer-gap,0.75rem);
+  }
   .drop-zone {
     border-style: dashed;
     border-width: 1px;
@@ -2197,6 +2340,10 @@
     font-size: var(--suite-consent-text-size,13px);
     color: var(--suite-consent-fg,var(--color-fg));
     cursor: pointer;
+  }
+  .diagram-canvas {
+    position: relative;
+    transform-origin: top left;
   }
   .consent-options {
     display: flex;
@@ -2296,6 +2443,11 @@
     flex: 1;
     min-height: calc(var(--spacing) * 0);
   }
+  .diagram-edge {
+    fill: none;
+    stroke: var(--diagram-edge,var(--color-border));
+    stroke-linecap: round;
+  }
   .wb-drawer-tab:hover {
     color: var(--color-fg);
   }
@@ -2330,6 +2482,9 @@
   .suite-drawer-panel .suite-tools {
     flex-direction: column;
     align-items: stretch;
+  }
+  .report-explorer-builder {
+    min-width: calc(var(--spacing) * 0);
   }
   .data-table tbody tr:hover .data-table-actions {
     background-color: var(--color-panel2);
@@ -2477,6 +2632,9 @@
   .status-note.status-note-warn {
     --status-note-tone: var(--color-warn);
   }
+  .diagram-node:hover {
+    border-color: var(--diagram-node-hover-border,var(--color-accent2));
+  }
   .cal-gridline {
     position: absolute;
     inset-block: calc(var(--spacing) * 0);
@@ -2489,9 +2647,26 @@
     gap: calc(var(--spacing) * 1);
     min-width: calc(var(--spacing) * 0);
   }
+  .diagram {
+    position: relative;
+    width: 100%;
+    overflow: auto;
+    border-radius: var(--radius-md);
+    border-style: var(--tw-border-style);
+    border-width: 1px;
+    border-color: var(--color-border);
+    background-color: var(--color-panel);
+  }
   .suite-profile-providers {
     display: flex;
     flex-direction: column;
+  }
+  .diagram-edges {
+    position: absolute;
+    top: calc(var(--spacing) * 0);
+    left: calc(var(--spacing) * 0);
+    fill: none;
+    pointer-events: none;
   }
   .consent-actions > .btn-secondary {
     flex: var(--suite-consent-button-flex,1 1 auto);
@@ -2774,6 +2949,10 @@
   .report-dim {
     opacity: var(--report-dim-opacity,0.35);
     transition: opacity var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,0,0,1));
+  }
+  .diagram-node-toggle:hover {
+    color: var(--diagram-toggle-hover-fg,var(--color-accent2));
+    background-color: var(--diagram-toggle-hover-bg,var(--color-panel2));
   }
   .suite-tool-current {
     background: var(--suite-tool-current-bg,color-mix(in oklab,var(--tool,var(--color-accent)) var(--suite-tool-current-mix,18%),transparent));
@@ -3058,7 +3237,8 @@ body:has(.modal-backdrop) {
 @media (prefers-reduced-motion: reduce) {
   .fb-select, .fb-btn,
   .modal-card, .modal-card.wb-card, .wb-rail, .wb-main, .wb-drawer, .wb-drawer.wb-drawer-open, .wb-drawer-tab, .tooltip-floating, .popover, .toast, .cal-period, .cal-row, .suite-tool, .fab-bubble, .progress-fill, .caret, .mask, .menu, .menu.open, .drop-zone,
-  .report-bar, .report-point, .report-slice, .report-heat-cell, .report-dim, .report-builder-add, .report-builder-remove, .report-color-swatch, .report-card {
+  .report-bar, .report-point, .report-slice, .report-heat-cell, .report-dim, .report-builder-add, .report-builder-remove, .report-color-swatch, .report-card,
+  .diagram-tool, .diagram-node, .diagram-node-toggle {
     transition: none;
   }
   .pulse, .pane-in, .pane-in-reverse, .wb-pane-in {
