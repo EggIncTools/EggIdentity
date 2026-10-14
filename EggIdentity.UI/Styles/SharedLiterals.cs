@@ -150,6 +150,17 @@ public static class SharedLiterals {
             margin-left: 0;
           }
         }
+        @media (max-width: 47.9375rem) {
+          .report-grid {
+            grid-template-columns: minmax(0,1fr);
+            grid-auto-rows: auto;
+          }
+          .report-grid-cell {
+            grid-column: auto;
+            grid-row: auto;
+            min-height: var(--report-grid-cell-min-narrow,20rem);
+          }
+        }
         @container (max-width: 34rem) {
           .fb-row {
             flex-wrap: wrap;
@@ -164,7 +175,7 @@ public static class SharedLiterals {
         @media (prefers-reduced-motion: reduce) {
           .fb-select, .fb-btn,
           .modal-card, .modal-card.wb-card, .wb-rail, .wb-main, .wb-drawer, .wb-drawer.wb-drawer-open, .wb-drawer-tab, .tooltip-floating, .popover, .toast, .cal-period, .cal-row, .suite-tool, .fab-bubble, .progress-fill, .caret, .mask, .menu, .menu.open, .drop-zone,
-          .report-bar, .report-point, .report-slice, .report-heat-cell, .report-dim, .report-builder-add, .report-builder-remove, .report-color-swatch, .report-card,
+          .report-bar, .report-point, .report-slice, .report-heat-cell, .report-dim, .report-builder-add, .report-builder-remove, .report-color-swatch, .report-card, .report-grid-cell,
           .diagram-tool, .diagram-node, .diagram-node-toggle {
             transition: none;
           }

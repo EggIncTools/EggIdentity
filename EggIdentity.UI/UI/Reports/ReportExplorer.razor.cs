@@ -1,5 +1,6 @@
 using EggIdentity.Reports;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 
 namespace EggIdentity.UI.Reports;
 
@@ -69,18 +70,26 @@ public sealed partial class ReportExplorer : ComponentBase, IDisposable {
         }
     }
 
+    [Inject] private ILogger<ReportExplorer> Logger { get; set; } = null!;
+
     protected override void OnParametersSet() {
         var presetSource = Presets ?? Sources.SelectMany(static s => s.Presets);
         RunnablePresets = ReportPresets.Runnable(presetSource, Tier, Registry);
+        if (_firstRun) return;
         var queryChanged = !ReferenceEquals(_lastQuery, Value.Query) && _lastQuery != Value.Query;
-        var tierChanged = _lastTier != Tier;
-        if (queryChanged || tierChanged) {
-            var delay = _firstRun ? TimeSpan.Zero : Debounce;
-            _firstRun = false;
+        if (queryChanged || _lastTier != Tier) {
             _lastQuery = Value.Query;
             _lastTier = Tier;
-            Schedule(Value, delay);
+            Schedule(Value, Debounce);
         }
+    }
+
+    protected override void OnAfterRender(bool firstRender) {
+        if (!firstRender) return;
+        _firstRun = false;
+        _lastQuery = Value.Query;
+        _lastTier = Tier;
+        Schedule(Value, TimeSpan.Zero);
     }
 
     private async Task OnValueChanged(ReportDefinition def) {
@@ -114,14 +123,26 @@ public sealed partial class ReportExplorer : ComponentBase, IDisposable {
         } catch (ReportRejectedException e) {
             Error = string.Join(" ", e.Rejections.Select(r => r.Message));
             Cube = null;
-        } catch (Exception e) when (e is KeyNotFoundException or ArgumentException or InvalidOperationException) {
+        } catch (Exception e) when (e is KeyNotFoundException or ArgumentException) {
             Error = e.Message;
+            Cube = null;
+        } catch (Exception e) {
+            Logger.LogError(e, "report run failed for source {Source}", def.Query.Source);
+            Error = Labels.Failed;
             Cube = null;
         } finally {
             if (!token.IsCancellationRequested) {
                 Loading = false;
-                await InvokeAsync(StateHasChanged);
+                await Repaint();
             }
+        }
+    }
+
+    private async Task Repaint() {
+        try {
+            await InvokeAsync(StateHasChanged);
+        } catch (ObjectDisposedException) {
+            Loading = false;
         }
     }
 

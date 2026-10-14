@@ -6,6 +6,8 @@ using SortKey = EggIdentity.Reports.SortKey;
 
 namespace EggIdentity.UI.Reports;
 
+public sealed record ReportBuilderSlot(ReportDefinition Value, IReportSource? Source, Func<ReportDefinition, Task> Change);
+
 public sealed partial class ReportBuilder : ComponentBase {
     [Parameter, EditorRequired] public IReadOnlyList<IReportSource> Sources { get; set; } = [];
     [Parameter, EditorRequired] public ReportDefinition Value { get; set; } = Empty;
@@ -15,6 +17,8 @@ public sealed partial class ReportBuilder : ComponentBase {
     [Parameter] public ReportBuilderLabels Labels { get; set; } = ReportBuilderLabels.Default;
     [Parameter] public ReportTier Tier { get; set; } = ReportTier.Live;
     [Parameter] public ReportEngineRegistry? Registry { get; set; }
+    [Parameter] public RenderFragment<ReportBuilderSlot>? Extra { get; set; }
+    [Parameter] public RenderFragment<ReportBuilderSlot>? FilterEditor { get; set; }
 
     private static ReportDefinition Empty { get; } = new(ReportCodec.CurrentVersion, "", "", new ReportQuery(""), new ReportView(ReportCharts.Table));
 
@@ -23,6 +27,8 @@ public sealed partial class ReportBuilder : ComponentBase {
     private IReportSource? Source => Sources.FirstOrDefault(s => string.Equals(s.Id, Query.Source, StringComparison.Ordinal));
     private ReportCost? EstimatedCost => Cost?.Estimate(Query);
     private bool Gated => Tier == ReportTier.Snapshot && Registry is not null;
+
+    private ReportBuilderSlot Slot => new(Value, Source, Emit);
 
     private IReadOnlyList<string> SortKeyOptions =>
         Source is null ? [] : [.. Source.Dimensions.Select(d => d.Key), .. Source.Measures.Select(m => m.Key), MeasureRequest.RowCountKey];
@@ -226,6 +232,10 @@ public sealed partial class ReportBuilder : ComponentBase {
     private Task SetSampleRule(SampleRule rule) => Emit(Value with { View = View with { Sample = rule } });
 
     private Task SetChart(string? chart) => Emit(Value with { View = View with { Chart = chart ?? ReportCharts.Table } });
+
+    private Task SetUnit(string? unit) => Emit(Value with { View = View with { Unit = string.IsNullOrWhiteSpace(unit) ? null : unit } });
+
+    private Task SetFill(bool fill) => Emit(Value with { View = View with { Fill = fill } });
 
     private Task SetColor(string? hex) => Emit(Value with { View = View with { Color = string.IsNullOrEmpty(hex) ? null : hex } });
 

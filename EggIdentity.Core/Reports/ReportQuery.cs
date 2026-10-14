@@ -22,7 +22,7 @@ public enum NormalizeKind {
     By,
 }
 
-public sealed record Normalize(NormalizeKind Kind, string? Measure = null) {
+public sealed record Normalize(NormalizeKind Kind, string? Measure = null, string? Source = null) {
     public static Normalize None { get; } = new(NormalizeKind.None);
 
     public static Normalize Row { get; } = new(NormalizeKind.Row);
@@ -31,10 +31,13 @@ public sealed record Normalize(NormalizeKind Kind, string? Measure = null) {
 
     public static Normalize Global { get; } = new(NormalizeKind.Global);
 
-    public static Normalize By(string measure) {
+    public static Normalize By(string measure, string? source = null) {
         ArgumentException.ThrowIfNullOrWhiteSpace(measure);
-        return new Normalize(NormalizeKind.By, measure);
+        return new Normalize(NormalizeKind.By, measure, source);
     }
+
+    public bool ForeignTo(string source) =>
+        Kind == NormalizeKind.By && Source is { } own && !string.Equals(own, source, StringComparison.Ordinal);
 }
 
 public sealed record SortKey(string Key, bool Descending = false);

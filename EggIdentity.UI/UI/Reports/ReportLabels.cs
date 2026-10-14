@@ -12,5 +12,6 @@ public sealed record ReportLabels {
     public string TableHeaderFallback { get; init; } = "Value";
     public string Other { get; init; } = "Other";
     public string Running { get; init; } = "Running...";
+    public string Failed { get; init; } = "The report could not be run.";
     public string Presets { get; init; } = "Presets";
 }

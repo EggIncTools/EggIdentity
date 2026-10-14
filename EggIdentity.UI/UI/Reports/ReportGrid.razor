@@ -6,9 +6,15 @@
         @if (!string.IsNullOrEmpty(group.Key)) {
             <div class="report-grid-heading">@group.Key</div>
         }
-        <div class="report-grid" style="@($"grid-template-columns: repeat({Columns}, 1fr)")">
+        <div class="report-grid" style="@($"--report-grid-cols:{Columns}")">
             @foreach (var placement in Pack(group)) {
-                <div class="report-grid-cell" style="@CellStyle(placement)">
+                <div class="report-grid-cell" style="@CellStyle(placement)"
+                     draggable="@(Editable ? "true" : "false")"
+                     @ondragstart="() => _dragging = placement.ReportId"
+                     @ondragover:preventDefault="Editable"
+                     @ondragover="() => { }"
+                     @ondrop="() => DropAsync(placement)"
+                     @ondragend="() => _dragging = null">
                     @Item(placement)
                     @if (Editable) {
                         <div class="report-grid-tools">
@@ -38,6 +44,8 @@
     [Parameter] public bool Editable { get; set; }
     [Parameter] public ReportBuilderLabels Labels { get; set; } = ReportBuilderLabels.Default;
 
+    private string? _dragging;
+
     private IEnumerable<IGrouping<string?, ReportPlacement>> Groups() =>
         Placements.OrderBy(p => p.Order).GroupBy(p => p.Group, StringComparer.Ordinal);
 
@@ -55,4 +63,10 @@
     private Task MoveDownAsync(ReportPlacement p) => PlacementsChanged.InvokeAsync(ReportGridLayout.MoveDown(Placements, p.ReportId));
 
     private Task ResizeAsync(ReportPlacement p, int w, int h) => PlacementsChanged.InvokeAsync(ReportGridLayout.Resize(Placements, p.ReportId, w, h));
+
+    private Task DropAsync(ReportPlacement target) {
+        var from = _dragging;
+        _dragging = null;
+        return from is null || !Editable ? Task.CompletedTask : PlacementsChanged.InvokeAsync(ReportGridLayout.Swap(Placements, from, target.ReportId));
+    }
 }

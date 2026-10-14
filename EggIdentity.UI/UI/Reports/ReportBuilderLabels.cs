@@ -56,6 +56,9 @@ public sealed record ReportBuilderLabels {
     public string SampleHide { get; init; } = "Hide";
 
     public string Chart { get; init; } = "Chart";
+    public string Unit { get; init; } = "Unit";
+    public string UnitPlaceholder { get; init; } = "e.g. per launch";
+    public string Fill { get; init; } = "Fill area";
 
     public string Appearance { get; init; } = "Appearance";
     public string Color { get; init; } = "Color";

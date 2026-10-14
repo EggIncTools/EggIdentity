@@ -64,6 +64,22 @@ public static class ReportGridLayout {
         return Pack(updated);
     }
 
+    public static IReadOnlyList<ReportPlacement> Swap(IReadOnlyList<ReportPlacement> placements, string fromId, string toId) {
+        ArgumentNullException.ThrowIfNull(placements);
+        ArgumentNullException.ThrowIfNull(fromId);
+        ArgumentNullException.ThrowIfNull(toId);
+        if (string.Equals(fromId, toId, StringComparison.Ordinal)) return placements;
+        var from = placements.FirstOrDefault(p => string.Equals(p.ReportId, fromId, StringComparison.Ordinal));
+        var to = placements.FirstOrDefault(p => string.Equals(p.ReportId, toId, StringComparison.Ordinal));
+        if (from is null || to is null) return placements;
+        IReadOnlyList<ReportPlacement> updated = [.. placements.Select(p => {
+            if (string.Equals(p.ReportId, fromId, StringComparison.Ordinal)) return p with { Order = to.Order };
+            if (string.Equals(p.ReportId, toId, StringComparison.Ordinal)) return p with { Order = from.Order };
+            return p;
+        })];
+        return Pack(updated);
+    }
+
     public static IReadOnlyList<ReportPlacement> MoveUp(IReadOnlyList<ReportPlacement> placements, string reportId) =>
         Swap(placements, reportId, -1);
 

@@ -14,8 +14,19 @@ public static class ReportCharts {
     public static IReadOnlyList<string> BuiltIn { get; } = [Bar, Line, Pie, Heatmap, GroupedBar, MultiLine, Table];
 }
 
+public enum HeatScale {
+    Auto,
+    Relative,
+    Ratio,
+}
+
+public sealed record HeatView(string? ColorBy = null, string? SecondaryBy = null, HeatScale Scale = HeatScale.Auto);
+
 public sealed record ReportView(string Chart) {
     public SampleRule Sample { get; init; } = SampleRule.Show;
+    public string? Unit { get; init; }
+    public bool Fill { get; init; } = true;
+    public HeatView? Heat { get; init; }
     public IReadOnlyDictionary<string, string> Labels { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
     public string? Palette { get; init; }
     public string? Color { get; init; }

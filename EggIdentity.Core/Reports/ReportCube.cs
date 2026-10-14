@@ -108,9 +108,11 @@ public sealed class ReportEngineRegistry {
             throw new ReportRejectedException(validation.Rejections);
         }
 
-        var cube = context.Tier == ReportTier.Snapshot
-            ? await Snapshot(query.Source)!.RunAsync(query, context, ct).ConfigureAwait(false)
-            : await Find(query.Source)!.RunAsync(query, context, ct).ConfigureAwait(false);
+        var cube = query.Normalize.ForeignTo(query.Source)
+            ? await RunForeignNormalizedAsync(this, query, context, ct).ConfigureAwait(false)
+            : context.Tier == ReportTier.Snapshot
+                ? await Snapshot(query.Source)!.RunAsync(query, context, ct).ConfigureAwait(false)
+                : await Find(query.Source)!.RunAsync(query, context, ct).ConfigureAwait(false);
 
         var caps = Caps(context.Tier);
         List<ReportRejection> postRejections = [];
@@ -133,6 +135,39 @@ public sealed class ReportEngineRegistry {
     private ReportValidation ValidateSnapshot(ReportQuery query) {
         if (Snapshot(query.Source) is { } snapshot) return snapshot.Validate(query, Caps(ReportTier.Snapshot));
         return new ReportValidation([new ReportRejection(ReportRejectionKind.NoSnapshot, query.Source, $"no snapshot engine for source \"{query.Source}\"")]);
+    }
+
+    private static async Task<ReportCube> RunForeignNormalizedAsync(ReportEngineRegistry registry, ReportQuery query, ReportContext context, CancellationToken ct) {
+        var mainQuery = query with { Normalize = Normalize.None };
+        var mainTask = context.Tier == ReportTier.Snapshot
+            ? registry.Snapshot(query.Source)!.RunAsync(mainQuery, context, ct)
+            : registry.Find(query.Source)!.RunAsync(mainQuery, context, ct);
+
+        var foreignEngine = registry.Find(query.Normalize.Source!)
+            ?? throw new KeyNotFoundException($"no report engine for source \"{query.Normalize.Source}\"");
+        var denominatorQuery = new ReportQuery(query.Normalize.Source!) {
+            GroupBy = query.GroupBy,
+            Filters = query.Filters,
+            Measures = [query.Normalize.Measure == MeasureRequest.RowCountKey ? MeasureRequest.RowCount : new MeasureRequest(query.Normalize.Measure!, Aggregation.Sum)],
+        };
+        var denominatorTask = foreignEngine.RunAsync(denominatorQuery, context, ct);
+
+        await Task.WhenAll(mainTask, denominatorTask).ConfigureAwait(false);
+        var mainCube = await mainTask.ConfigureAwait(false);
+        var denominatorCube = await denominatorTask.ConfigureAwait(false);
+
+        var denominators = new Dictionary<string, double?>();
+        foreach (var row in denominatorCube.Rows)
+            denominators[string.Join('\u001f', row.Keys)] = row.Values[0];
+
+        var rows = new List<CubeRow>(mainCube.Rows.Count);
+        foreach (var row in mainCube.Rows) {
+            var denominator = denominators.GetValueOrDefault(string.Join('\u001f', row.Keys));
+            var values = row.Values.Select(v => v is null || denominator is null || denominator == 0 ? (double?)null : v / denominator).ToList();
+            rows.Add(row with { Values = values });
+        }
+
+        return mainCube with { Rows = rows, Normalized = true };
     }
 
     private static int MaxBucketCount(ReportCube cube) {

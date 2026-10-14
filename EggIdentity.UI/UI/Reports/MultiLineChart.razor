@@ -22,10 +22,10 @@
         </svg>
         <div class="report-axis">
             @foreach (var tick in Ticks) {
-                <span class="report-tick" style="@RightPos(Context.Style.PadLeft - Context.Style.TickInset, tick.Y)">@FormatValue(tick.Value)</span>
+                <span class="report-ytick" style="@RightPos(Context.Style.PadLeft - Context.Style.TickInset, tick.Y)">@FormatValue(tick.Value)</span>
             }
             @foreach (var p in ThinPoints) {
-                <span class="report-label" style="@RightPos(p.X, Context.Style.Height - Context.Style.PadBottom + Context.Style.TickInset)">@ChartGeometry.XLabel(p.Key)</span>
+                <span class="report-xtick" style="@RightPos(p.X, Context.Style.Height - Context.Style.PadBottom + Context.Style.TickInset)">@ChartGeometry.XLabel(p.Key)</span>
             }
         </div>
         <div class="report-legend">
@@ -36,6 +36,9 @@
                 </span>
             }
         </div>
+        @if (!string.IsNullOrEmpty(Context.Definition.View.Unit)) {
+            <div class="report-unit">@Context.Definition.View.Unit</div>
+        }
     </div>
 }
 

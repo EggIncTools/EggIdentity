@@ -5,21 +5,21 @@
     <EmptyState Title="@Context.Labels.EmptyTitle" Hint="@Context.Labels.EmptyDescription"/>
 } else {
     <div class="report-chart">
-        @for (var r = 0; r < Layout.Rows.Count; r++) {
-            var row = Layout.Rows[r];
-            <div class="report-label">@LabelFor(row.Key, row.Label)</div>
-            <svg viewBox="@ViewBox" class="report-svg">
-                @{ var x = Context.Style.PadLeft; }
-                @foreach (var cell in CellsFor(row)) {
-                    var w = Context.Style.PlotWidth * cell.Width / 100;
-                    var dim = Dimmed(cell);
-                    <rect class="@BarClass(dim)" x="@Fmt(x)" y="@Fmt(Context.Style.PadTop)" width="@Fmt(w)" height="@Fmt(Context.Style.PlotHeight)" style="@SeriesStyle(cell.ColKey)">
-                        <title>@LabelFor(cell.ColKey, ColLabel(cell.ColKey)) @FormatValue(cell.Value)</title>
-                    </rect>
-                    x += w;
-                }
-            </svg>
-        }
+        <div class="report-groups">
+            @foreach (var row in Layout.Rows) {
+                <div class="report-group">
+                    <span class="report-bar-label">@LabelFor(row.Key, row.Label)</span>
+                    <div class="report-group-bars">
+                        @foreach (var cell in CellsFor(row)) {
+                            <div class="@RowClass(Dimmed(cell))" title="@($"{LabelFor(cell.ColKey, ColLabel(cell.ColKey))} {FormatValue(cell.Value)}")">
+                                <span class="report-bar-track"><span class="report-bar-fill" style="@FillStyle(cell)"></span></span>
+                                <span class="report-bar-value">@FormatValue(cell.Value)</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
         <div class="report-legend">
             @foreach (var key in Layout.ColKeys) {
                 <span class="report-legend-item">
@@ -28,6 +28,9 @@
                 </span>
             }
         </div>
+        @if (!string.IsNullOrEmpty(Context.Definition.View.Unit)) {
+            <div class="report-unit">@Context.Definition.View.Unit</div>
+        }
     </div>
 }
 
@@ -46,8 +49,6 @@
         _styles = Context.SeriesStyles(Layout.ColKeys);
     }
 
-    private string ViewBox => string.Create(CultureInfo.InvariantCulture, $"0 0 {Context.Style.Width} {Context.Style.PadTop + Context.Style.PlotHeight + Context.Style.PadBottom / 4}");
-
     private string ColLabel(string key) {
         var i = Layout.ColKeys.ToList().IndexOf(key);
         return i >= 0 ? Layout.ColLabels[i] : key;
@@ -64,8 +65,6 @@
     private bool Dimmed(GroupedBarCell cell) =>
         Context.Definition.View.Sample == SampleRule.Dim && ReportProjection.BelowSample(cell.Samples, Context.Definition.Query.MinSample);
 
-    private static string BarClass(bool dim) => dim ? "report-bar report-dim" : "report-bar";
-
     private string SeriesStyle(string key) => _styles.GetValueOrDefault(key, "");
 
     private string FormatValue(double value) {
@@ -74,5 +73,8 @@
         return format.Format(value);
     }
 
-    private static string Fmt(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+    private string FillStyle(GroupedBarCell cell) =>
+        string.Create(CultureInfo.InvariantCulture, $"width:{Math.Clamp(cell.Width, 0, 100):0.###}%;{SeriesStyle(cell.ColKey)}");
+
+    private static string RowClass(bool dim) => dim ? "report-bar report-dim" : "report-bar";
 }

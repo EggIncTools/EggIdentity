@@ -38,7 +38,7 @@ internal static class Filters {
         { ".fb-op", "min-w-0 [flex:0_0_var(--filter-op-w,9rem)]" },
         { ".fb-value", "min-w-0 flex-1" },
         { ".fb-value > *", "w-full" },
-        { ".fb-select", $"[background-color:{SelectBg}] [color:{SelectFg}] [border:var(--filter-select-border,1px_solid_var(--color-border))] [border-radius:var(--filter-select-radius,0.375rem)] [padding:var(--filter-select-padding,0.375rem_0.5rem)] [font-size:var(--filter-select-size,0.875rem)] [transition:background-color_{Fast},border-color_{Fast},box-shadow_{Fast}]" },
+        { ".fb-select", $"[appearance:none] [background-color:{SelectBg}] [color:{SelectFg}] [border:var(--filter-select-border,1px_solid_var(--color-border))] [border-radius:var(--filter-select-radius,0.375rem)] [padding:var(--filter-select-padding,0.375rem_0.5rem)] [font-size:var(--filter-select-size,0.875rem)] [transition:background-color_{Fast},border-color_{Fast},box-shadow_{Fast}]" },
         { ".fb-select:hover", "[background-color:var(--filter-select-hover-bg,var(--color-panel))]" },
         { ".fb-select:focus-visible", "[outline:none] [box-shadow:var(--filter-focus-ring,0_0_0_1px_var(--color-accent))] [border-color:var(--color-accent)]" },
         { ".fb-select:disabled", "[opacity:var(--filter-disabled-opacity,0.6)] cursor-not-allowed" },
