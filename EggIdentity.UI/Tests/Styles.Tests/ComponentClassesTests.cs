@@ -24,6 +24,7 @@ public class ComponentClassesTests {
             + Components.Workbench.Applies.Count
             + Components.Filters.Applies.Count
             + Components.Calendar.Applies.Count
+            + Components.Reports.Applies.Count
             + Components.Icons.Applies.Count
             + Components.Brand.Applies.Count
             + Components.Consent.Applies.Count

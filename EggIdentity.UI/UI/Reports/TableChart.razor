@@ -1,0 +1,64 @@
+@using System.Globalization
+@using EggIdentity.Reports
+
+@if (Context.Cube.Rows.Count == 0) {
+    <EmptyState Title="@Context.Labels.EmptyTitle" Hint="@Context.Labels.EmptyDescription"/>
+} else {
+    <table class="report-table">
+        <thead>
+        <tr>
+            @foreach (var dim in Context.Cube.Dimensions) {
+                <th class="report-label">@DimensionHeader(dim)</th>
+            }
+            @foreach (var measure in Context.Cube.Measures) {
+                <th class="report-num">@MeasureHeader(measure)</th>
+            }
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var row in Context.Cube.Rows) {
+            var below = ReportProjection.BelowSample(row.Samples, Context.Definition.Query.MinSample);
+            var dim = below && Context.Definition.View.Sample == SampleRule.Dim;
+            var blank = below && Context.Definition.View.Sample == SampleRule.Hide;
+            <tr class="@(dim ? "report-dim" : "")">
+                @for (var i = 0; i < row.Keys.Count; i++) {
+                    <td class="report-label">@DimensionValue(i, row.Keys[i])</td>
+                }
+                @for (var i = 0; i < row.Values.Count; i++) {
+                    <td class="report-num">@(blank ? "" : FormatValue(i, row.Values[i]))</td>
+                }
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter, EditorRequired] public ChartContext Context { get; set; } = null!;
+
+    private string DimensionHeader(string dimKey) {
+        if (Context.Definition.View.Labels.TryGetValue(dimKey, out var custom)) return custom;
+        return Context.Source?.Dimensions.FirstOrDefault(d => string.Equals(d.Key, dimKey, StringComparison.Ordinal))?.Field.Label
+            ?? Context.Labels.TableHeaderFallback;
+    }
+
+    private string MeasureHeader(MeasureRequest measure) {
+        if (Context.Definition.View.Labels.TryGetValue(measure.Key, out var custom)) return custom;
+        if (measure.IsRowCount) return Context.Labels.Total;
+        return Context.Source?.Measures.FirstOrDefault(m => string.Equals(m.Key, measure.Key, StringComparison.Ordinal))?.Label ?? measure.Key;
+    }
+
+    private string DimensionValue(int dimIndex, string key) {
+        var dimKey = Context.Cube.Dimensions[dimIndex];
+        var dim = Context.Source?.Dimensions.FirstOrDefault(d => string.Equals(d.Key, dimKey, StringComparison.Ordinal));
+        return dim?.Label(key) ?? key;
+    }
+
+    private string FormatValue(int measureIndex, double? value) {
+        if (value is not { } v) return "";
+        var measure = Context.Cube.Measures[measureIndex];
+        var format = Context.Source?.Measures.FirstOrDefault(m => string.Equals(m.Key, measure.Key, StringComparison.Ordinal))?.Format
+            ?? (measure.IsRowCount ? ValueFormat.Integer : ValueFormat.Decimal(2));
+        return format.Format(v);
+    }
+}

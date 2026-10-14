@@ -1,0 +1,215 @@
+@using EggIdentity.Filters
+@using EggIdentity.Reports
+@using EggIdentity.UI
+
+<div class="report-builder">
+    <div class="report-builder-section">
+        <div class="report-builder-head">@Labels.Title</div>
+        <input class="form-input" placeholder="@Labels.TitlePlaceholder" @bind:get="Value.Title" @bind:set="SetTitle" @bind:event="oninput"/>
+    </div>
+
+    <div class="report-builder-section">
+        <div class="report-builder-head">@Labels.Description</div>
+        <textarea class="form-input" placeholder="@Labels.DescriptionPlaceholder" @bind:get="Value.Description" @bind:set="SetDescription" @bind:event="oninput"></textarea>
+    </div>
+
+    <div class="report-builder-section">
+        <div class="report-builder-head">@Labels.Source</div>
+        <select class="form-select" value="@Query.Source" @onchange="e => SetSourceAsync((string?)e.Value)">
+            <option value="">@Labels.SourceSelect</option>
+            @foreach (var s in Sources) {
+                <option value="@s.Id">@s.Label</option>
+            }
+        </select>
+    </div>
+
+    @if (Source is { } source) {
+        <div class="report-builder-section">
+            <div class="report-builder-head">@Labels.GroupBy</div>
+            @for (var i = 0; i < Query.GroupBy.Count; i++) {
+                var index = i;
+                var g = Query.GroupBy[index];
+                var dim = source.Dimension(g.Dimension);
+                <div class="report-builder-row">
+                    <select class="form-select" value="@g.Dimension" @onchange="e => SetGroupByDimension(index, (string?)e.Value)">
+                        <option value="">@Labels.GroupByDimension</option>
+                        @foreach (var d in source.Dimensions) {
+                            <option value="@d.Key">@d.Field.Label</option>
+                        }
+                    </select>
+                    @if (dim is { Buckets.Count: > 0 }) {
+                        <select class="form-select" value="@(g.Bucket?.ToString() ?? "")" @onchange="e => SetGroupByBucket(index, ParseBucket((string?)e.Value))">
+                            @foreach (var b in dim.Buckets) {
+                                <option value="@b">@b</option>
+                            }
+                        </select>
+                        @if (g.Bucket is not null) {
+                            <label class="form-check">
+                                <input type="checkbox" checked="@g.FillGaps" @onchange="e => SetGroupByFillGaps(index, (bool)(e.Value ?? false))"/>
+                                @Labels.FillGaps
+                            </label>
+                        }
+                    }
+                    <button type="button" class="report-builder-remove" @onclick="() => RemoveGroupBy(index)">@Labels.GroupByRemove</button>
+                </div>
+            }
+            <button type="button" class="report-builder-add" disabled="@(source.Dimensions.Count == 0)" @onclick="AddGroupBy">@Labels.GroupByAdd</button>
+        </div>
+
+        <div class="report-builder-section">
+            <div class="report-builder-head">@Labels.Measures</div>
+            @for (var i = 0; i < Query.Measures.Count; i++) {
+                var index = i;
+                var m = Query.Measures[index];
+                var measure = m.IsRowCount ? null : source.Measure(m.Key);
+                <div class="report-builder-row">
+                    <select class="form-select" value="@(m.IsRowCount ? MeasureRequest.RowCountKey : m.Key)" @onchange="e => SetMeasureKey(index, (string?)e.Value)">
+                        <option value="@MeasureRequest.RowCountKey">@Labels.RowCount</option>
+                        @foreach (var mm in source.Measures) {
+                            <option value="@mm.Key">@mm.Label</option>
+                        }
+                    </select>
+                    @if (measure is not null) {
+                        <select class="form-select" value="@m.Aggregation" @onchange="e => SetMeasureAggregation(index, ParseAggregation((string?)e.Value))">
+                            @foreach (var agg in measure.Aggregations) {
+                                <option value="@agg">@Labels.AggregationLabel(agg)</option>
+                            }
+                        </select>
+                    }
+                    <button type="button" class="report-builder-remove" @onclick="() => RemoveMeasure(index)">@Labels.MeasuresRemove</button>
+                </div>
+            }
+            <button type="button" class="report-builder-add" @onclick="AddMeasure">@Labels.MeasuresAdd</button>
+        </div>
+
+        <div class="report-builder-section">
+            <div class="report-builder-head">@Labels.Filters</div>
+            <FilterBuilder Fields="source.Catalog.Fields" Value="Query.Filters" ValueChanged="SetFilters"/>
+        </div>
+
+        <div class="report-builder-section">
+            <div class="report-builder-head">@Labels.Normalize</div>
+            <div class="report-builder-row">
+                <select class="form-select" value="@NormalizeKindValue" @onchange="e => SetNormalizeKind((string?)e.Value)">
+                    <option value="none">@Labels.NormalizeNone</option>
+                    <option value="row">@Labels.NormalizeRow</option>
+                    <option value="column">@Labels.NormalizeColumn</option>
+                    <option value="global">@Labels.NormalizeGlobal</option>
+                    <option value="by">@Labels.NormalizeBy</option>
+                </select>
+                @if (Query.Normalize.Kind == NormalizeKind.By) {
+                    <select class="form-select" value="@Query.Normalize.Measure" @onchange="e => SetNormalizeByMeasure((string?)e.Value)">
+                        @foreach (var mm in source.Measures) {
+                            <option value="@mm.Key" disabled="@NormalizeByDisabled(mm)">@mm.Label</option>
+                        }
+                    </select>
+                }
+            </div>
+        </div>
+
+        <div class="report-builder-section">
+            <div class="report-builder-head">@Labels.Sort</div>
+            @for (var i = 0; i < Query.Sort.Count; i++) {
+                var index = i;
+                var s = Query.Sort[index];
+                <div class="report-builder-row">
+                    <select class="form-select" value="@s.Key" @onchange="e => SetSortKey(index, (string?)e.Value)">
+                        <option value="">@Labels.SortKeySelect</option>
+                        @foreach (var key in SortKeyOptions) {
+                            <option value="@key">@key</option>
+                        }
+                    </select>
+                    <label class="form-check">
+                        <input type="checkbox" checked="@s.Descending" @onchange="e => SetSortDescending(index, (bool)(e.Value ?? false))"/>
+                        @Labels.SortDescending
+                    </label>
+                    <button type="button" class="report-builder-remove" @onclick="() => RemoveSort(index)">@Labels.SortRemove</button>
+                </div>
+            }
+            <button type="button" class="report-builder-add" @onclick="AddSort">@Labels.SortAdd</button>
+        </div>
+
+        <div class="report-builder-section">
+            <div class="report-builder-head">@Labels.Limit</div>
+            <input class="form-input" type="number" min="1" placeholder="@Labels.LimitPlaceholder" value="@Query.Limit" @onchange="e => SetLimit(ParseInt((string?)e.Value))"/>
+        </div>
+
+        <div class="report-builder-section">
+            <div class="report-builder-head">@Labels.Having</div>
+            @for (var i = 0; i < Query.Having.Count; i++) {
+                var index = i;
+                var h = Query.Having[index];
+                <div class="report-builder-row">
+                    <select class="form-select" value="@h.MeasureKey" @onchange="e => SetHavingMeasure(index, (string?)e.Value)">
+                        <option value="">@Labels.HavingMeasure</option>
+                        <option value="@MeasureRequest.RowCountKey">@Labels.RowCount</option>
+                        @foreach (var mm in source.Measures) {
+                            <option value="@mm.Key">@mm.Label</option>
+                        }
+                    </select>
+                    <select class="form-select" value="@h.Op" @onchange="e => SetHavingOp(index, (string?)e.Value)">
+                        @foreach (var op in FilterOps.Comparison) {
+                            <option value="@op.Value">@op.Label</option>
+                        }
+                    </select>
+                    <input class="form-input" type="number" step="any" placeholder="@Labels.HavingThreshold" value="@h.Threshold" @onchange="e => SetHavingThreshold(index, ParseDouble((string?)e.Value))"/>
+                    <button type="button" class="report-builder-remove" @onclick="() => RemoveHaving(index)">@Labels.HavingRemove</button>
+                </div>
+            }
+            <button type="button" class="report-builder-add" @onclick="AddHaving">@Labels.HavingAdd</button>
+        </div>
+
+        <div class="report-builder-section">
+            <div class="report-builder-head">@Labels.MinSample</div>
+            <div class="report-builder-row">
+                <input class="form-input" type="number" min="0" value="@Query.MinSample" @onchange="e => SetMinSample(ParseInt((string?)e.Value))"/>
+                <select class="form-select" value="@View.Sample" @onchange="e => SetSampleRule(ParseSampleRule((string?)e.Value))">
+                    <option value="@SampleRule.Show">@Labels.SampleShow</option>
+                    <option value="@SampleRule.Dim">@Labels.SampleDim</option>
+                    <option value="@SampleRule.Hide">@Labels.SampleHide</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="report-builder-section">
+            <div class="report-builder-head">@Labels.Chart</div>
+            <select class="form-select" value="@View.Chart" @onchange="e => SetChart((string?)e.Value)">
+                @foreach (var chart in Charts) {
+                    <option value="@chart">@Labels.ChartLabel(chart)</option>
+                }
+            </select>
+        </div>
+
+        <div class="report-builder-section">
+            <div class="report-builder-head">@Labels.Appearance</div>
+            <div class="report-builder-row">
+                <span class="report-color">
+                    <span class="report-color-swatch" style="@($"background:{(ReportCodec.IsHex(View.Color) ? View.Color : "transparent")}")"></span>
+                    <input class="form-input" value="@View.Color" placeholder="@Labels.Color" @onchange="e => SetColor((string?)e.Value)"/>
+                </span>
+                <span class="report-color">
+                    <span class="report-color-swatch" style="@($"background:{(ReportCodec.IsHex(View.Unfilled) ? View.Unfilled : "transparent")}")"></span>
+                    <input class="form-input" value="@View.Unfilled" placeholder="@Labels.Unfilled" @onchange="e => SetUnfilled((string?)e.Value)"/>
+                </span>
+            </div>
+            @if (LabelColorOptions.Count > 0) {
+                <div class="report-builder-head">@Labels.LabelColors</div>
+                @foreach (var opt in LabelColorOptions) {
+                    <div class="report-builder-row">
+                        <span class="report-color">
+                            <span class="report-color-swatch" style="@($"background:{LabelColorOr(opt.Value)}")"></span>
+                            <input class="form-input" value="@LabelColorOr(opt.Value)" @onchange="e => SetLabelColor(opt.Value, (string?)e.Value)"/>
+                        </span>
+                        <span>@opt.Label</span>
+                    </div>
+                }
+            }
+        </div>
+
+        @if (Cost is not null && EstimatedCost is { } estimate) {
+            <div class="@($"report-cost {CostClass(estimate.Level)}")">
+                @Labels.Cost: @estimate.Level@(estimate.Note is null ? "" : $" - {estimate.Note}")
+            </div>
+        }
+    }
+</div>

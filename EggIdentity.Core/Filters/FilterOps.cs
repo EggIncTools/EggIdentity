@@ -12,6 +12,7 @@ public static class FilterOps {
     public const string NotContains = "dnc";
     public const string True = "true";
     public const string False = "false";
+    public const string Within = "within";
 
     public static IReadOnlyList<FilterOpDef> Equality { get; } = [new(Eq, "is"), new(NotEq, "is not")];
 
@@ -30,6 +31,7 @@ public static class FilterOps {
         new(Gt, "after"),
         new(Lte, "on or before"),
         new(Gte, "on or after"),
+        new(Within, "within the last"),
     ];
 
     public static IReadOnlyList<FilterOpDef> DayDate { get; } = [new(DayEq, "on"), new(Lt, "before"), new(Gt, "after")];

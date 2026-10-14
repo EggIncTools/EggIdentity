@@ -157,6 +157,42 @@ public class FilterEvaluatorTests {
 
     private static FilterSubjectValue Nothing(string key) => FilterSubjectValue.Absent;
 
+    private static readonly FilterFieldDef Launched = new("launched", "Launched", FilterValueKind.Date, FilterOps.Date);
+
+    private static FilterResult Within(string value, DateTimeOffset at, FilterEvaluation options) =>
+        FilterEvaluator.Evaluate(And([C("launched", FilterOps.Within, value)]), [Launched], _ => FilterSubjectValue.Of(at), options);
+
+    [Fact]
+    public void Within_MatchesValuesInsideTheWindow() {
+        var now = new DateTimeOffset(2026, 10, 14, 12, 0, 0, TimeSpan.Zero);
+        var opts = new FilterEvaluation(Now: now);
+        Assert.True(Within("30d", now.AddDays(-29), opts).Matched);
+        Assert.False(Within("30d", now.AddDays(-31), opts).Matched);
+        Assert.True(Within("2w", now.AddDays(-13), opts).Matched);
+        Assert.False(Within("2w", now.AddDays(-15), opts).Matched);
+    }
+
+    [Fact]
+    public void Within_MonthsAndYearsUseCalendarArithmetic() {
+        var now = new DateTimeOffset(2026, 3, 31, 0, 0, 0, TimeSpan.Zero);
+        var opts = new FilterEvaluation(Now: now);
+        Assert.True(Within("1m", new DateTimeOffset(2026, 2, 28, 0, 0, 0, TimeSpan.Zero), opts).Matched);
+        Assert.False(Within("1m", new DateTimeOffset(2026, 2, 27, 0, 0, 0, TimeSpan.Zero), opts).Matched);
+        Assert.True(Within("1y", new DateTimeOffset(2025, 3, 31, 0, 0, 0, TimeSpan.Zero), opts).Matched);
+        Assert.False(Within("1y", new DateTimeOffset(2025, 3, 30, 0, 0, 0, TimeSpan.Zero), opts).Matched);
+    }
+
+    [Fact]
+    public void Within_WithoutNowOrWithBadValueIsUnparsable() {
+        var at = new DateTimeOffset(2026, 10, 14, 0, 0, 0, TimeSpan.Zero);
+        Assert.False(Within("30d", at, new FilterEvaluation()).Matched);
+        var loose = Within("30d", at, new FilterEvaluation(Strict: false));
+        Assert.True(loose.Matched);
+        Assert.Single(loose.Ignored);
+        Assert.False(Within("30x", at, new FilterEvaluation(Now: at)).Matched);
+        Assert.Single(Within("abc", at, new FilterEvaluation(Strict: false, Now: at)).Ignored);
+    }
+
     [Fact]
     public void Scope_RowWithNoInScopeMemberPasses() {
         var set = new FilterSet([new("artifact_rarity", "=", "9")], [[new("artifact_rarity", "=", "8")]]);

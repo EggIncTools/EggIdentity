@@ -99,6 +99,11 @@ public partial class SharedSheetTests {
             "--color-accent", "--color-accent2", "--color-ok", "--color-err", "--color-border", "--color-warn",
         ];
         Assert.Equal<string>(expectedRequired, [.. ComponentTokens.Required]);
-        Assert.Equal<string>(["--color-panel0"], [.. ComponentTokens.Optional]);
+        string[] expectedOptional = [
+            "--color-panel0", "--color-heat-low", "--color-heat-high",
+            "--color-chart-1", "--color-chart-2", "--color-chart-3", "--color-chart-4",
+            "--color-chart-5", "--color-chart-6", "--color-chart-7", "--color-chart-8",
+        ];
+        Assert.Equal<string>(expectedOptional, [.. ComponentTokens.Optional]);
     }
 }

@@ -1,0 +1,14 @@
+@if (ComponentType is { } type) {
+    <DynamicComponent Type="@type" Parameters="@Parameters"/>
+} else {
+    <EmptyState Title="@Context.Labels.UnknownChart"/>
+}
+
+@code {
+    [Parameter, EditorRequired] public ChartContext Context { get; set; } = null!;
+    [Parameter] public ReportRenderers? Renderers { get; set; }
+
+    private Type? ComponentType => (Renderers ?? ReportRenderers.Default).Find(Context.Definition.View.Chart);
+
+    private Dictionary<string, object> Parameters => new(StringComparer.Ordinal) { ["Context"] = Context };
+}

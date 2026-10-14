@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace EggIdentity.Filters;
 
-public sealed record FilterEvaluation(string? Scope = null, bool Strict = true);
+public sealed record FilterEvaluation(string? Scope = null, bool Strict = true, DateTimeOffset? Now = null);
 
 public sealed record FilterFailure(FilterCondition Condition, string Reason, int Row) {
     public string Field => Condition.Field;
@@ -59,10 +59,10 @@ public static class FilterEvaluator {
 
         var op = FilterOps.Canonical(c.Op);
         if (field.Kind == FilterValueKind.Bool && op is FilterOps.True or FilterOps.False)
-            return Compare(subject(field.Key), field, FilterOps.Eq, op);
+            return Compare(subject(field.Key), field, FilterOps.Eq, op, opts.Now);
         if (string.IsNullOrWhiteSpace(c.Value)) return new Verdict(Outcome.Ignore, "empty value");
         if (!Allows(field, op)) return Reject(opts, $"op \"{c.Op}\" not allowed on {field.Key}");
-        return Compare(subject(field.Key), field, op, c.Value.Trim()) is var v && v.Outcome == Outcome.Ignore ? Reject(opts, v.Reason) : v;
+        return Compare(subject(field.Key), field, op, c.Value.Trim(), opts.Now) is var v && v.Outcome == Outcome.Ignore ? Reject(opts, v.Reason) : v;
     }
 
     private static Verdict Reject(FilterEvaluation opts, string reason) =>
@@ -72,14 +72,14 @@ public static class FilterEvaluator {
         field.Ops.Any(o => string.Equals(o.Value, op, StringComparison.Ordinal))
         || (field.Kind == FilterValueKind.Bool && op == FilterOps.Eq);
 
-    private static Verdict Compare(FilterSubjectValue actual, FilterFieldDef field, string op, string expected) {
+    private static Verdict Compare(FilterSubjectValue actual, FilterFieldDef field, string op, string expected, DateTimeOffset? now) {
         if (field.Compare?.Invoke(actual, op, expected) is { } custom) return Result(custom);
         if (actual is FilterSubjectValue.AbsentValue)
             return op is FilterOps.NotEq or FilterOps.NotContains ? Pass : NoMatch;
         return field.Kind switch {
             FilterValueKind.Number => Numeric(actual, op, expected),
             FilterValueKind.Bool => Boolean(actual, expected),
-            FilterValueKind.Date => Dated(actual, op, expected),
+            FilterValueKind.Date => Dated(actual, op, expected, now),
             FilterValueKind.Version => Versioned(actual, op, expected),
             FilterValueKind.Set => Membership(actual, op, expected),
             _ => Textual(actual, op, expected),
@@ -113,8 +113,10 @@ public static class FilterEvaluator {
         return bool.TryParse(expected, out var e) ? Result(b.Value == e) : Unparsable(expected);
     }
 
-    private static Verdict Dated(FilterSubjectValue actual, string op, string expected) {
+    private static Verdict Dated(FilterSubjectValue actual, string op, string expected, DateTimeOffset? now) {
         if (actual is not FilterSubjectValue.DateValue d) return Shape(actual);
+        if (op == FilterOps.Within)
+            return now is { } n && RelativeDate.Start(expected, n) is { } start ? Result(d.Value >= start) : Unparsable(expected);
         if (!DateTimeOffset.TryParse(expected, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var e)) return Unparsable(expected);
         if (op == FilterOps.DayEq) return Result(DateOnly.FromDateTime(d.Value.UtcDateTime) == DateOnly.FromDateTime(e.UtcDateTime));
         return Ordered(d.Value.CompareTo(e), op);

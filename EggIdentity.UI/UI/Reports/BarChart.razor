@@ -1,0 +1,64 @@
+@using System.Globalization
+@using EggIdentity.Reports
+
+@if (Context.Cube.Rows.Count == 0) {
+    <EmptyState Title="@Context.Labels.EmptyTitle" Hint="@Context.Labels.EmptyDescription"/>
+} else {
+    <div class="report-chart">
+        <svg viewBox="@ViewBox" class="report-svg" style="@UnfilledStyle">
+            @for (var i = 0; i < Bars.Count; i++) {
+                var bar = Bars[i];
+                var y = Context.Style.PadTop + i * RowHeight;
+                var w = Context.Style.PlotWidth * bar.Width / 100;
+                var dim = Dimmed(bar);
+                <rect class="@BarClass(dim)" x="@Fmt(Context.Style.PadLeft)" y="@Fmt(y + RowHeight * 0.15)"
+                      width="@Fmt(w)" height="@Fmt(RowHeight * 0.7)" style="@SeriesStyle(bar.Key)">
+                    <title>@bar.Label @FormatValue(bar.Value)</title>
+                </rect>
+                <!text class="report-label" x="@Fmt(Context.Style.PadLeft - Context.Style.TickInset)" y="@Fmt(y + RowHeight / 2)" text-anchor="end" dominant-baseline="middle">@bar.Label</!text>
+                <!text class="@NumClass(dim)" x="@Fmt(Context.Style.PadLeft + w + Context.Style.TickInset)" y="@Fmt(y + RowHeight / 2)" dominant-baseline="middle">@FormatValue(bar.Value)</!text>
+            }
+        </svg>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public ChartContext Context { get; set; } = null!;
+
+    private IReadOnlyList<BarItem> Bars = [];
+    private IReadOnlyDictionary<string, string> _styles = new Dictionary<string, string>(StringComparer.Ordinal);
+
+    private string MeasureKey => Context.Cube.Measures.Count > 0 ? Context.Cube.Measures[0].Key : MeasureRequest.RowCountKey;
+
+    protected override void OnParametersSet() {
+        var series = ReportProjection.Series(Context.Cube, MeasureKey, Context.Source);
+        var items = BarGeometry.Bars(series);
+        var hide = Context.Definition.View.Sample == SampleRule.Hide;
+        Bars = [.. items.Where(b => !hide || !ReportProjection.BelowSample(b.Samples, Context.Definition.Query.MinSample))];
+        _styles = Context.SeriesStyles([.. Bars.Select(b => b.Key)]);
+    }
+
+    private double RowHeight => Bars.Count == 0 ? 0 : Context.Style.PlotHeight / Bars.Count;
+
+    private string ViewBox => string.Create(CultureInfo.InvariantCulture, $"0 0 {Context.Style.Width} {Context.Style.Height}");
+
+    private string UnfilledStyle =>
+        Context.Definition.View.Unfilled is { } hex && ReportCodec.IsHex(hex) ? $"--unfilled:{hex}" : "";
+
+    private bool Dimmed(BarItem bar) =>
+        Context.Definition.View.Sample == SampleRule.Dim && ReportProjection.BelowSample(bar.Samples, Context.Definition.Query.MinSample);
+
+    private static string BarClass(bool dim) => dim ? "report-bar report-dim" : "report-bar";
+
+    private static string NumClass(bool dim) => dim ? "report-num report-dim" : "report-num";
+
+    private string SeriesStyle(string key) => _styles.GetValueOrDefault(key, "");
+
+    private string FormatValue(double value) {
+        var format = Context.Source?.Measures.FirstOrDefault(m => string.Equals(m.Key, MeasureKey, StringComparison.Ordinal))?.Format
+            ?? (MeasureKey == MeasureRequest.RowCountKey ? ValueFormat.Integer : ValueFormat.Decimal(2));
+        return format.Format(value);
+    }
+
+    private static string Fmt(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+}

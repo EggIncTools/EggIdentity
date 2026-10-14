@@ -1,0 +1,63 @@
+using System.Collections.Immutable;
+
+namespace EggIdentity.Styles.Components;
+
+internal static class Reports {
+    private const string Fast = $"{Motion.Fast}_{Motion.Standard}";
+    private const string Med = $"{Motion.Base}_{Motion.Standard}";
+
+    internal static readonly ImmutableDictionary<string, string> Applies = new Dictionary<string, string> {
+        { ".report-chart", "w-full h-auto flex flex-col [gap:var(--report-chart-gap,0.5rem)] [container-type:inline-size]" },
+        { ".report-svg", "w-full h-auto block [--unfilled:var(--report-unfilled,var(--color-muted))]" },
+        { ".report-axis", "[fill:none] [stroke:var(--report-axis-color,var(--color-border))] [stroke-width:var(--report-axis-width,1)]" },
+        { ".report-gridline", "[stroke:var(--report-gridline-color,color-mix(in_srgb,var(--color-border)_35%,transparent))] [stroke-width:var(--report-gridline-width,1)]" },
+        { ".report-tick", "[stroke:var(--report-axis-color,var(--color-border))] [stroke-width:var(--report-tick-width,1)]" },
+        { ".report-label", "[fill:var(--report-label-color,var(--color-muted))] [font-size:var(--report-label-size,0.65rem)]" },
+        { ".report-bar", $"[fill:var(--series)] [transition:fill-opacity_{Fast}]" },
+        { ".report-bar:hover", "[fill-opacity:var(--report-bar-hover-opacity,0.85)]" },
+        { ".report-line", "[fill:none] [stroke:var(--series)] [stroke-width:var(--report-line-width,2)] [stroke-linejoin:round] [stroke-linecap:round]" },
+        { ".report-area", "[fill:var(--series)] [fill-opacity:var(--report-area-opacity,0.18)] [stroke:none]" },
+        { ".report-point", $"[fill:var(--series)] [stroke:var(--report-point-stroke,var(--color-bg))] [stroke-width:var(--report-point-stroke-width,1.5)] [transition:r_{Fast}]" },
+        { ".report-point:hover", "[r:var(--report-point-hover-r,5)]" },
+        { ".report-slice", $"[fill:var(--series)] [stroke:var(--report-slice-stroke,var(--color-bg))] [stroke-width:var(--report-slice-stroke-width,1)] [transition:opacity_{Fast}]" },
+        { ".report-slice:hover", "[opacity:var(--report-slice-hover-opacity,0.85)]" },
+        { ".report-slice-label", "[fill:var(--report-slice-label-color,var(--color-fg))] [font-size:var(--report-slice-label-size,0.7rem)] [font-weight:var(--report-slice-label-weight,600)] [text-anchor:middle]" },
+        { ".report-heat", "grid [grid-template-columns:repeat(var(--report-heat-cols,7),1fr)] [gap:var(--report-heat-gap,2px)]" },
+        { ".report-heat-cell", $"rounded-sm [background-color:color-mix(in_srgb,var(--color-heat-high,var(--color-accent))_calc(var(--heat)*100%),var(--color-heat-low,var(--color-panel2)))] [transition:background-color_{Fast}]" },
+        { ".report-heat-label", "text-center [color:var(--color-fg)] [font-size:var(--report-heat-label-size,0.65rem)]" },
+        { ".report-legend", "flex flex-row flex-wrap items-center [gap:var(--report-legend-gap,0.75rem)]" },
+        { ".report-legend-item", "inline-flex items-center text-xs text-muted [gap:var(--report-legend-item-gap,0.35rem)]" },
+        { ".report-legend-swatch", "inline-block rounded-sm [width:var(--report-legend-swatch-size,0.65rem)] [height:var(--report-legend-swatch-size,0.65rem)] [background-color:var(--series)]" },
+        { ".report-table", "w-full text-xs text-muted tabular-nums [border-collapse:collapse]" },
+        { ".report-dim", $"[opacity:var(--report-dim-opacity,0.35)] [transition:opacity_{Fast}]" },
+        { ".report-num", "tabular-nums text-right [color:var(--color-fg)]" },
+
+        { ".report-builder", "flex flex-col [gap:var(--report-builder-gap,0.75rem)]" },
+        { ".report-builder-section", "flex flex-col gap-2 rounded-md border border-border [padding:var(--report-builder-section-padding,0.5rem)]" },
+        { ".report-builder-head", "flex items-center justify-between gap-2 text-xs font-bold text-muted" },
+        { ".report-builder-row", "flex flex-row flex-wrap items-center gap-2 py-1" },
+        { ".report-builder-add", $"inline-flex items-center gap-1 self-start h-7 px-2 rounded-md border cursor-pointer text-[0.7rem] tracking-wide [color:var(--color-muted)] [border-color:var(--color-border)] [transition:background-color_{Fast},color_{Fast}]" },
+        { ".report-builder-add:hover", "[color:var(--color-accent2)] [background-color:var(--report-builder-add-hover-bg,var(--color-panel2))]" },
+        { ".report-builder-remove", $"inline-flex items-center justify-center w-5 h-5 rounded cursor-pointer [color:var(--color-err)] [background-color:transparent] [border:0] [transition:background-color_{Fast}]" },
+        { ".report-builder-remove:hover", "[background-color:color-mix(in_srgb,var(--color-err)_15%,transparent)]" },
+        { ".report-color", "inline-flex items-center gap-2" },
+        { ".report-color-swatch", $"inline-block rounded-full border cursor-pointer [width:var(--report-color-swatch-size,1.1rem)] [height:var(--report-color-swatch-size,1.1rem)] [border-color:var(--color-border)] [background-color:var(--series)] [transition:box-shadow_{Fast}]" },
+        { ".report-color-swatch:hover", "[box-shadow:var(--report-color-swatch-hover-ring,0_0_0_2px_var(--color-accent))]" },
+        { ".report-cost", "inline-flex items-center px-1.5 rounded-full font-bold text-[0.65rem]" },
+        { ".report-cost-low", "[color:var(--color-ok)] [background-color:color-mix(in_srgb,var(--color-ok)_15%,transparent)]" },
+        { ".report-cost-medium", "[color:var(--color-warn)] [background-color:color-mix(in_srgb,var(--color-warn)_15%,transparent)]" },
+        { ".report-cost-high", "[color:var(--color-err)] [background-color:color-mix(in_srgb,var(--color-err)_15%,transparent)]" },
+        { ".report-card", $"flex flex-col gap-2 rounded-md border border-border bg-panel [padding:var(--report-card-padding,0.75rem)] [transition:border-color_{Med},box-shadow_{Med}]" },
+        { ".report-card:hover", "[border-color:var(--report-card-hover-border,var(--color-accent))]" },
+        { ".report-card-head", "flex items-center justify-between gap-2" },
+        { ".report-card-title", "text-sm font-bold text-fg" },
+        { ".report-card-desc", "text-xs text-muted" },
+        { ".report-card-actions", "flex items-center gap-1" },
+        { ".report-card-body", "flex flex-col flex-1 min-h-0 gap-2" },
+        { ".report-grid", "grid [grid-template-columns:repeat(var(--report-grid-cols,12),1fr)] [gap:var(--report-grid-gap,0.75rem)] [container-type:inline-size]" },
+        { ".report-grid-group", "flex flex-col gap-1" },
+        { ".report-grid-heading", "uppercase text-xs font-bold tracking-wide text-muted" },
+        { ".report-grid-cell", "flex flex-col min-w-0 min-h-0" },
+        { ".report-grid-tools", "flex items-center justify-end gap-1" },
+    }.ToImmutableDictionary();
+}

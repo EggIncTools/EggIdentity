@@ -28,6 +28,7 @@ public static class ComponentClasses {
         .AddRange(Workbench.Applies)
         .AddRange(Components.Filters.Applies)
         .AddRange(Calendar.Applies)
+        .AddRange(Components.Reports.Applies)
         .AddRange(Components.Icons.Applies)
         .AddRange(Rarity.Applies)
         .AddRange(Suite.Applies);

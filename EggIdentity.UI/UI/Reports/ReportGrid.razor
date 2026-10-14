@@ -1,0 +1,58 @@
+@using EggIdentity.Reports
+@using EggIdentity.UI
+
+@foreach (var group in Groups()) {
+    <div class="report-grid-group">
+        @if (!string.IsNullOrEmpty(group.Key)) {
+            <div class="report-grid-heading">@group.Key</div>
+        }
+        <div class="report-grid" style="@($"grid-template-columns: repeat({Columns}, 1fr)")">
+            @foreach (var placement in Pack(group)) {
+                <div class="report-grid-cell" style="@CellStyle(placement)">
+                    @Item(placement)
+                    @if (Editable) {
+                        <div class="report-grid-tools">
+                            <button type="button" @onclick="() => MoveUpAsync(placement)" aria-label="@Labels.MoveUp">
+                                <Icon Name="chevron-up" Class="icon-sm"/>
+                            </button>
+                            <button type="button" @onclick="() => MoveDownAsync(placement)" aria-label="@Labels.MoveDown">
+                                <Icon Name="chevron-down" Class="icon-sm"/>
+                            </button>
+                            <input class="form-input" type="number" min="1" max="@ReportGridLayout.GridCols" value="@placement.W"
+                                   aria-label="@Labels.Width" @onchange="e => ResizeAsync(placement, ParseDim(e.Value, placement.W), placement.H)"/>
+                            <input class="form-input" type="number" min="1" max="@ReportGridLayout.GridRows" value="@placement.H"
+                                   aria-label="@Labels.Height" @onchange="e => ResizeAsync(placement, placement.W, ParseDim(e.Value, placement.H))"/>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ReportPlacement> Placements { get; set; } = [];
+    [Parameter, EditorRequired] public RenderFragment<ReportPlacement> Item { get; set; } = null!;
+    [Parameter] public int Columns { get; set; } = ReportGridLayout.GridCols;
+    [Parameter] public EventCallback<IReadOnlyList<ReportPlacement>> PlacementsChanged { get; set; }
+    [Parameter] public bool Editable { get; set; }
+    [Parameter] public ReportBuilderLabels Labels { get; set; } = ReportBuilderLabels.Default;
+
+    private IEnumerable<IGrouping<string?, ReportPlacement>> Groups() =>
+        Placements.OrderBy(p => p.Order).GroupBy(p => p.Group, StringComparer.Ordinal);
+
+    private static IReadOnlyList<ReportPlacement> Pack(IEnumerable<ReportPlacement> group) =>
+        ReportGridLayout.Pack([.. group]);
+
+    private static string CellStyle(ReportPlacement p) =>
+        $"grid-column: {p.X} / span {p.W}; grid-row: {p.Y} / span {p.H};";
+
+    private static int ParseDim(object? value, int fallback) =>
+        int.TryParse(value?.ToString(), out var n) ? n : fallback;
+
+    private Task MoveUpAsync(ReportPlacement p) => PlacementsChanged.InvokeAsync(ReportGridLayout.MoveUp(Placements, p.ReportId));
+
+    private Task MoveDownAsync(ReportPlacement p) => PlacementsChanged.InvokeAsync(ReportGridLayout.MoveDown(Placements, p.ReportId));
+
+    private Task ResizeAsync(ReportPlacement p, int w, int h) => PlacementsChanged.InvokeAsync(ReportGridLayout.Resize(Placements, p.ReportId, w, h));
+}

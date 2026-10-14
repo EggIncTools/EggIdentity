@@ -1,0 +1,67 @@
+@using System.Globalization
+@using EggIdentity.Reports
+
+@if (Context.Cube.Dimensions.Count < 2) {
+    <EmptyState Title="@Context.Labels.EmptyTitle" Hint="@Context.Labels.EmptyDescription"/>
+} else {
+    <table class="report-heat">
+        <thead>
+        <tr>
+            <th></th>
+            @foreach (var col in LabeledColumns) {
+                <th class="report-heat-label">@col</th>
+            }
+        </tr>
+        </thead>
+        <tbody>
+        @for (var r = 0; r < Layout.RowKeys.Count; r++) {
+            <tr>
+                <th class="report-heat-label">@LabeledRow(r)</th>
+                @for (var c = 0; c < Layout.ColKeys.Count; c++) {
+                    var cell = Layout.Cells[r][c];
+                    if (!cell.Hidden) {
+                        <td class="@CellClass(cell)" style="@CellStyle(cell)">
+                            @if (cell.Value is { } v) {
+                                <span>@FormatValue(v)</span>
+                            }
+                        </td>
+                    } else {
+                        <td class="report-heat-cell"></td>
+                    }
+                }
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter, EditorRequired] public ChartContext Context { get; set; } = null!;
+
+    private string MeasureKey => Context.Cube.Measures.Count > 0 ? Context.Cube.Measures[0].Key : MeasureRequest.RowCountKey;
+
+    private ReportMatrix Matrix => ReportProjection.Matrix(Context.Cube, MeasureKey, Context.Cube.Dimensions[0], Context.Cube.Dimensions[1], Context.Source);
+
+    private HeatmapLayout Layout => HeatmapGeometry.Layout(
+        Matrix, Context.Definition.Query.Normalize.Kind, Context.Definition.Query.MinSample, Context.Definition.View.Sample, Context.Style);
+
+    private IReadOnlyList<string> LabeledColumns => [.. Layout.ColKeys.Select((k, i) => LabelFor(k, Layout.ColLabels[i]))];
+
+    private string LabeledRow(int index) => LabelFor(Layout.RowKeys[index], Layout.RowLabels[index]);
+
+    private string LabelFor(string key, string fallback) =>
+        Context.Definition.View.Labels.TryGetValue(key, out var custom) ? custom : fallback;
+
+    private static string CellClass(HeatCell cell) => cell.Muted ? "report-heat-cell report-dim" : "report-heat-cell";
+
+    private string CellStyle(HeatCell cell) {
+        var unfilled = Context.Definition.View.Unfilled is { } hex && ReportCodec.IsHex(hex) ? $";--unfilled:{hex}" : "";
+        return string.Create(CultureInfo.InvariantCulture, $"--heat:{cell.Intensity:0.###}{unfilled}");
+    }
+
+    private string FormatValue(double value) {
+        var format = Context.Source?.Measures.FirstOrDefault(m => string.Equals(m.Key, MeasureKey, StringComparison.Ordinal))?.Format
+            ?? (MeasureKey == MeasureRequest.RowCountKey ? ValueFormat.Integer : ValueFormat.Decimal(2));
+        return format.Format(value);
+    }
+}

@@ -34,10 +34,11 @@ public static class FilterValidator {
         var ops = opsFor?.Invoke(field) ?? field.Ops;
         if (!ops.Any(o => o.Value == op) && !(field.Kind == FilterValueKind.Bool && op == FilterOps.Eq)) return $"op \"{condition.Op}\" not allowed on {field.Key}";
         if (string.IsNullOrWhiteSpace(condition.Value)) return "empty value";
-        return Parses(field.Kind, condition.Value.Trim()) ? null : $"value \"{condition.Value}\" does not parse";
+        return Parses(field.Kind, op, condition.Value.Trim()) ? null : $"value \"{condition.Value}\" does not parse";
     }
 
-    private static bool Parses(FilterValueKind kind, string value) => kind switch {
+    private static bool Parses(FilterValueKind kind, string op, string value) => kind switch {
+        FilterValueKind.Date when op == FilterOps.Within => RelativeDate.Start(value, DateTimeOffset.MaxValue) is not null,
         FilterValueKind.Number => double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _),
         FilterValueKind.Bool => bool.TryParse(value, out _),
         FilterValueKind.Date => DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out _),

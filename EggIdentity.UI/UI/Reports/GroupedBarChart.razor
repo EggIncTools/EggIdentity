@@ -1,0 +1,78 @@
+@using System.Globalization
+@using EggIdentity.Reports
+
+@if (Context.Cube.Dimensions.Count < 2) {
+    <EmptyState Title="@Context.Labels.EmptyTitle" Hint="@Context.Labels.EmptyDescription"/>
+} else {
+    <div class="report-chart">
+        @for (var r = 0; r < Layout.Rows.Count; r++) {
+            var row = Layout.Rows[r];
+            <div class="report-label">@LabelFor(row.Key, row.Label)</div>
+            <svg viewBox="@ViewBox" class="report-svg">
+                @{ var x = Context.Style.PadLeft; }
+                @foreach (var cell in CellsFor(row)) {
+                    var w = Context.Style.PlotWidth * cell.Width / 100;
+                    var dim = Dimmed(cell);
+                    <rect class="@BarClass(dim)" x="@Fmt(x)" y="@Fmt(Context.Style.PadTop)" width="@Fmt(w)" height="@Fmt(Context.Style.PlotHeight)" style="@SeriesStyle(cell.ColKey)">
+                        <title>@LabelFor(cell.ColKey, ColLabel(cell.ColKey)) @FormatValue(cell.Value)</title>
+                    </rect>
+                    x += w;
+                }
+            </svg>
+        }
+        <div class="report-legend">
+            @foreach (var key in Layout.ColKeys) {
+                <span class="report-legend-item">
+                    <span class="report-legend-swatch" style="@SeriesStyle(key)"></span>
+                    <span class="report-slice-label">@LabelFor(key, ColLabel(key))</span>
+                </span>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public ChartContext Context { get; set; } = null!;
+
+    private ReportMatrix Matrix = null!;
+    private GroupedBarLayout Layout = null!;
+    private IReadOnlyDictionary<string, string> _styles = new Dictionary<string, string>(StringComparer.Ordinal);
+
+    private string MeasureKey => Context.Cube.Measures.Count > 0 ? Context.Cube.Measures[0].Key : MeasureRequest.RowCountKey;
+
+    protected override void OnParametersSet() {
+        Matrix = ReportProjection.Matrix(Context.Cube, MeasureKey, Context.Cube.Dimensions[0], Context.Cube.Dimensions[1], Context.Source);
+        Layout = BarGeometry.Grouped(Matrix, Context.Style, Context.Cube.Normalized, Context.Labels.Other);
+        _styles = Context.SeriesStyles(Layout.ColKeys);
+    }
+
+    private string ViewBox => string.Create(CultureInfo.InvariantCulture, $"0 0 {Context.Style.Width} {Context.Style.PadTop + Context.Style.PlotHeight + Context.Style.PadBottom / 4}");
+
+    private string ColLabel(string key) {
+        var i = Layout.ColKeys.ToList().IndexOf(key);
+        return i >= 0 ? Layout.ColLabels[i] : key;
+    }
+
+    private string LabelFor(string key, string fallback) =>
+        Context.Definition.View.Labels.TryGetValue(key, out var custom) ? custom : fallback;
+
+    private IReadOnlyList<GroupedBarCell> CellsFor(GroupedBarRow row) {
+        var hide = Context.Definition.View.Sample == SampleRule.Hide;
+        return [.. row.Cells.Where(c => !hide || !ReportProjection.BelowSample(c.Samples, Context.Definition.Query.MinSample))];
+    }
+
+    private bool Dimmed(GroupedBarCell cell) =>
+        Context.Definition.View.Sample == SampleRule.Dim && ReportProjection.BelowSample(cell.Samples, Context.Definition.Query.MinSample);
+
+    private static string BarClass(bool dim) => dim ? "report-bar report-dim" : "report-bar";
+
+    private string SeriesStyle(string key) => _styles.GetValueOrDefault(key, "");
+
+    private string FormatValue(double value) {
+        var format = Context.Source?.Measures.FirstOrDefault(m => string.Equals(m.Key, MeasureKey, StringComparison.Ordinal))?.Format
+            ?? (MeasureKey == MeasureRequest.RowCountKey ? ValueFormat.Integer : ValueFormat.Decimal(2));
+        return format.Format(value);
+    }
+
+    private static string Fmt(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+}

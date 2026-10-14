@@ -1,0 +1,103 @@
+@using System.Globalization
+@using EggIdentity.Reports
+
+@if (Context.Cube.Dimensions.Count < 2 || Series.Count == 0 || Matrix.RowKeys.Count < 2) {
+    <EmptyState Title="@Context.Labels.EmptyTitle" Hint="@Context.Labels.EmptyDescription"/>
+} else {
+    <div class="report-chart">
+        <svg viewBox="@ViewBox" class="report-svg" style="@UnfilledStyle">
+            @foreach (var tick in Ticks) {
+                <line class="report-gridline" x1="@Fmt(Context.Style.PadLeft)" y1="@Fmt(tick.Y)" x2="@Fmt(Context.Style.Width - Context.Style.PadRight)" y2="@Fmt(tick.Y)"/>
+            }
+            @foreach (var line in Series) {
+                <polyline class="report-line" points="@ChartGeometry.Polyline(line.Points)" style="@SeriesStyle(line.Key)"/>
+            }
+            @foreach (var line in Series) {
+                @foreach (var p in line.Points) {
+                    @if (!Hidden(p)) {
+                        <circle class="@PointClass(Dimmed(p))" cx="@Fmt(p.X)" cy="@Fmt(p.Y)" r="2" style="@SeriesStyle(line.Key)"/>
+                    }
+                }
+            }
+        </svg>
+        <div class="report-axis">
+            @foreach (var tick in Ticks) {
+                <span class="report-tick" style="@RightPos(Context.Style.PadLeft - Context.Style.TickInset, tick.Y)">@FormatValue(tick.Value)</span>
+            }
+            @foreach (var p in ThinPoints) {
+                <span class="report-label" style="@RightPos(p.X, Context.Style.Height - Context.Style.PadBottom + Context.Style.TickInset)">@ChartGeometry.XLabel(p.Key)</span>
+            }
+        </div>
+        <div class="report-legend">
+            @foreach (var line in Series) {
+                <span class="report-legend-item">
+                    <span class="report-legend-swatch" style="@SeriesStyle(line.Key)"></span>
+                    <span class="report-slice-label">@LabelFor(line.Key)</span>
+                </span>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public ChartContext Context { get; set; } = null!;
+
+    private ReportMatrix Matrix = null!;
+    private IReadOnlyList<LineSeries> Series = [];
+    private IReadOnlyList<ChartPoint> ThinPoints = [];
+    private double Max;
+    private IReadOnlyList<YTick> Ticks = [];
+    private IReadOnlyDictionary<string, string> _styles = new Dictionary<string, string>(StringComparer.Ordinal);
+
+    private string MeasureKey => Context.Cube.Measures.Count > 0 ? Context.Cube.Measures[0].Key : MeasureRequest.RowCountKey;
+
+    protected override void OnParametersSet() {
+        if (Context.Cube.Dimensions.Count < 2) {
+            Matrix = null!;
+            Series = [];
+            ThinPoints = [];
+            Max = 0;
+            Ticks = [];
+            _styles = new Dictionary<string, string>(StringComparer.Ordinal);
+            return;
+        }
+        Matrix = ReportProjection.Matrix(Context.Cube, MeasureKey, Context.Cube.Dimensions[0], Context.Cube.Dimensions[1], Context.Source);
+        Series = ChartGeometry.MultiLine(Matrix, Context.Style);
+        ThinPoints = Series.Count > 0 ? ChartGeometry.ThinLabels(Series[0].Points, Context.Style) : [];
+        Max = ChartGeometry.Max(Matrix.Cells.SelectMany(r => r));
+        Ticks = ChartGeometry.YTicks(Max, Context.Style);
+        _styles = Context.SeriesStyles([.. Series.Select(s => s.Key)]);
+    }
+
+    private string ViewBox => string.Create(CultureInfo.InvariantCulture, $"0 0 {Context.Style.Width} {Context.Style.Height}");
+
+    private string UnfilledStyle =>
+        Context.Definition.View.Unfilled is { } hex && ReportCodec.IsHex(hex) ? $"--unfilled:{hex}" : "";
+
+    private string SeriesStyle(string key) => _styles.GetValueOrDefault(key, "");
+
+    private bool Dimmed(ChartPoint point) =>
+        Context.Definition.View.Sample == SampleRule.Dim && ReportProjection.BelowSample(point.Samples, Context.Definition.Query.MinSample);
+
+    private bool Hidden(ChartPoint point) =>
+        Context.Definition.View.Sample == SampleRule.Hide && ReportProjection.BelowSample(point.Samples, Context.Definition.Query.MinSample);
+
+    private static string PointClass(bool dim) => dim ? "report-point report-dim" : "report-point";
+
+    private string LabelFor(string key) {
+        if (Context.Definition.View.Labels.TryGetValue(key, out var custom)) return custom;
+        var i = Matrix.ColKeys.ToList().IndexOf(key);
+        return i >= 0 ? Matrix.ColLabels[i] : key;
+    }
+
+    private string FormatValue(double value) {
+        var format = Context.Source?.Measures.FirstOrDefault(m => string.Equals(m.Key, MeasureKey, StringComparison.Ordinal))?.Format
+            ?? (MeasureKey == MeasureRequest.RowCountKey ? ValueFormat.Integer : ValueFormat.Decimal(2));
+        return format.Format(value);
+    }
+
+    private string RightPos(double x, double y) =>
+        string.Create(CultureInfo.InvariantCulture, $"right:{100 - x / Context.Style.Width * 100:0.###}%;top:{y / Context.Style.Height * 100:0.###}%");
+
+    private static string Fmt(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+}

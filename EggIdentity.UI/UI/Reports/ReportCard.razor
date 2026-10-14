@@ -1,0 +1,40 @@
+@using EggIdentity.Reports
+@using EggIdentity.UI
+
+<div class="report-card">
+    <div class="report-card-head">
+        <div class="report-card-title">@Definition.Title</div>
+        @if (!string.IsNullOrEmpty(Definition.Description)) {
+            <div class="report-card-desc">@Definition.Description</div>
+        }
+        @if (Actions is not null) {
+            <div class="report-card-actions">@Actions</div>
+        }
+    </div>
+    <div class="report-card-body">
+        @if (Loading) {
+            <StatusNote Kind="StatusNoteKind.Busy" Text="Running..."/>
+        } else if (Error is not null) {
+            <StatusNote Kind="StatusNoteKind.Error" Text="@Error"/>
+        } else if (Cube is null || Cube.Rows.Count == 0) {
+            <EmptyState Title="No data"/>
+        } else {
+            <ReportChart Context="BuildContext()" Renderers="Renderers"/>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ReportDefinition Definition { get; set; } = null!;
+    [Parameter] public ReportCube? Cube { get; set; }
+    [Parameter] public IReportSource? Source { get; set; }
+    [Parameter] public ChartStyle? Style { get; set; }
+    [Parameter] public ReportLabels? Labels { get; set; }
+    [Parameter] public ReportRenderers? Renderers { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    private ChartContext BuildContext() =>
+        new(Cube!, Definition, Source, Style ?? ChartStyle.Default, Labels ?? ReportLabels.Default);
+}

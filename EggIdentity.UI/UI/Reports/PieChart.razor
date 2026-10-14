@@ -1,0 +1,82 @@
+@using System.Globalization
+@using EggIdentity.Reports
+
+@if (Slices.Count == 0) {
+    <EmptyState Title="@Context.Labels.EmptyTitle" Hint="@Context.Labels.EmptyDescription"/>
+} else {
+    <div class="report-chart">
+        <span style="position:relative;display:inline-block">
+            <svg viewBox="@ViewBox" class="report-svg" style="@UnfilledStyle">
+                @for (var i = 0; i < Slices.Count; i++) {
+                    var slice = Slices[i];
+                    var idx = i;
+                    var dim = Dimmed(slice);
+                    <path class="@SliceClass(dim)" d="@slice.Path" style="@SeriesStyle(slice.Key)"
+                          @onmouseenter="() => _hover = idx" @onmouseleave="() => _hover = null">
+                        <title>@slice.Label @slice.Pct.ToString("0.0", CultureInfo.InvariantCulture)%</title>
+                    </path>
+                }
+            </svg>
+            @if (_hover is { } h && h < Slices.Count) {
+                var (x, y) = PieGeometry.SlicePoint(Layout, Slices[h], Context.Style);
+                <PointTooltip Visible="true" X="@(x / Layout.Width * 100)" Y="@(y / Layout.Height * 100)" Lines="@SliceLines(Slices[h])"/>
+            }
+        </span>
+        <div class="report-legend">
+            @for (var i = 0; i < Slices.Count; i++) {
+                var slice = Slices[i];
+                var idx = i;
+                var dim = Dimmed(slice);
+                <span class="report-legend-item">
+                    <span class="report-legend-swatch" style="@SeriesStyle(slice.Key)"></span>
+                    <span class="report-slice-label">@slice.Label</span>
+                    <span class="@NumClass(dim)">@slice.Pct.ToString("0.0", CultureInfo.InvariantCulture)%</span>
+                </span>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public ChartContext Context { get; set; } = null!;
+
+    private int? _hover;
+
+    private ReportSeries Series = null!;
+    private PieLayout Layout = null!;
+    private IReadOnlyList<PieSlice> Slices = [];
+    private IReadOnlyDictionary<string, string> _styles = new Dictionary<string, string>(StringComparer.Ordinal);
+
+    private string MeasureKey => Context.Cube.Measures.Count > 0 ? Context.Cube.Measures[0].Key : MeasureRequest.RowCountKey;
+
+    protected override void OnParametersSet() {
+        Series = ReportProjection.Series(Context.Cube, MeasureKey, Context.Source);
+        Layout = PieGeometry.Layout(Series, Context.Style, Context.Labels.Other);
+        var hide = Context.Definition.View.Sample == SampleRule.Hide;
+        Slices = [.. Layout.Slices.Where(s => !hide || !ReportProjection.BelowSample(s.Samples, Context.Definition.Query.MinSample))];
+        _styles = Context.SeriesStyles([.. Slices.Select(s => s.Key)]);
+    }
+
+    private string ViewBox => string.Create(CultureInfo.InvariantCulture, $"0 0 {Layout.Width} {Layout.Height}");
+
+    private string UnfilledStyle =>
+        Context.Definition.View.Unfilled is { } hex && ReportCodec.IsHex(hex) ? $"--unfilled:{hex}" : "";
+
+    private bool Dimmed(PieSlice slice) =>
+        Context.Definition.View.Sample == SampleRule.Dim && ReportProjection.BelowSample(slice.Samples, Context.Definition.Query.MinSample);
+
+    private static string SliceClass(bool dim) => dim ? "report-slice report-dim" : "report-slice";
+
+    private static string NumClass(bool dim) => dim ? "report-num report-dim" : "report-num";
+
+    private string SeriesStyle(string key) => _styles.GetValueOrDefault(key, "");
+
+    private string FormatValue(double value) {
+        var format = Context.Source?.Measures.FirstOrDefault(m => string.Equals(m.Key, MeasureKey, StringComparison.Ordinal))?.Format
+            ?? (MeasureKey == MeasureRequest.RowCountKey ? ValueFormat.Integer : ValueFormat.Decimal(2));
+        return format.Format(value);
+    }
+
+    private IReadOnlyList<TooltipLine> SliceLines(PieSlice slice) =>
+        [new TooltipLine(slice.Label, Head: true), new TooltipLine($"{FormatValue(slice.Value)} ({slice.Pct.ToString("0.0", CultureInfo.InvariantCulture)}%)")];
+}
