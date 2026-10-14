@@ -175,7 +175,7 @@ public static class SharedLiterals {
         @media (prefers-reduced-motion: reduce) {
           .fb-select, .fb-btn,
           .modal-card, .modal-card.wb-card, .wb-rail, .wb-main, .wb-drawer, .wb-drawer.wb-drawer-open, .wb-drawer-tab, .tooltip-floating, .popover, .toast, .cal-period, .cal-row, .suite-tool, .fab-bubble, .progress-fill, .caret, .mask, .menu, .menu.open, .drop-zone,
-          .report-bar, .report-point, .report-slice, .report-heat-cell, .report-dim, .report-builder-add, .report-builder-remove, .report-color-swatch, .report-card, .report-grid-cell,
+          .report-bar, .report-bar-fill, .report-point, .report-slice, .report-heat-cell, .report-dim, .report-builder-add, .report-builder-remove, .report-color-swatch, .report-card, .report-grid-cell,
           .diagram-tool, .diagram-node, .diagram-node-toggle {
             transition: none;
           }
