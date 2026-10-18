@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>EggIdentity</RootNamespace>
-    <Description>EggIdentity web surface: suite cookie consent (Consent), anonymous cookieless visit counting (Visits), in-memory request-rate and traffic audit (Metrics), and the shared exception/maintenance/404/down pages (Fallback).</Description>
+    <Description>EggIdentity web surface: suite cookie consent (Consent), anonymous cookieless visit counting (Visits), in-memory request-rate and traffic audit (Metrics), the shared exception/maintenance/404/down pages (Fallback), and the fenced loopback sign-in for local sub-prod testing (SubProd).</Description>
   </PropertyGroup>
 
   <ItemGroup>
