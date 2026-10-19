@@ -62,6 +62,8 @@ public interface IReportSource {
     IReadOnlyList<ReportMeasure> Measures { get; }
     FilterCatalog Catalog { get; }
     IReadOnlyList<ReportPreset> Presets { get; }
+    string? SampleKey { get; }
+    string? Scope { get; }
     ReportDimension? Dimension(string key);
     ReportMeasure? Measure(string key);
 }

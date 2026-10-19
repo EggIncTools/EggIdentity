@@ -41,7 +41,7 @@
                 <svg class="skv-spark" viewBox="0 0 @SparkWidth @SparkHeight" preserveAspectRatio="none" role="img" aria-label="Visitors per day">
                     <polyline points="@Spark()" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke"/>
                     @foreach (var (x, y, day) in SparkPoints()) {
-                        <circle cx="@x" cy="@y" r="3" fill="currentColor" vector-effect="non-scaling-stroke">
+                        <circle cx="@x" cy="@y" r="@SparkMarker" fill="currentColor" vector-effect="non-scaling-stroke">
                             <title>@day.Day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture): @N(day.Visitors) visitors, @N(day.Visits) visits, @N(day.Pageviews) pageviews</title>
                         </circle>
                     }

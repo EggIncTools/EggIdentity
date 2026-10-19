@@ -6,10 +6,14 @@
     <Nullable>enable</Nullable>
     <RootNamespace>EggIdentity</RootNamespace>
     <Description>EggIdentity core: frozen wire DTOs and UserRole (Contract), the key/value filter model, evaluator and codec (Filters), retry/backoff/circuit-breaker and TtlSnapshot (Resilience), PeriodicScopedService (Hosting), and the declarative settings model (Settings).</Description>
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>
 
   <ItemGroup>

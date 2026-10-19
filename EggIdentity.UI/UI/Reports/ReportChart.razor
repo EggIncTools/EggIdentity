@@ -1,5 +1,7 @@
-@if (ComponentType is { } type) {
-    <DynamicComponent Type="@type" Parameters="@Parameters"/>
+@using System.Diagnostics.CodeAnalysis
+
+@if (ComponentType is not null) {
+    @Chart
 } else {
     <div class="report-note">@Context.Labels.UnknownChart</div>
 }
@@ -8,7 +10,12 @@
     [Parameter, EditorRequired] public ChartContext Context { get; set; } = null!;
     [Parameter] public ReportRenderers? Renderers { get; set; }
 
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
     private Type? ComponentType => (Renderers ?? ReportRenderers.Default).Find(Context.Definition.View.Chart);
 
-    private Dictionary<string, object> Parameters => new(StringComparer.Ordinal) { ["Context"] = Context };
+    private RenderFragment Chart => builder => {
+        builder.OpenComponent(0, ComponentType!);
+        builder.AddComponentParameter(1, "Context", Context);
+        builder.CloseComponent();
+    };
 }

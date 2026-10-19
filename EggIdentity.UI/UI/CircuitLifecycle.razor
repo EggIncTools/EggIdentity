@@ -31,7 +31,7 @@
 <script type="module" src="_content/EggIdentity.UI/circuit.js"></script>
 
 @code {
-    [Parameter] public string Version { get; set; } = AppVersion.Current;
-    [Parameter] public string VersionUrl { get; set; } = AppVersion.Path;
+    [Parameter] public string Version { get; set; } = "";
+    [Parameter] public string VersionUrl { get; set; } = "";
     [Parameter] public bool StartBlazor { get; set; } = true;
 }

@@ -37,6 +37,16 @@ public class ReportGridLayoutTests {
     }
 
     [Fact]
+    public void Pack_BackfillsHolesBehindEarlierCards() {
+        var placements = new[] { Placement("a", 0, 6, 1), Placement("b", 1, 4, 1), Placement("c", 2, 2, 1) };
+        var packed = ReportGridLayout.Pack(placements);
+
+        Assert.Equal((1, 1), (packed[0].X, packed[0].Y));
+        Assert.Equal((1, 2), (packed[1].X, packed[1].Y));
+        Assert.Equal((7, 1), (packed[2].X, packed[2].Y));
+    }
+
+    [Fact]
     public void CellsFit_DetectsOverlap() {
         var occupied = new HashSet<(int, int)>();
         ReportGridLayout.MarkOccupied(occupied, 1, 1, 2, 2);

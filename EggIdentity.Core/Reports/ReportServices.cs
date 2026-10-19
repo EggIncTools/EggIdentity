@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -18,7 +19,7 @@ internal sealed class ReportSourceRegistration(Action<IServiceProvider, ReportEn
 }
 
 public static class ReportServiceCollectionExtensions {
-    public static IServiceCollection AddReportSource<TRow, TProvider>(
+    public static IServiceCollection AddReportSource<TRow, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProvider>(
         this IServiceCollection services, ReportSource<TRow> source, SnapshotSchema? snapshot = null)
         where TProvider : class, IReportRowProvider<TRow> {
         ArgumentNullException.ThrowIfNull(services);

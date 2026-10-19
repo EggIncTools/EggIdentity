@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace EggIdentity.Settings;
 
 public interface ISettingsSource {
@@ -52,6 +54,8 @@ public sealed class SettingsSnapshot : ISettingsSource {
             ? rows
             : throw new KeyNotFoundException($"unknown collection key \"{collectionKey}\"");
 
+    [RequiresUnreferencedCode("binds rows by reflection")]
+    [RequiresDynamicCode("binds rows by reflection")]
     public IReadOnlyList<T> Collection<T>(string collectionKey) =>
         [.. Rows(collectionKey).Select(r => CollectionBinder.Bind<T>(r.Values))];
 

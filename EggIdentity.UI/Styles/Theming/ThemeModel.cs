@@ -26,18 +26,16 @@ public sealed partial record ThemeModel(
     public const int MaxSlugLength = 64;
     public const int MaxCssSourceBytes = 16 * 1024;
 
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-
     public ThemeColor? ResolveToken(string name) =>
         Tokens.TryGetValue(name, out var value) && value.Resolve() is { } color ? color : null;
 
-    public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
+    public string ToJson() => JsonSerializer.Serialize(this, ThemeJsonContext.Default.ThemeModel);
 
     public static (ThemeModel? Model, IReadOnlyList<string> Errors) Parse(string json, ThemeTokenRegistry registry) {
         var errors = new List<string>();
         ThemeModel? raw;
         try {
-            raw = JsonSerializer.Deserialize<ThemeModel>(json, JsonOptions);
+            raw = JsonSerializer.Deserialize(json, ThemeJsonContext.Default.ThemeModel);
         } catch (JsonException ex) {
             return (null, [ex.Message]);
         }

@@ -42,15 +42,12 @@ public static class ReportGridLayout {
         ArgumentNullException.ThrowIfNull(placements);
         var ordered = placements.OrderBy(p => p.Order).ToList();
         HashSet<(int, int)> occupied = [];
-        var x = 1;
-        var y = 1;
         var result = new List<ReportPlacement>(ordered.Count);
         foreach (var p in ordered) {
             var (w, h) = ClampDims(p.W, p.H);
-            (x, y) = FindPlacement(occupied, w, h, x, y);
+            var (x, y) = FindPlacement(occupied, w, h, 1, 1);
             result.Add(p with { X = x, Y = y, W = w, H = h });
             MarkOccupied(occupied, x, y, w, h);
-            x += w;
         }
         return result;
     }

@@ -13,6 +13,7 @@ public sealed partial class VisitsPanel {
     internal static readonly int[] Ranges = [7, 30, 90];
     internal const int SparkWidth = 240;
     internal const int SparkHeight = 40;
+    internal const int SparkMarker = 3;
 
     [Inject] private IServiceProvider Services { get; set; } = default!;
 
@@ -74,10 +75,10 @@ public sealed partial class VisitsPanel {
         if (_summary is null || _summary.ByDay.Count == 0) yield break;
         var days = _summary.ByDay;
         var max = Math.Max(1, days.Max(d => d.Visitors));
-        var step = days.Count > 1 ? (double)SparkWidth / (days.Count - 1) : 0;
+        var step = days.Count > 1 ? (SparkWidth - 2.0 * SparkMarker) / (days.Count - 1) : 0;
         for (var i = 0; i < days.Count; i++) {
-            var x = days.Count > 1 ? i * step : SparkWidth / 2.0;
-            var y = SparkHeight - days[i].Visitors / (double)max * (SparkHeight - 6) - 3;
+            var x = days.Count > 1 ? SparkMarker + i * step : SparkWidth / 2.0;
+            var y = SparkHeight - days[i].Visitors / (double)max * (SparkHeight - 2 * SparkMarker) - SparkMarker;
             yield return (F(x), F(y), days[i]);
         }
     }

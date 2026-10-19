@@ -4,7 +4,6 @@ using EggIdentity.Auth;
 using EggIdentity.Client;
 using EggIdentity.Contract;
 using EggIdentity.Testing;
-using EggIdentity.UI.Suite;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Components.Web;
@@ -12,7 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace EggIdentity.UI.Tests;
+namespace EggIdentity.UI.Suite.Tests;
 
 public class SuiteProfileModalTests {
     private const string Discord = "discord";

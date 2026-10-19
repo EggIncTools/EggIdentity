@@ -96,7 +96,7 @@ internal static class Reports {
         { ".report-grid", "grid [grid-template-columns:repeat(var(--report-grid-cols,8),minmax(0,1fr))] [gap:var(--report-grid-gap,0.75rem)] [grid-auto-rows:var(--report-grid-row,max(5rem,calc((100cqi_-_(var(--report-grid-cols,8)_-_1)_*_var(--report-grid-gap,0.75rem))_/_var(--report-grid-cols,8))))] [container-type:inline-size]" },
         { ".report-grid-group", "flex flex-col gap-1" },
         { ".report-grid-heading", "uppercase text-xs font-bold tracking-wide text-muted" },
-        { ".report-grid-cell", "flex flex-col min-w-0 min-h-0 overflow-hidden" },
+        { ".report-grid-cell", "flex flex-col min-w-0 min-h-0 overflow-hidden [grid-column:var(--rg-x,auto)_/_span_var(--rg-w,1)] [grid-row:var(--rg-y,auto)_/_span_var(--rg-h,1)]" },
         { ".report-grid-tools", "flex items-center justify-end gap-1" },
         { ".report-reason", "text-xs [color:var(--report-reason-color,var(--color-warn))]" },
         { ".report-presets", "flex flex-row flex-wrap items-center [gap:var(--report-preset-gap,0.375rem)]" },

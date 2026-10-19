@@ -26,5 +26,13 @@ public abstract record FilterSubjectValue {
 
     public sealed record DateValue(DateTimeOffset Value) : FilterSubjectValue;
 
-    public sealed record ManyValue(IReadOnlyList<string> Values) : FilterSubjectValue;
+    public sealed record ManyValue(IReadOnlyList<string> Values) : FilterSubjectValue {
+        public bool Equals(ManyValue? other) => other is not null && Values.SequenceEqual(other.Values, StringComparer.Ordinal);
+
+        public override int GetHashCode() {
+            var hash = new HashCode();
+            foreach (var value in Values) hash.Add(value, StringComparer.Ordinal);
+            return hash.ToHashCode();
+        }
+    }
 }

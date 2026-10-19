@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace EggIdentity.Settings;
@@ -10,7 +11,7 @@ public sealed class StaticSettingsProvider(IReadOnlyList<SettingDescriptor> desc
     public IReadOnlyList<SettingDescriptor> Describe() => descriptors;
 }
 
-public sealed class AttributeSettingsProvider<T> : ISettingsProvider {
+public sealed class AttributeSettingsProvider<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T> : ISettingsProvider {
     private readonly List<SettingDescriptor> _descriptors = [.. typeof(T)
         .GetProperties(BindingFlags.Public | BindingFlags.Instance)
         .Select(p => p.GetCustomAttribute<SettingAttribute>())

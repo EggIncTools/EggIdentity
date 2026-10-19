@@ -46,6 +46,7 @@ internal static class Suite {
         { ".suite-account.suite-bar", "[align-self:var(--suite-account-align,stretch)] ml-auto shrink-0 [gap:var(--suite-account-gap,0.6rem)] [padding:var(--suite-account-padding,0_1.1rem_0_calc(var(--spacing)*3))] [background:var(--suite-account-bg,var(--color-panel))] [border-left:var(--suite-account-border,1px_solid_var(--color-border))]" },
         { ".suite-switcher.suite-rail", "flex-col items-stretch [padding:var(--suite-rail-padding,calc(var(--spacing)*3)_calc(var(--spacing)*2))] [background:var(--suite-rail-bg,var(--color-panel))] [border-right:var(--suite-rail-border,1px_solid_var(--color-border))]" },
         { ".suite-rail .suite-tools", "flex-col items-stretch" },
+        { ".suite-rail .suite-tool-item", "[container-type:inline-size]" },
         { ".suite-switcher.suite-tabs", "fixed left-0 right-0 bottom-0 z-[900] justify-around [height:var(--suite-height,3.5rem)] [background:var(--suite-tabs-bg,var(--color-panel))] [border-top:var(--suite-tabs-border,1px_solid_var(--color-border))]" },
         { ".suite-tabs .suite-tools-nav", "flex-1" },
         { ".suite-tabs .suite-tools", "flex-1 justify-around" },

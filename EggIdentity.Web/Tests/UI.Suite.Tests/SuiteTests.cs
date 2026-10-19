@@ -1,8 +1,7 @@
 using EggIdentity.Contract;
-using EggIdentity.UI.Suite;
 using Microsoft.AspNetCore.Http;
 
-namespace EggIdentity.UI.Tests;
+namespace EggIdentity.UI.Suite.Tests;
 
 public class SuiteTests {
     private static DefaultHttpContext Request(string header, string value) {

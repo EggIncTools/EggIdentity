@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -12,6 +13,8 @@ public static class CollectionBinder {
         Converters = { new StringBoolConverter() },
     };
 
+    [RequiresUnreferencedCode("binds rows by reflection")]
+    [RequiresDynamicCode("binds rows by reflection")]
     public static T Bind<T>(IReadOnlyDictionary<string, string?> values) {
         ArgumentNullException.ThrowIfNull(values);
 

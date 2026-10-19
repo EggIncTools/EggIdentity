@@ -28,9 +28,11 @@
             </div>
         </div>
 
-        <svg class="skm-spark" viewBox="0 0 240 40" preserveAspectRatio="none" role="img" aria-label="Requests per minute">
-            <polyline points="@Spark()" fill="none" stroke="currentColor" stroke-width="1.5"/>
-        </svg>
+        @if (_snap.Minutes.Count > 0) {
+            <svg class="skm-spark" viewBox="0 0 240 40" preserveAspectRatio="none" role="img" aria-label="Requests per minute">
+                <polyline points="@Spark()" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+        }
 
         @if (_snap.Buckets.KeysCapped) {
             <p class="skm-warn">Rollup key cap reached; some paths/IPs are not counted.</p>
@@ -57,6 +59,9 @@
                         <td>@p.Path</td><td class="skm-num">@p.Count</td>
                     </tr>
                 }
+                @if (_snap.Paths.Count == 0) {
+                    <tr><td class="skm-muted" colspan="2">No requests recorded yet.</td></tr>
+                }
                 </tbody>
             </table>
         } else if (_tab == "ips") {
@@ -72,6 +77,9 @@
                         <td>@ip.Ip</td><td class="skm-num">@ip.Count</td><td>@Clock(ip.LastSeenEpochSeconds)</td>
                     </tr>
                 }
+                @if (_snap.Ips.Count == 0) {
+                    <tr><td class="skm-muted" colspan="3">No requests recorded yet.</td></tr>
+                }
                 </tbody>
             </table>
         } else {
@@ -86,6 +94,9 @@
                     <tr>
                         <td>@Clock(r.AtEpochSeconds)</td><td>@r.Method</td><td>@r.Path</td><td class="skm-num">@r.Status</td><td>@r.Bucket</td><td>@r.Ip</td>
                     </tr>
+                }
+                @if (_snap.Recent.Count == 0) {
+                    <tr><td class="skm-muted" colspan="6">No requests recorded yet.</td></tr>
                 }
                 </tbody>
             </table>

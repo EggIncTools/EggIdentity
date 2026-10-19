@@ -132,6 +132,34 @@ public sealed class ReportEngineRegistry {
         Snapshot(source)?.Invalidate();
     }
 
+    public bool Remove(string source) {
+        ArgumentNullException.ThrowIfNull(source);
+        if (_snapshots.Remove(source, out var snapshot) && snapshot is IDisposable disposable) disposable.Dispose();
+        return _engines.Remove(source);
+    }
+
+    public ReportEngineRegistry AddSnapshotSource(SourceDescriptor descriptor, RowSnapshot snapshot, SnapshotSchema? schema, TimeProvider clock) {
+        ArgumentNullException.ThrowIfNull(descriptor);
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(clock);
+        if (!string.Equals(snapshot.Source, descriptor.Id, StringComparison.Ordinal))
+            throw new ArgumentException($"snapshot source \"{snapshot.Source}\" does not match descriptor \"{descriptor.Id}\"", nameof(snapshot));
+
+        var source = SnapshotSource.Create(descriptor, snapshot);
+        IReadOnlyList<int>? cachedRows = null;
+        ValueTask<IReadOnlyList<int>> Rows(CancellationToken _) {
+            cachedRows ??= [.. Enumerable.Range(0, snapshot.Rows)];
+            return ValueTask.FromResult(cachedRows);
+        }
+        Add(descriptor.Id, new InMemoryReportEngine<int>(source, Rows, clock));
+
+        if (schema is not null) {
+            AddSnapshot(descriptor.Id, new SnapshotReportEngine<int>(source, schema, Rows, _ => ValueTask.FromResult(snapshot.Version), clock));
+        }
+
+        return this;
+    }
+
     private ReportValidation ValidateSnapshot(ReportQuery query) {
         if (Snapshot(query.Source) is { } snapshot) return snapshot.Validate(query, Caps(ReportTier.Snapshot));
         return new ReportValidation([new ReportRejection(ReportRejectionKind.NoSnapshot, query.Source, $"no snapshot engine for source \"{query.Source}\"")]);

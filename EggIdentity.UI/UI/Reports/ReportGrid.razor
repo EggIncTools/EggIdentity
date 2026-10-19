@@ -53,7 +53,7 @@
         ReportGridLayout.Pack([.. group]);
 
     private static string CellStyle(ReportPlacement p) =>
-        $"grid-column: {p.X} / span {p.W}; grid-row: {p.Y} / span {p.H};";
+        $"--rg-x:{p.X};--rg-y:{p.Y};--rg-w:{p.W};--rg-h:{p.H};";
 
     private static int ParseDim(object? value, int fallback) =>
         int.TryParse(value?.ToString(), out var n) ? n : fallback;

@@ -2,7 +2,6 @@ using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using EggIdentity.Filters;
 
 namespace EggIdentity.Reports;
@@ -12,21 +11,11 @@ public static class ReportCodec {
     private const string VersionField = "version";
     private static readonly SearchValues<char> HexDigits = SearchValues.Create("0123456789abcdefABCDEF");
 
-    public static JsonSerializerOptions Options { get; } = Create();
-
-    private static JsonSerializerOptions Create() {
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web) {
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        };
-        foreach (var converter in FilterCodec.Options.Converters) options.Converters.Add(converter);
-        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-        options.MakeReadOnly(populateMissingResolver: true);
-        return options;
-    }
+    public static JsonSerializerOptions Options => ReportJsonContext.Default.Options;
 
     public static string Serialize(ReportDefinition definition) {
         ArgumentNullException.ThrowIfNull(definition);
-        return JsonSerializer.Serialize(Clean(definition with { Version = CurrentVersion }), Options);
+        return JsonSerializer.Serialize(Clean(definition with { Version = CurrentVersion }), ReportJsonContext.Default.ReportDefinition);
     }
 
     public static ReportDefinition Deserialize(string json) => Upgrade(json, new ReportUpgrades()).Definition;
@@ -52,17 +41,17 @@ public static class ReportCodec {
             current[VersionField] = version;
         }
         if (version > CurrentVersion) throw new JsonException($"report version {version} is newer than {CurrentVersion}");
-        var definition = current.Deserialize<ReportDefinition>(Options) ?? throw new JsonException("report definition is null");
+        var definition = current.Deserialize(ReportJsonContext.Default.ReportDefinition) ?? throw new JsonException("report definition is null");
         return (Clean(definition), placement);
     }
 
     public static string SerializePlacement(ReportPlacement placement) {
         ArgumentNullException.ThrowIfNull(placement);
-        return JsonSerializer.Serialize(placement, Options);
+        return JsonSerializer.Serialize(placement, ReportJsonContext.Default.ReportPlacement);
     }
 
     public static ReportPlacement? DeserializePlacement(string? json) =>
-        string.IsNullOrWhiteSpace(json) ? null : JsonSerializer.Deserialize<ReportPlacement>(json, Options);
+        string.IsNullOrWhiteSpace(json) ? null : JsonSerializer.Deserialize(json, ReportJsonContext.Default.ReportPlacement);
 
     public static bool IsHex([NotNullWhen(true)] string? color) {
         if (color is not { Length: 4 or 7 } || color[0] != '#') return false;

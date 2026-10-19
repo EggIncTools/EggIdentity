@@ -1,36 +1,27 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using EggIdentity.Reports;
 
 namespace EggIdentity.Filters;
 
 public static class FilterCodec {
-    public static JsonSerializerOptions Options { get; } = Create();
-
-    private static JsonSerializerOptions Create() {
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web) {
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        };
-        options.Converters.Add(new ConditionConverter());
-        options.Converters.Add(new SetConverter());
-        options.MakeReadOnly(populateMissingResolver: true);
-        return options;
-    }
+    public static JsonSerializerOptions Options => ReportJsonContext.Default.Options;
 
     public static string Serialize(FilterSet set) {
         ArgumentNullException.ThrowIfNull(set);
-        return JsonSerializer.Serialize(set, Options);
+        return JsonSerializer.Serialize(set, ReportJsonContext.Default.FilterSet);
     }
 
     public static FilterSet Deserialize(string? json) =>
-        string.IsNullOrWhiteSpace(json) ? FilterSet.Empty : JsonSerializer.Deserialize<FilterSet>(json, Options) ?? FilterSet.Empty;
+        string.IsNullOrWhiteSpace(json) ? FilterSet.Empty : JsonSerializer.Deserialize(json, ReportJsonContext.Default.FilterSet) ?? FilterSet.Empty;
 
     public static string SerializeCatalog(FilterCatalog catalog) {
         ArgumentNullException.ThrowIfNull(catalog);
-        return JsonSerializer.Serialize(catalog, Options);
+        return JsonSerializer.Serialize(catalog, ReportJsonContext.Default.FilterCatalog);
     }
 
-    public static FilterCatalog? DeserializeCatalog(string json) => JsonSerializer.Deserialize<FilterCatalog>(json, Options);
+    public static FilterCatalog? DeserializeCatalog(string json) => JsonSerializer.Deserialize(json, ReportJsonContext.Default.FilterCatalog);
 
     public static string Hash(string scope, FilterSet set) {
         ArgumentNullException.ThrowIfNull(set);
@@ -52,7 +43,7 @@ public static class FilterCodec {
     private static void Append(StringBuilder sb, FilterCondition c) =>
         sb.Append(c.Field).Append('~').Append(c.Op).Append('~').Append(c.Value);
 
-    private sealed class ConditionConverter : JsonConverter<FilterCondition> {
+    internal sealed class ConditionConverter : JsonConverter<FilterCondition> {
         public override FilterCondition Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
             if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException("filter condition must be an object");
             string field = "", op = "", value = "";
@@ -86,13 +77,13 @@ public static class FilterCodec {
         }
     }
 
-    private sealed class SetConverter : JsonConverter<FilterSet> {
+    internal sealed class SetConverter : JsonConverter<FilterSet> {
         public override FilterSet Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
             if (reader.TokenType == JsonTokenType.Null) return FilterSet.Empty;
             if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException("filter set must be an object");
             IReadOnlyList<FilterCondition> and = [];
             IReadOnlyList<IReadOnlyList<FilterCondition>> or = [];
-            var condition = (JsonConverter<FilterCondition>)options.GetConverter(typeof(FilterCondition));
+            var condition = Condition;
             while (reader.Read() && reader.TokenType != JsonTokenType.EndObject) {
                 var name = reader.GetString();
                 reader.Read();
@@ -125,8 +116,10 @@ public static class FilterCodec {
             return groups;
         }
 
+        private static readonly ConditionConverter Condition = new();
+
         public override void Write(Utf8JsonWriter writer, FilterSet value, JsonSerializerOptions options) {
-            var condition = (JsonConverter<FilterCondition>)options.GetConverter(typeof(FilterCondition));
+            var condition = Condition;
             writer.WriteStartObject();
             writer.WriteStartArray("and");
             foreach (var c in value.And) condition.Write(writer, c, options);
