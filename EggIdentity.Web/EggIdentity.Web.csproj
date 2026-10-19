@@ -36,6 +36,7 @@
   </ItemGroup>
 
   <Target Name="PublishReportsWorker" BeforeTargets="PrepareForBuild" Condition="'$(SkipReportsWorker)' != 'true'">
+    <MSBuild Projects="Worker\EggIdentity.Web.Worker.csproj" Targets="Restore" Properties="Configuration=$(Configuration);MSBuildRestoreSessionId=$([System.Guid]::NewGuid())" />
     <MSBuild Projects="Worker\EggIdentity.Web.Worker.csproj" Targets="Publish" Properties="Configuration=$(Configuration);PublishDir=$(MSBuildProjectDirectory)\obj\reports-worker\" />
   </Target>
 
