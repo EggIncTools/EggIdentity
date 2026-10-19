@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using EggIdentity.Filters;
 
@@ -5,29 +6,37 @@ namespace EggIdentity.Reports;
 
 public sealed class SnapshotReportEngine<TRow>(
     ReportSource<TRow> source, SnapshotSchema schema,
-    Func<CancellationToken, ValueTask<IReadOnlyList<TRow>>> rows,
-    Func<CancellationToken, ValueTask<string>> version, TimeProvider clock) : ISnapshotEngine, IDisposable {
+    Func<ReportContext, CancellationToken, ValueTask<IReadOnlyList<TRow>>> rows,
+    Func<ReportContext, CancellationToken, ValueTask<string>> version, TimeProvider clock) : ISnapshotEngine, IDisposable {
     private const char Separator = '\u001f';
+    private const int MaxPartitions = 64;
+
+    private sealed record Built(IReadOnlyDictionary<string, SnapshotCell> Cells, string Version, long Generation);
 
     private readonly List<ReportDimension> _grainDims = [.. schema.Grain.Select(g =>
         source.Dimension(g.Dimension) ?? throw new ArgumentException($"snapshot grain references unknown dimension \"{g.Dimension}\"", nameof(schema)))];
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private volatile IReadOnlyDictionary<string, SnapshotCell>? _cells;
-    private volatile string? _builtVersion;
-    private volatile bool _invalidated = true;
+    private readonly ConcurrentDictionary<string, Built> _built = new(StringComparer.Ordinal);
+    private volatile Built? _latest;
+    private long _generation;
+
+    public SnapshotReportEngine(ReportSource<TRow> source, SnapshotSchema schema,
+        Func<CancellationToken, ValueTask<IReadOnlyList<TRow>>> rows, Func<CancellationToken, ValueTask<string>> version, TimeProvider clock)
+        : this(source, schema, (_, ct) => rows(ct), (_, ct) => version(ct), clock) {
+    }
 
     public SnapshotSchema Schema => schema;
 
-    public string? Version => _builtVersion;
+    public string? Version => _latest?.Version;
 
-    public void Invalidate() => _invalidated = true;
+    public void Invalidate() => Interlocked.Increment(ref _generation);
 
     public void Dispose() => _gate.Dispose();
 
     public ReportValidation Validate(ReportQuery query, ReportTierCaps caps) {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentNullException.ThrowIfNull(caps);
-        return SnapshotValidator.Validate(query, source, schema, caps, _cells, _grainDims);
+        return SnapshotValidator.Validate(query, source, schema, caps, _latest?.Cells, _grainDims);
     }
 
     public async Task<ReportCube> RunAsync(ReportQuery query, ReportContext context, CancellationToken ct) {
@@ -39,7 +48,7 @@ public sealed class SnapshotReportEngine<TRow>(
         var validation = Validate(query, ReportTierCaps.Unlimited);
         if (!validation.Allowed) throw new ReportRejectedException(validation.Rejections);
 
-        var cells = await EnsureCellsAsync(ct).ConfigureAwait(false);
+        var cells = await EnsureCellsAsync(context, ct).ConfigureAwait(false);
         var now = clock.GetUtcNow();
         var queryDims = query.GroupBy.Select(Dimension).ToList();
         var measures = query.EffectiveMeasures;
@@ -61,21 +70,23 @@ public sealed class SnapshotReportEngine<TRow>(
         return new ReportCube([.. queryDims.Select(d => d.Key)], measures, applied, limited);
     }
 
-    private async Task<IReadOnlyDictionary<string, SnapshotCell>> EnsureCellsAsync(CancellationToken ct) {
-        var currentVersion = await version(ct).ConfigureAwait(false);
-        if (Fresh(currentVersion) && _cells is { } cached) return cached;
+    private async Task<IReadOnlyDictionary<string, SnapshotCell>> EnsureCellsAsync(ReportContext context, CancellationToken ct) {
+        var key = context.Partition is { } partition ? "p:" + partition : "";
+        var currentVersion = await version(context, ct).ConfigureAwait(false);
+        if (Fresh(key, currentVersion) is { } cached) return cached;
         await _gate.WaitAsync(ct).ConfigureAwait(false);
         try {
-            if (Fresh(currentVersion) && _cells is { } settled) return settled;
+            if (Fresh(key, currentVersion) is { } settled) return settled;
+            var generation = Interlocked.Read(ref _generation);
             try {
-                var data = await rows(ct).ConfigureAwait(false);
-                var built = SnapshotCellBuilder.Build(data, source, schema, _grainDims, TimeZoneInfo.Utc);
-                _cells = built;
-                _builtVersion = currentVersion;
-                _invalidated = false;
-                return built;
+                var data = await rows(context, ct).ConfigureAwait(false);
+                var built = new Built(SnapshotCellBuilder.Build(data, source, schema, _grainDims, TimeZoneInfo.Utc), currentVersion, generation);
+                if (_built.Count >= MaxPartitions && !_built.ContainsKey(key)) _built.Clear();
+                _built[key] = built;
+                _latest = built;
+                return built.Cells;
             } catch {
-                if (_cells is { } previous) return previous;
+                if (_built.TryGetValue(key, out var previous)) return previous.Cells;
                 throw;
             }
         } finally {
@@ -83,8 +94,12 @@ public sealed class SnapshotReportEngine<TRow>(
         }
     }
 
-    private bool Fresh(string currentVersion) =>
-        !_invalidated && _cells is not null && string.Equals(_builtVersion, currentVersion, StringComparison.Ordinal);
+    private IReadOnlyDictionary<string, SnapshotCell>? Fresh(string key, string currentVersion) =>
+        _built.TryGetValue(key, out var built)
+        && built.Generation == Interlocked.Read(ref _generation)
+        && string.Equals(built.Version, currentVersion, StringComparison.Ordinal)
+            ? built.Cells
+            : null;
 
     private FilterSubjectValue CellSubject(SnapshotCell cell, string key) {
         for (var i = 0; i < _grainDims.Count; i++) {

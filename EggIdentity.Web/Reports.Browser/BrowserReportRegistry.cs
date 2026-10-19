@@ -26,6 +26,7 @@ public sealed class BrowserReportRegistry : IAsyncDisposable {
         _services = services;
         _options = options;
         _logger = logger;
+        var fallback = new Lazy<ReportEngineRegistry>(services.BuildScopedReportRegistry);
         _client = new BrowserWorkerClient(js, options.RoutePrefix, source => options.SharedSources.Contains(source) ? new ValueTask<string>(SharedScope) : ScopeKeyAsync());
         Registry = new ReportEngineRegistry()
             .SetCaps(ReportTier.Live, server.Caps(ReportTier.Live))
@@ -33,15 +34,10 @@ public sealed class BrowserReportRegistry : IAsyncDisposable {
         foreach (var (source, _) in catalog.Descriptors) _browserEngines[source] = new BrowserReportEngine(_client, source);
         foreach (var (source, _) in catalog.Descriptors) {
             var hooks = options.Hooks.GetValueOrDefault(source) ?? new ReportHooks();
-            var hooked = new HookedReportEngine(
-                _browserEngines.GetValueOrDefault,
-                server.Find,
-                query => Prepare(query, hooks),
-                hooks.PostProcess,
-                () => BrowserActive,
-                OnFallback);
-            Registry.Add(source, hooked);
-            Registry.AddSnapshot(source, new SnapshotPassthrough(hooked, catalog.Schemas.GetValueOrDefault(source)));
+            Registry.Add(source, Hooked(hooks, s => fallback.Value.Find(s)));
+            Registry.AddSnapshot(source, new SnapshotPassthrough(
+                Hooked(hooks, s => fallback.Value.Snapshot(s) ?? fallback.Value.Find(s)),
+                catalog.Schemas.GetValueOrDefault(source)));
         }
     }
 
@@ -63,6 +59,9 @@ public sealed class BrowserReportRegistry : IAsyncDisposable {
     public ValueTask ClearBrowserCacheAsync(CancellationToken ct = default) => _client.ClearAsync(ct);
 
     public ValueTask DisposeAsync() => _client.DisposeAsync();
+
+    private HookedReportEngine Hooked(ReportHooks hooks, Func<string, IReportEngine?> fallback) =>
+        new(_browserEngines.GetValueOrDefault, fallback, query => Prepare(query, hooks), hooks.PostProcess, () => BrowserActive, OnFallback);
 
     private ReportQuery Prepare(ReportQuery query, ReportHooks hooks) {
         var prepared = _options.Prepare?.Invoke(query) ?? query;

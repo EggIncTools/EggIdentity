@@ -3,8 +3,12 @@ using EggIdentity.Filters;
 namespace EggIdentity.Reports;
 
 public sealed class InMemoryReportEngine<TRow>(
-    ReportSource<TRow> source, Func<CancellationToken, ValueTask<IReadOnlyList<TRow>>> rows, TimeProvider clock) : IReportEngine {
+    ReportSource<TRow> source, Func<ReportContext, CancellationToken, ValueTask<IReadOnlyList<TRow>>> rows, TimeProvider clock) : IReportEngine {
     private const char Separator = '\u001f';
+
+    public InMemoryReportEngine(ReportSource<TRow> source, Func<CancellationToken, ValueTask<IReadOnlyList<TRow>>> rows, TimeProvider clock)
+        : this(source, (_, ct) => rows(ct), clock) {
+    }
 
     public async Task<ReportCube> RunAsync(ReportQuery query, ReportContext context, CancellationToken ct) {
         ArgumentNullException.ThrowIfNull(query);
@@ -19,7 +23,7 @@ public sealed class InMemoryReportEngine<TRow>(
         var evaluation = new FilterEvaluation(source.Scope, Now: now);
         var fields = source.Catalog.Fields;
 
-        foreach (var row in await rows(ct).ConfigureAwait(false)) {
+        foreach (var row in await rows(context, ct).ConfigureAwait(false)) {
             ct.ThrowIfCancellationRequested();
             FilterSubjectValue Value(string key) {
                 return source.Value(row, key);
