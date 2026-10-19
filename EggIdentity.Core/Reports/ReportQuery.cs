@@ -58,6 +58,6 @@ public sealed record ReportQuery(string Source) {
     public IReadOnlyList<MeasureRequest> EffectiveMeasures => Measures.Count == 0 ? [MeasureRequest.RowCount] : Measures;
 }
 
-public sealed record ReportContext(TimeZoneInfo Zone, ReportTier Tier = ReportTier.Live) {
+public sealed record ReportContext(TimeZoneInfo Zone, ReportTier Tier = ReportTier.Live, string? Partition = null) {
     public static ReportContext Utc { get; } = new(TimeZoneInfo.Utc);
 }

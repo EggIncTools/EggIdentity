@@ -68,13 +68,24 @@ public sealed class RowSnapshot(string source, string version, int rows, IReadOn
         var keys = CaptureKeys(source);
         var columns = new List<SnapshotColumn>(keys.Count);
         foreach (var key in keys) {
-            var values = new FilterSubjectValue[rows.Count];
-            for (var r = 0; r < rows.Count; r++) values[r] = source.Value(rows[r], key);
-            var kind = source.Dimension(key) is { } dimension ? ColumnKind(dimension.Field.Kind) : InferKind(values);
-            columns.Add(BuildColumn(key, kind, values));
+            var kind = source.Dimension(key) is { } dimension ? ColumnKind(dimension.Field.Kind) : InferKind(source, rows, key);
+            columns.Add(BuildColumn(key, kind, rows, row => source.Value(row, key)));
         }
 
         return new RowSnapshot(source.Id, version, rows.Count, columns);
+    }
+
+    private static FilterValueKind InferKind<TRow>(ReportSource<TRow> source, IReadOnlyList<TRow> rows, string key) {
+        for (var r = 0; r < rows.Count; r++) {
+            switch (source.Value(rows[r], key)) {
+                case FilterSubjectValue.NumberValue: return FilterValueKind.Number;
+                case FilterSubjectValue.TextValue: return FilterValueKind.Text;
+                case FilterSubjectValue.BoolValue: return FilterValueKind.Bool;
+                case FilterSubjectValue.DateValue: return FilterValueKind.Date;
+                case FilterSubjectValue.ManyValue: return FilterValueKind.Set;
+            }
+        }
+        return FilterValueKind.Number;
     }
 
     private static List<string> CaptureKeys<TRow>(ReportSource<TRow> source) {
@@ -99,111 +110,94 @@ public sealed class RowSnapshot(string source, string version, int rows, IReadOn
         _ => FilterValueKind.Text,
     };
 
-    private static FilterValueKind InferKind(FilterSubjectValue[] values) {
-        foreach (var value in values) {
-            switch (value) {
-                case FilterSubjectValue.NumberValue: return FilterValueKind.Number;
-                case FilterSubjectValue.TextValue: return FilterValueKind.Text;
-                case FilterSubjectValue.BoolValue: return FilterValueKind.Bool;
-                case FilterSubjectValue.DateValue: return FilterValueKind.Date;
-                case FilterSubjectValue.ManyValue: return FilterValueKind.Set;
-            }
-        }
-        return FilterValueKind.Number;
-    }
-
-    private static SnapshotColumn BuildColumn(string key, FilterValueKind kind, FilterSubjectValue[] values) {
-        var column = new SnapshotColumn(key, kind, values.Length);
+    private static SnapshotColumn BuildColumn<TRow>(string key, FilterValueKind kind, IReadOnlyList<TRow> rows, Func<TRow, FilterSubjectValue> value) {
+        var column = new SnapshotColumn(key, kind, rows.Count);
         switch (kind) {
             case FilterValueKind.Number:
-                BuildNumbers(column, values);
+                BuildNumbers(column, rows, value);
                 break;
             case FilterValueKind.Date:
-                BuildDates(column, values);
+                BuildDates(column, rows, value);
                 break;
             case FilterValueKind.Bool:
-                BuildBools(column, values);
+                BuildBools(column, rows, value);
                 break;
             case FilterValueKind.Set:
-                BuildMany(column, values);
+                BuildMany(column, rows, value);
                 break;
             default:
-                BuildText(column, values);
+                BuildText(column, rows, value);
                 break;
         }
         return column;
     }
 
-    private static void BuildNumbers(SnapshotColumn column, FilterSubjectValue[] values) {
-        var numbers = new double[values.Length];
-        for (var i = 0; i < values.Length; i++) {
-            if (values[i] is not FilterSubjectValue.NumberValue n) continue;
+    private static void BuildNumbers<TRow>(SnapshotColumn column, IReadOnlyList<TRow> rows, Func<TRow, FilterSubjectValue> value) {
+        var numbers = new double[rows.Count];
+        for (var i = 0; i < rows.Count; i++) {
+            if (value(rows[i]) is not FilterSubjectValue.NumberValue n) continue;
             column.Mark(i);
             numbers[i] = n.Value;
         }
         column.Numbers = numbers;
     }
 
-    private static void BuildDates(SnapshotColumn column, FilterSubjectValue[] values) {
-        var dates = new long[values.Length];
-        for (var i = 0; i < values.Length; i++) {
-            if (values[i] is not FilterSubjectValue.DateValue d) continue;
+    private static void BuildDates<TRow>(SnapshotColumn column, IReadOnlyList<TRow> rows, Func<TRow, FilterSubjectValue> value) {
+        var dates = new long[rows.Count];
+        for (var i = 0; i < rows.Count; i++) {
+            if (value(rows[i]) is not FilterSubjectValue.DateValue d) continue;
             column.Mark(i);
             dates[i] = d.Value.ToUnixTimeSeconds();
         }
         column.Dates = dates;
     }
 
-    private static void BuildBools(SnapshotColumn column, FilterSubjectValue[] values) {
-        var bools = new bool[values.Length];
-        for (var i = 0; i < values.Length; i++) {
-            if (values[i] is not FilterSubjectValue.BoolValue b) continue;
+    private static void BuildBools<TRow>(SnapshotColumn column, IReadOnlyList<TRow> rows, Func<TRow, FilterSubjectValue> value) {
+        var bools = new bool[rows.Count];
+        for (var i = 0; i < rows.Count; i++) {
+            if (value(rows[i]) is not FilterSubjectValue.BoolValue b) continue;
             column.Mark(i);
             bools[i] = b.Value;
         }
         column.Bools = bools;
     }
 
-    private static void BuildText(SnapshotColumn column, FilterSubjectValue[] values) {
+    private static void BuildText<TRow>(SnapshotColumn column, IReadOnlyList<TRow> rows, Func<TRow, FilterSubjectValue> value) {
         var dictionary = new List<string>();
         var indexOf = new Dictionary<string, int>(StringComparer.Ordinal);
-        var text = new int[values.Length];
-        for (var i = 0; i < values.Length; i++) {
-            if (TextOf(values[i]) is not { } s) continue;
+        var text = new int[rows.Count];
+        for (var i = 0; i < rows.Count; i++) {
+            if (TextOf(value(rows[i])) is not { } s) continue;
             column.Mark(i);
-            if (!indexOf.TryGetValue(s, out var index)) {
-                index = dictionary.Count;
-                dictionary.Add(s);
-                indexOf[s] = index;
-            }
-            text[i] = index;
+            text[i] = Intern(dictionary, indexOf, s);
         }
         column.Text = text;
         column.Dictionary = [.. dictionary];
     }
 
-    private static void BuildMany(SnapshotColumn column, FilterSubjectValue[] values) {
+    private static void BuildMany<TRow>(SnapshotColumn column, IReadOnlyList<TRow> rows, Func<TRow, FilterSubjectValue> value) {
         var dictionary = new List<string>();
         var indexOf = new Dictionary<string, int>(StringComparer.Ordinal);
-        var offsets = new int[values.Length + 1];
+        var offsets = new int[rows.Count + 1];
         var items = new List<int>();
-        for (var i = 0; i < values.Length; i++) {
+        for (var i = 0; i < rows.Count; i++) {
             offsets[i] = items.Count;
-            if (values[i] is not FilterSubjectValue.ManyValue m) continue;
+            if (value(rows[i]) is not FilterSubjectValue.ManyValue m) continue;
             column.Mark(i);
-            foreach (var v in m.Values) {
-                if (!indexOf.TryGetValue(v, out var index)) {
-                    index = dictionary.Count;
-                    dictionary.Add(v);
-                    indexOf[v] = index;
-                }
-                items.Add(index);
-            }
+            foreach (var v in m.Values) items.Add(Intern(dictionary, indexOf, v));
         }
-        offsets[values.Length] = items.Count;
+        offsets[rows.Count] = items.Count;
         column.ManyOffsets = offsets;
         column.ManyItems = [.. items];
         column.Dictionary = [.. dictionary];
+    }
+
+    private static int Intern(List<string> dictionary, Dictionary<string, int> indexOf, string s) {
+        if (indexOf.TryGetValue(s, out var index)) return index;
+        index = dictionary.Count;
+        dictionary.Add(s);
+        indexOf[s] = index;
+        return index;
     }
 
     private static string? TextOf(FilterSubjectValue value) => value switch {

@@ -77,8 +77,8 @@ public class ReportRegistryTests {
             Constructions++;
         }
 
-        public ValueTask<IReadOnlyList<Drop>> ReadAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<Drop>>(ReportFixture.Rows);
+        public ValueTask<IReadOnlyList<Drop>> ReadAsync(string? partition, CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<Drop>>(ReportFixture.Rows);
 
-        public ValueTask<string> VersionAsync(CancellationToken ct) => ValueTask.FromResult("v1");
+        public ValueTask<string> VersionAsync(string? partition, CancellationToken ct) => ValueTask.FromResult("v1");
     }
 }

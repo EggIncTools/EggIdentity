@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <RootNamespace>EggIdentity.Reports.Worker</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PublishTrimmed>true</PublishTrimmed>
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <WasmEnableThreads>false</WasmEnableThreads>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <BlazorEnableCompression>true</BlazorEnableCompression>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WasmBuildNative>false</WasmBuildNative>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\EggIdentity.Core\EggIdentity.Core.csproj" />
+  </ItemGroup>
+
+</Project>

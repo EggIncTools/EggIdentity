@@ -5,9 +5,9 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace EggIdentity.Reports;
 
 public interface IReportRowProvider<TRow> {
-    ValueTask<IReadOnlyList<TRow>> ReadAsync(CancellationToken ct);
+    ValueTask<IReadOnlyList<TRow>> ReadAsync(string? partition, CancellationToken ct);
 
-    ValueTask<string> VersionAsync(CancellationToken ct);
+    ValueTask<string> VersionAsync(string? partition, CancellationToken ct);
 }
 
 internal sealed class ReportSourceRegistration(Action<IServiceProvider, ReportEngineRegistry> apply) {
@@ -17,6 +17,12 @@ internal sealed class ReportSourceRegistration(Action<IServiceProvider, ReportEn
         apply(services, registry);
     }
 }
+
+public sealed record ReportSnapshotCapture(
+    string Source,
+    Func<IServiceProvider, string?, CancellationToken, ValueTask<string>> Version,
+    Func<IServiceProvider, string?, string, CancellationToken, ValueTask<byte[]>> Capture,
+    SnapshotSchema? Schema);
 
 public static class ReportServiceCollectionExtensions {
     public static IServiceCollection AddReportSource<TRow, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProvider>(
@@ -32,6 +38,11 @@ public static class ReportServiceCollectionExtensions {
         services.AddSingleton<IReportSource>(source);
         services.AddSingleton(sp => new ReportSourceRegistration((provider, registry) =>
             RegisterEngines<TRow, TProvider>(provider, registry, source, snapshot)));
+        services.AddSingleton(new ReportSnapshotCapture(
+            source.Id,
+            (provider, partition, ct) => VersionAsync<TRow, TProvider>(provider, partition, ct),
+            (provider, partition, version, ct) => CaptureAsync<TRow, TProvider>(provider, source, partition, version, ct),
+            snapshot));
 
         return services;
     }
@@ -45,26 +56,31 @@ public static class ReportServiceCollectionExtensions {
     private static void RegisterEngines<TRow, TProvider>(
         IServiceProvider services, ReportEngineRegistry registry, ReportSource<TRow> source, SnapshotSchema? snapshot)
         where TProvider : class, IReportRowProvider<TRow> {
-        var scopeFactory = services.GetRequiredService<IServiceScopeFactory>();
         var clock = services.GetRequiredService<TimeProvider>();
 
-        registry.Add(source.Id, new InMemoryReportEngine<TRow>(source, ct => ReadAsync<TRow, TProvider>(scopeFactory, ct), clock));
+        registry.Add(source.Id, new InMemoryReportEngine<TRow>(source, ct => ReadAsync<TRow, TProvider>(services, null, ct), clock));
 
         if (snapshot is not null) {
             registry.AddSnapshot(source.Id, new SnapshotReportEngine<TRow>(
-                source, snapshot, ct => ReadAsync<TRow, TProvider>(scopeFactory, ct), ct => VersionAsync<TRow, TProvider>(scopeFactory, ct), clock));
+                source, snapshot, ct => ReadAsync<TRow, TProvider>(services, null, ct), ct => VersionAsync<TRow, TProvider>(services, null, ct), clock));
         }
     }
 
-    private static async ValueTask<IReadOnlyList<TRow>> ReadAsync<TRow, TProvider>(IServiceScopeFactory scopeFactory, CancellationToken ct)
+    private static async ValueTask<IReadOnlyList<TRow>> ReadAsync<TRow, TProvider>(IServiceProvider services, string? partition, CancellationToken ct)
         where TProvider : class, IReportRowProvider<TRow> {
-        await using var scope = scopeFactory.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<TProvider>().ReadAsync(ct).ConfigureAwait(false);
+        await using var scope = services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<TProvider>().ReadAsync(partition, ct).ConfigureAwait(false);
     }
 
-    private static async ValueTask<string> VersionAsync<TRow, TProvider>(IServiceScopeFactory scopeFactory, CancellationToken ct)
+    private static async ValueTask<string> VersionAsync<TRow, TProvider>(IServiceProvider services, string? partition, CancellationToken ct)
         where TProvider : class, IReportRowProvider<TRow> {
-        await using var scope = scopeFactory.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<TProvider>().VersionAsync(ct).ConfigureAwait(false);
+        await using var scope = services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<TProvider>().VersionAsync(partition, ct).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<byte[]> CaptureAsync<TRow, TProvider>(IServiceProvider services, ReportSource<TRow> source, string? partition, string version, CancellationToken ct)
+        where TProvider : class, IReportRowProvider<TRow> {
+        var rows = await ReadAsync<TRow, TProvider>(services, partition, ct).ConfigureAwait(false);
+        return ReportWire.WriteSnapshot(RowSnapshot.Capture(source, rows, version));
     }
 }
