@@ -1,0 +1,51 @@
+@using EggIdentity.Contract
+@implements IDisposable
+
+@if (Masking && EidRules.IsValid(Value)) {
+    if (Interactive) {
+        <span class="@BlurCss" tabindex="0" role="button" aria-pressed="@(_revealed ? "true" : "false")" aria-label="Show EID"
+              @onclick="Toggle" @onclick:stopPropagation="true" @onkeydown="OnKeyDown" @onkeydown:preventDefault="_preventKey">@Value</span>
+    } else {
+        <span class="@BlurCss">@Value</span>
+    }
+} else {
+    <span class="@Class">@Value</span>
+}
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public bool Interactive { get; set; } = true;
+    [Parameter] public string? Class { get; set; }
+    [Inject] private IServiceProvider Services { get; set; } = default!;
+
+    ScreenshotSafety? _safety;
+    bool _revealed;
+    bool _preventKey;
+
+    bool Masking => _safety?.Enabled ?? true;
+
+    string BlurCss {
+        get {
+            var css = _revealed ? "eid-blur mask revealed" : "eid-blur mask";
+            return string.IsNullOrEmpty(Class) ? css : $"{css} {Class}";
+        }
+    }
+
+    protected override void OnInitialized() {
+        _safety = Services.GetService(typeof(ScreenshotSafety)) as ScreenshotSafety;
+        if (_safety is not null) _safety.Changed += OnChanged;
+    }
+
+    void Toggle() => _revealed = !_revealed;
+
+    void OnKeyDown(KeyboardEventArgs e) {
+        _preventKey = e.Key is "Enter" or " ";
+        if (_preventKey) Toggle();
+    }
+
+    void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() {
+        if (_safety is not null) _safety.Changed -= OnChanged;
+    }
+}

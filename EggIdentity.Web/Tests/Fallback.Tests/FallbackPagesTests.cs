@@ -15,11 +15,11 @@ public class FallbackPagesTests {
             exception = e;
         }
 
-        var html = FallbackPages.RenderError(Branding, exception, showTrace: true, correlationId: "corr-1");
+        var html = FallbackPages.RenderError(Branding, exception, showTrace: true, faultId: "K7Q2-M9XD");
 
         Assert.Contains("boom", html);
         Assert.Contains("InvalidOperationException", html);
-        Assert.Contains("corr-1", html);
+        Assert.Contains("K7Q2-M9XD", html);
     }
 
     [Fact]
@@ -31,11 +31,11 @@ public class FallbackPagesTests {
             exception = e;
         }
 
-        var html = FallbackPages.RenderError(Branding, exception, showTrace: false, correlationId: "corr-2");
+        var html = FallbackPages.RenderError(Branding, exception, showTrace: false, faultId: "K7Q2-M9XE");
 
         Assert.DoesNotContain("boom", html);
         Assert.DoesNotContain("InvalidOperationException", html);
-        Assert.Contains("corr-2", html);
+        Assert.Contains("K7Q2-M9XE", html);
     }
 
     [Fact]

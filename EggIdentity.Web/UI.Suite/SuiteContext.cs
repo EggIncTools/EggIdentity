@@ -204,6 +204,7 @@ public static class SuiteServiceCollectionExtensions {
         services.AddEggIdentityCurrentUser();
         services.AddEggIdentityUploads();
         services.TryAddScoped<ToastService>();
+        services.TryAddScoped<ScreenshotSafety>();
         services.TryAddScoped<ISuiteEidStore>(sp => new IdentityEidStore(
             sp.GetRequiredService<ICurrentUser>(),
             sp.GetService<IdentityApiClient>(),

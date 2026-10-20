@@ -21,14 +21,15 @@ public static class FallbackMiddlewareExtensions {
         app.UseExceptionHandler(errApp => errApp.Run(async ctx => {
             var feature = ctx.Features.Get<IExceptionHandlerFeature>();
             var exception = feature?.Error ?? new InvalidOperationException("unknown error");
-            app.Logger.LogError(exception, "Unhandled exception. TraceId={TraceId}", ctx.TraceIdentifier);
+            var faultId = Contract.FaultId.New();
+            app.Logger.LogError(exception, "Unhandled exception [{FaultId}] TraceId={TraceId}", faultId, ctx.TraceIdentifier);
             var showTrace = IsAdmin(ctx, branding);
             ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
             if (WantsJson(ctx)) {
-                await ctx.Response.WriteAsJsonAsync(new { error = "internal_server_error", traceId = ctx.TraceIdentifier, trace = showTrace ? exception.ToString() : null });
+                await ctx.Response.WriteAsJsonAsync(new { error = "internal_server_error", faultId, traceId = ctx.TraceIdentifier, trace = showTrace ? exception.ToString() : null });
             } else {
                 ctx.Response.ContentType = "text/html";
-                await ctx.Response.WriteAsync(FallbackPages.RenderError(branding, exception, showTrace, ctx.TraceIdentifier));
+                await ctx.Response.WriteAsync(FallbackPages.RenderError(branding, exception, showTrace, faultId));
             }
         }));
 

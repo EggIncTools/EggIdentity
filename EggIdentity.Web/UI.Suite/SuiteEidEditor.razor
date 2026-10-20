@@ -18,8 +18,10 @@
                         @if (RowTemplate is { } row) {
                             @row(entry)
                         } else {
-                            <span class="suite-eid-name">@entry.DisplayName</span>
-                            <span class="suite-eid-masked">@entry.Masked</span>
+                            @if (entry.Name is { } name) {
+                                <span class="suite-eid-name">@name</span>
+                            }
+                            <EidText Value="@entry.Eid" Class="suite-eid-masked"/>
                         }
                     </div>
                     <input class="form-input suite-eid-label-input" maxlength="@EidRules.MaxLabelLength" placeholder="Label" aria-label="Label"
@@ -31,7 +33,7 @@
                         <button type="button" class="btn-mini" aria-label="Move down" disabled="@(index == Suite.Eids.Count - 1)" @onclick="() => MoveAsync(index, 1)">
                             <Icon Name="arrow-down"/>
                         </button>
-                        <button type="button" class="btn-mini" disabled="@active" @onclick="() => Suite.SetActiveEidAsync(entry.Eid, entry.DisplayName)">
+                        <button type="button" class="btn-mini" disabled="@active" @onclick="() => Suite.SetActiveEidAsync(entry.Eid, entry.Name)">
                             @(active ? "Active" : "Set active")
                         </button>
                         @if (_confirming == entry.Eid) {

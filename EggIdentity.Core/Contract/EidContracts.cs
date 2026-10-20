@@ -13,7 +13,21 @@ public static partial class EidRules {
     [GeneratedRegex(@"^EI\d{16}$")]
     private static partial Regex Format();
 
+    [GeneratedRegex(@"EI\d{16}")]
+    private static partial Regex Embedded();
+
     public static bool IsValid(string? eid) => eid is not null && Format().IsMatch(eid);
+
+    public static IEnumerable<(string Text, bool IsEid)> Split(string text) {
+        ArgumentNullException.ThrowIfNull(text);
+        var last = 0;
+        foreach (Match match in Embedded().Matches(text)) {
+            if (match.Index > last) yield return (text[last..match.Index], false);
+            yield return (match.Value, true);
+            last = match.Index + match.Length;
+        }
+        if (last < text.Length) yield return (text[last..], false);
+    }
 
     public static string Mask(string eid) {
         ArgumentNullException.ThrowIfNull(eid);
@@ -60,10 +74,7 @@ public sealed class ProfileEid {
     public DateTimeOffset? SnapshotAt { get; set; }
 
     [JsonIgnore]
-    public string Masked => EidRules.Mask(Eid);
-
-    [JsonIgnore]
-    public string DisplayName => Label ?? Snapshot?.GameName ?? Masked;
+    public string? Name => Label ?? Snapshot?.GameName;
 }
 
 public sealed class EidUpsert {

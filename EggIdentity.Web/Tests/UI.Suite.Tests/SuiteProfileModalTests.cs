@@ -107,8 +107,8 @@ public class SuiteProfileModalTests {
         Assert.Contains("alice-gh", html);
         Assert.DoesNotContain(SuiteProfileModal.LastIdentityReason, html);
         Assert.Contains("suite-eid-editor", html);
-        Assert.Contains(EidRules.Mask(MainEid), html);
-        Assert.DoesNotContain(MainEid, html);
+        Assert.Contains("eid-blur mask", html);
+        Assert.DoesNotContain(EidRules.Mask(MainEid), html);
     }
 
     [Fact]

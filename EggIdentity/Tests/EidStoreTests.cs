@@ -83,7 +83,7 @@ public class EidStoreTests {
 
         var list = await store.ListAsync(user, CancellationToken.None);
         Assert.Equal([Eid(1)], Ids(list));
-        Assert.Equal("Farmer", list[0].DisplayName);
+        Assert.Equal("Farmer", list[0].Name);
         Assert.NotNull(list[0].SnapshotAt);
     }
 

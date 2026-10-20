@@ -19,6 +19,10 @@ internal static class Motion {
         { ".caret.open", "[transform:rotate(var(--caret-turn,90deg))]" },
         { ".mask", $"[filter:blur(var(--mask-blur,5px))] [transition:filter_{Fast}_{Standard}]" },
         { ".mask.revealed", "[filter:none]" },
+        { ".eid-blur", "cursor-pointer [user-select:none] [border-radius:var(--radius-sm,0.25rem)]" },
+        { ".eid-blur:hover", "[filter:none] [user-select:text]" },
+        { ".eid-blur.revealed", "[user-select:text]" },
+        { ".eid-blur:focus-visible", "[outline:none] [box-shadow:0_0_0_2px_var(--color-accent)]" },
         { ".scroll-marker", "absolute left-0 right-0 top-0 pointer-events-none [height:var(--scroll-marker-h,12%)] [animation:scroll-marker_linear_both] [animation-timeline:var(--scroll-marker-timeline)]" },
     }.ToImmutableDictionary();
 }

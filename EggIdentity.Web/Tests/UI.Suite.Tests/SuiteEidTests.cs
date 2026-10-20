@@ -83,7 +83,7 @@ public class SuiteEidTests {
         var suite = await LoadedAsync(store);
 
         Assert.True(suite.CanEditEids);
-        Assert.Equal("main", suite.ActiveAccount?.DisplayName);
+        Assert.Equal("main", suite.ActiveAccount?.Name);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class SuiteEidTests {
 
         Assert.False(await suite.UpdateEidSnapshotAsync(B, new EidSnapshot { GameName = "Ghost" }));
         Assert.True(await suite.UpdateEidSnapshotAsync(A, new EidSnapshot { GameName = "Farmer" }));
-        Assert.Equal(["Farmer"], suite.Eids.Select(e => e.DisplayName));
+        Assert.Equal(["Farmer"], suite.Eids.Select(e => e.Name));
     }
 
     [Fact]
@@ -151,10 +151,7 @@ public class SuiteEidTests {
     }
 
     [Fact]
-    public void MaskKeepsOnlyTheEnds() {
-        Assert.Equal("EI00**********0001", EidRules.Mask(A));
-        Assert.Equal("EI00**********0001", new ProfileEid { Eid = A }.DisplayName);
-    }
+    public void LogMaskKeepsOnlyTheEnds() => Assert.Equal("EI00**********0001", EidRules.Mask(A));
 
     private static async Task<string> RenderPickerAsync(FakeStore store, Dictionary<string, object?> parameters) {
         await using var provider = Services(store);
@@ -192,7 +189,55 @@ public class SuiteEidTests {
 
         Assert.Contains("trigger:" + B, html);
         Assert.Contains("row:" + C, html);
-        Assert.DoesNotContain("suite-eid-masked", html);
+        Assert.DoesNotContain("eid-blur", html);
+    }
+
+    [Fact]
+    public async Task PickerDefaultsBlurTheEidAndNeverShowTheAsteriskForm() {
+        var html = await RenderPickerAsync(ThreeAccounts(), []);
+
+        Assert.Contains("eid-blur mask", html);
+        Assert.DoesNotContain(EidRules.Mask(C), html);
+        Assert.DoesNotContain("tabindex=\"0\"", html);
+    }
+
+    private static async Task<string> RenderEidTextAsync(bool masking, string value, bool interactive) {
+        var services = new ServiceCollection();
+        services.AddSingleton(new ScreenshotSafety { Enabled = masking });
+        await using var provider = services.BuildServiceProvider();
+        await using var renderer = new HtmlRenderer(provider, NullLoggerFactory.Instance);
+        return await renderer.Dispatcher.InvokeAsync(async () =>
+            (await renderer.RenderComponentAsync<EidText>(ParameterView.FromDictionary(new Dictionary<string, object?> {
+                [nameof(EidText.Value)] = value,
+                [nameof(EidText.Interactive)] = interactive,
+            }))).ToHtmlString());
+    }
+
+    [Fact]
+    public async Task EidTextBlursAValidEidWhenMaskingIsOn() {
+        var html = await RenderEidTextAsync(true, A, true);
+
+        Assert.Contains("eid-blur mask", html);
+        Assert.Contains("tabindex=\"0\"", html);
+        Assert.Contains("aria-pressed=\"false\"", html);
+    }
+
+    [Theory]
+    [InlineData(false, "EI0000000000000001")]
+    [InlineData(true, "not-an-eid")]
+    public async Task EidTextRendersPlainWhenOffOrInvalid(bool masking, string value) {
+        var html = await RenderEidTextAsync(masking, value, true);
+
+        Assert.DoesNotContain("eid-blur", html);
+        Assert.Contains(value, html);
+    }
+
+    [Fact]
+    public async Task NonInteractiveEidTextHasNoFocusOrButtonRole() {
+        var html = await RenderEidTextAsync(true, A, false);
+
+        Assert.Contains("eid-blur mask", html);
+        Assert.DoesNotContain("role=\"button\"", html);
     }
 
     [Fact]

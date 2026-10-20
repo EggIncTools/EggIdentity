@@ -1,0 +1,82 @@
+@using EggIdentity.Contract
+@inject NavigationManager Nav
+
+<div class="@Css" role="alert">
+    <Icon Name="@Copy.Icon" Class="fault-icon"/>
+    <div class="fault-title">@(Title ?? Copy.Title)</div>
+    @if (!string.IsNullOrEmpty(Hint ?? Copy.Hint)) {
+        <div class="fault-hint">@(Hint ?? Copy.Hint)</div>
+    }
+    <div class="fault-actions">
+        @if (ChildContent is not null) {
+            @ChildContent
+        } else {
+            @if (Kind == FaultKind.CrashRepeat) {
+                <button type="button" class="btn-primary btn-mini" @onclick="Reload">Reload</button>
+            } else if (OnRetry.HasDelegate) {
+                <button type="button" class="btn-primary btn-mini" @onclick="OnRetry">Retry</button>
+            }
+            @if (ActionHref is not null && Kind is FaultKind.SignInFailed or FaultKind.Unavailable) {
+                <a class="btn-primary btn-mini" href="@ActionHref">@ActionLabel</a>
+            }
+            @if (ShowHome) {
+                <a class="btn-mini" href="/">Home</a>
+            }
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(FaultId)) {
+        <div class="fault-ref">
+            <span>Reference <code class="fault-ref-id">@FaultId</code></span>
+            <CopyButton Text="@CopyText" Label="Copy details" Class="btn-mini"/>
+        </div>
+    }
+    @if (Detail is not null) {
+        <Disclosure Label="Details" Class="fault-detail">
+            <pre class="fault-trace">@foreach (var (text, isEid) in EidRules.Split(Detail)) {
+                if (isEid) {
+                    <EidText Value="@text" Interactive="false"/>
+                } else {
+                    @text
+                }
+            }</pre>
+        </Disclosure>
+    }
+</div>
+
+@code {
+    [Parameter] public FaultScope Scope { get; set; } = FaultScope.Panel;
+    [Parameter] public FaultKind Kind { get; set; } = FaultKind.Crash;
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Hint { get; set; }
+    [Parameter] public string? FaultId { get; set; }
+    [Parameter] public string? Detail { get; set; }
+    [Parameter] public string? AppName { get; set; }
+    [Parameter] public string? ActionHref { get; set; }
+    [Parameter] public string ActionLabel { get; set; } = "Try again";
+    [Parameter] public EventCallback OnRetry { get; set; }
+    [Parameter] public bool? Home { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    FaultCopy Copy => FaultCopy.For(Kind);
+
+    bool ShowHome => Home ?? Scope == FaultScope.Page;
+
+    string Css {
+        get {
+            var css = Scope == FaultScope.Page ? "fault fault-page" : "fault fault-panel";
+            return string.IsNullOrEmpty(Class) ? css : $"{css} {Class}";
+        }
+    }
+
+    string CopyText => BuildCopyText(Nav.Uri, AppName, FaultId, DateTimeOffset.UtcNow);
+
+    internal static string BuildCopyText(string uri, string? appName, string? faultId, DateTimeOffset at) {
+        var parsed = new Uri(uri);
+        var app = string.IsNullOrEmpty(appName) ? parsed.Host : appName;
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture,
+            $"{app}\npath: {parsed.AbsolutePath}\nreference: {faultId}\ntime: {at:yyyy-MM-dd HH:mm:ss}Z");
+    }
+
+    void Reload() => Nav.NavigateTo(Nav.Uri, forceLoad: true, replace: true);
+}

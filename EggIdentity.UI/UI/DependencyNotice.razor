@@ -1,0 +1,33 @@
+<div class="@Css" role="status">
+    <Icon Name="wifi-off" Class="dep-icon"/>
+    <div class="dep-body">
+        <div class="dep-title">@Feature is unavailable</div>
+        <div class="dep-reason">@Reason</div>
+        @if (!string.IsNullOrEmpty(Hint)) {
+            <div class="dep-hint">@Hint</div>
+        }
+    </div>
+    @if (OnRetry.HasDelegate) {
+        <button type="button" class="btn-mini" @onclick="OnRetry">Retry</button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public SuiteDependency Dependency { get; set; }
+    [Parameter, EditorRequired] public string Feature { get; set; } = "";
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Hint { get; set; }
+    [Parameter] public EventCallback OnRetry { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    string Reason {
+        get {
+            var reason = Dependency == SuiteDependency.Custom && !string.IsNullOrWhiteSpace(Label)
+                ? $"{Label} is not responding"
+                : FaultCopy.Reason(Dependency);
+            return char.ToUpperInvariant(reason[0]) + reason[1..] + ".";
+        }
+    }
+
+    string Css => string.IsNullOrEmpty(Class) ? "dep-notice" : $"dep-notice {Class}";
+}

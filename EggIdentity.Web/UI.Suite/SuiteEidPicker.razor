@@ -7,7 +7,15 @@
         @if (TriggerTemplate is { } trigger) {
             @trigger(Current)
         } else {
-            <span class="suite-eid-trigger-name">@(Current?.DisplayName ?? EmptyLabel)</span>
+            <span class="suite-eid-trigger-name">
+                @if (Current is null) {
+                    @EmptyLabel
+                } else if (Current.Name is { } name) {
+                    @name
+                } else {
+                    <EidText Value="@Current.Eid" Interactive="false"/>
+                }
+            </span>
             <Icon Name="chevron-down"/>
         }
     </Trigger>
@@ -35,8 +43,10 @@
                                 @row(entry)
                             } else {
                                 <span class="suite-eid-row-body">
-                                    <span class="suite-eid-name" style="@NameStyle(entry)">@entry.DisplayName</span>
-                                    <span class="suite-eid-masked">@entry.Masked</span>
+                                    @if (entry.Name is { } name) {
+                                        <span class="suite-eid-name" style="@NameStyle(entry)">@name</span>
+                                    }
+                                    <EidText Value="@entry.Eid" Interactive="false" Class="suite-eid-masked"/>
                                 </span>
                             }
                         </button>
@@ -73,7 +83,7 @@
     IEnumerable<ProfileEid> Visible => string.IsNullOrWhiteSpace(_filter)
         ? Suite.Eids
         : Suite.Eids.Where(e => e.Eid.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase)
-            || e.DisplayName.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase));
+            || (e.Name?.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase) ?? false));
 
     protected override async Task OnInitializedAsync() {
         Suite.Changed += OnSuiteChanged;
@@ -85,7 +95,7 @@
 
     async Task PickAsync(ProfileEid entry) {
         await SetOpenAsync(false);
-        if (SetsActive) await Suite.SetActiveEidAsync(entry.Eid, entry.DisplayName);
+        if (SetsActive) await Suite.SetActiveEidAsync(entry.Eid, entry.Name);
         Selected = entry;
         await SelectedChanged.InvokeAsync(entry);
     }

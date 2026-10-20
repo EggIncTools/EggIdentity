@@ -5,26 +5,30 @@ using EggIdentity.Styles;
 namespace EggIdentity.Fallback;
 
 public static class FallbackPages {
-    public static string RenderError(FallbackBranding branding, Exception exception, bool showTrace, string correlationId) {
+    public static string RenderError(FallbackBranding branding, Exception exception, bool showTrace, string faultId) {
         var trace = showTrace ? $"""
             <pre class="trace">{WebUtility.HtmlEncode(exception.ToString())}</pre>
             """ : "";
         return Page(branding, "Something broke", $"""
-            <h1>{WebUtility.HtmlEncode(branding.AppName)} hit an error</h1>
+            <h1>This part stopped working</h1>
+            <p class="hint">Reloading usually fixes it. If not, quote the reference below.</p>
+            <p class="actions"><a class="button" href="">Reload</a> <a href="/">Home</a></p>
+            <p class="correlation">Reference <code>{WebUtility.HtmlEncode(faultId)}</code></p>
             {trace}
-            <p class="correlation">Reference id: {WebUtility.HtmlEncode(correlationId)}</p>
             """);
     }
 
     public static string RenderMaintenance(FallbackBranding branding) =>
         Page(branding, "Maintenance", $"""
             <h1>{WebUtility.HtmlEncode(branding.AppName)} is down for maintenance</h1>
-            <p>Back shortly.</p>
+            <p class="hint">Back shortly.</p>
             """);
 
     public static string RenderNotFound(FallbackBranding branding) =>
-        Page(branding, "Not found", $"""
-            <h1>{WebUtility.HtmlEncode(branding.AppName)} - page not found</h1>
+        Page(branding, "Not found", """
+            <h1>Page not found</h1>
+            <p class="hint">The link may be old or mistyped.</p>
+            <p class="actions"><a href="/">Home</a></p>
             """);
 
     public static string RenderMaintenanceAdmin(FallbackBranding branding, bool isOn) {
@@ -84,8 +88,12 @@ public static class FallbackPages {
             <style>
                 :root { {{vars}} }
                 body { margin: 0; background: var(--color-bg); color: var(--color-fg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-                main { max-width: 640px; margin: 0 auto; padding: 64px 24px; }
-                h1 { font-size: 1.6rem; }
+                main { max-width: 640px; margin: 0 auto; padding: 64px 24px; text-align: center; }
+                h1 { font-size: 1.4rem; }
+                .hint { color: var(--color-muted); }
+                .button { display: inline-block; padding: 6px 14px; border-radius: 6px; background: var(--color-accent); color: var(--color-bg); text-decoration: none; }
+                .trace { text-align: left; }
+                code { font-family: ui-monospace, monospace; background: var(--color-panel); padding: 2px 6px; border-radius: 4px; }
                 .trace { white-space: pre-wrap; background: var(--color-panel); border: 1px solid var(--color-border); border-radius: 8px; padding: 16px; overflow-x: auto; }
                 .correlation { color: var(--color-muted); }
                 a { color: var(--color-accent); }
