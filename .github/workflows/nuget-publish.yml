@@ -21,6 +21,9 @@ on:
       build-sha:
         type: string
         default: ""
+      artifact:
+        type: string
+        default: ""
     secrets:
       PACKAGES_PAT:
         required: false
@@ -34,12 +37,19 @@ jobs:
     outputs:
       packages: ${{ steps.list.outputs.packages }}
     steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        if: inputs.artifact != ''
+        with:
+          name: ${{ inputs.artifact }}
+          path: nupkgs
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        if: inputs.artifact == ''
         with:
           fetch-depth: 0
 
       - name: Export build identity
-        if: inputs.build-height != '' || inputs.build-sha != ''
+        if: inputs.artifact == '' && (inputs.build-height != '' || inputs.build-sha != '')
         env:
           IN_HEIGHT: ${{ inputs.build-height }}
           IN_SHA: ${{ inputs.build-sha }}
@@ -53,18 +63,20 @@ jobs:
           fi
 
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
+        if: inputs.artifact == ''
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
           dotnet-quality: preview
 
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        if: inputs.artifact == ''
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/Directory.Packages.props') }}
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: Authenticate GitHub Packages
-        if: inputs.packages-auth
+        if: inputs.artifact == '' && inputs.packages-auth
         run: |
           dotnet nuget update source github \
             --username ${{ github.repository_owner }} \
@@ -73,6 +85,7 @@ jobs:
             --configfile nuget.config
 
       - name: Pack
+        if: inputs.artifact == ''
         run: |
           set -euo pipefail
           targets=$(printf '%s' "${{ inputs.pack-targets }}" | sed '/^[[:space:]]*$/d')
@@ -103,7 +116,7 @@ jobs:
           echo "packages=$PACKAGES" >> "$GITHUB_OUTPUT"
 
       - name: Upload packages
-        if: steps.list.outputs.count != '0'
+        if: inputs.artifact == '' && steps.list.outputs.count != '0'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: nupkgs

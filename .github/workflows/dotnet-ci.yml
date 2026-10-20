@@ -21,6 +21,12 @@ on:
       build-sha:
         type: string
         default: ""
+      pack:
+        type: boolean
+        default: false
+      publish-project:
+        type: string
+        default: ""
     secrets:
       PACKAGES_PAT:
         required: false
@@ -74,3 +80,29 @@ jobs:
 
       - name: Test
         run: dotnet test ${{ inputs.solution }} -c Release --no-build
+
+      - name: Pack
+        if: inputs.pack
+        run: dotnet pack ${{ inputs.solution }} -c Release --no-build -o nupkgs
+
+      - name: Upload packages
+        if: inputs.pack
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: nupkgs
+          path: nupkgs/*.nupkg
+          retention-days: 1
+          if-no-files-found: ignore
+
+      - name: Publish
+        if: inputs.publish-project != ''
+        run: dotnet publish ${{ inputs.publish-project }} -c Release --no-build -o publish-output
+
+      - name: Upload publish output
+        if: inputs.publish-project != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: publish-output
+          path: publish-output
+          retention-days: 1
+          if-no-files-found: error

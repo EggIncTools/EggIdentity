@@ -14,6 +14,7 @@
     <BlazorEnableCompression>true</BlazorEnableCompression>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <WasmBuildNative>false</WasmBuildNative>
+    <PublishDir>$(MSBuildThisFileDirectory)..\obj\reports-worker\</PublishDir>
   </PropertyGroup>
 
   <ItemGroup>
