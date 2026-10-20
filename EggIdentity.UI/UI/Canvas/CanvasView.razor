@@ -1,0 +1,19 @@
+@namespace EggIdentity.UI.Canvas
+@using EggIdentity.Canvas
+@using System.Globalization
+
+<div class="@Css" style="@RootStyle">
+    @foreach (var item in Doc.Items.OrderBy(i => i.Z)) {
+        <div class="canvas-view-item" style="@CanvasCss.Percent(Doc, item)" @key="item.Id">@ItemBody?.Invoke(item)</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CanvasDoc Doc { get; set; } = new(1, 1, []);
+    [Parameter] public RenderFragment<CanvasItem>? ItemBody { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    string Css => string.IsNullOrEmpty(Class) ? "canvas-view" : $"canvas-view {Class}";
+
+    string RootStyle => string.Create(CultureInfo.InvariantCulture, $"--canvas-unit:calc(100cqw / {Math.Max(1, Doc.Cols)});aspect-ratio:{Math.Max(1, Doc.Cols)} / {Math.Max(1, Doc.Rows)}");
+}

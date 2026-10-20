@@ -1,0 +1,35 @@
+@using EggIdentity.Reports
+@using System.Globalization
+
+<svg class="@Css" style="@Style" viewBox="0 0 @Fmt(Width) @Fmt(Height)" width="@Fmt(Width)" height="@Fmt(Height)" role="img" aria-label="@Label" preserveAspectRatio="none">
+    @if (_points.Count >= 2) {
+        if (Area) {
+            <path class="mini-spark-area" d="@ChartGeometry.AreaPath(_points, _style)"/>
+        }
+        <polyline class="mini-spark-line" points="@ChartGeometry.Polyline(_points)"/>
+    }
+</svg>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<double> Values { get; set; } = [];
+    [Parameter] public double Width { get; set; } = 80;
+    [Parameter] public double Height { get; set; } = 24;
+    [Parameter] public bool Area { get; set; }
+    [Parameter] public string? Color { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    ChartStyle _style = ChartStyle.Default;
+    IReadOnlyList<ChartPoint> _points = [];
+
+    string Css => string.IsNullOrEmpty(Class) ? "mini-spark" : $"mini-spark {Class}";
+
+    string? Style => Color is null ? null : "--mini-color:" + Color;
+
+    protected override void OnParametersSet() {
+        _style = new ChartStyle { Width = Width, Height = Height, PadLeft = 1, PadRight = 1, PadTop = 1, PadBottom = 1 };
+        _points = ChartGeometry.Points([.. Values.Select(v => (double?)v)], [], _style);
+    }
+
+    static string Fmt(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+}

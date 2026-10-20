@@ -269,7 +269,8 @@ public static class SharedLiterals {
           .modal-card, .modal-card.wb-card, .wb-rail, .wb-main, .wb-drawer, .wb-drawer.wb-drawer-open, .wb-drawer-tab, .tooltip-floating, .popover, .toast, .cal-period, .cal-row, .suite-tool, .fab-bubble, .progress-fill, .caret, .mask, .menu, .menu.open, .drop-zone,
           .report-mark, .report-dim, .report-heat-cell, .report-builder-add, .report-builder-remove, .report-color-swatch, .report-card, .report-grid-cell,
           .diagram-tool, .diagram-node, .diagram-node-toggle,
-          .segmented-opt, .view-tab {
+          .segmented-opt, .view-tab,
+          .canvas-palette-item, .canvas-item {
             transition: none;
           }
           .pulse, .pane-in, .pane-in-reverse, .wb-pane-in {

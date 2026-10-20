@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -9,7 +8,6 @@ namespace EggIdentity.Reports;
 public static class ReportCodec {
     public const int CurrentVersion = 1;
     private const string VersionField = "version";
-    private static readonly SearchValues<char> HexDigits = SearchValues.Create("0123456789abcdefABCDEF");
 
     public static JsonSerializerOptions Options => ReportJsonContext.Default.Options;
 
@@ -53,10 +51,7 @@ public static class ReportCodec {
     public static ReportPlacement? DeserializePlacement(string? json) =>
         string.IsNullOrWhiteSpace(json) ? null : JsonSerializer.Deserialize(json, ReportJsonContext.Default.ReportPlacement);
 
-    public static bool IsHex([NotNullWhen(true)] string? color) {
-        if (color is not { Length: 4 or 7 } || color[0] != '#') return false;
-        return color.AsSpan(1).IndexOfAnyExcept(HexDigits) < 0;
-    }
+    public static bool IsHex([NotNullWhen(true)] string? color) => Formatting.HexColor.IsHex(color);
 
     private static int Version(JsonObject json) =>
         json[VersionField] is JsonValue v && v.TryGetValue<int>(out var n) ? n : 0;

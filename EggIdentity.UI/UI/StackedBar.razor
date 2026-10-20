@@ -1,0 +1,43 @@
+@using EggIdentity.Reports
+@using System.Globalization
+
+<div class="@Css" style="@TrackStyle" role="img" aria-label="@Label">
+    @foreach (var (bar, index) in _bars.Select((b, i) => (b, i))) {
+        var color = Colors is { Count: > 0 } c ? c[index % c.Count] : null;
+        var hex = color is not null && color.StartsWith('#') ? color : null;
+        <span class="@SegCss(hex is null ? color : null)" style="@SegStyle(bar.Width, hex)"></span>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<double> Values { get; set; } = [];
+    [Parameter] public IReadOnlyList<string>? Colors { get; set; }
+    [Parameter] public double Height { get; set; } = 8;
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    IReadOnlyList<BarItem> _bars = [];
+
+    string Css => string.IsNullOrEmpty(Class) ? "mini-stack" : $"mini-stack {Class}";
+
+    string TrackStyle => "--mini-stack-h:" + Height.ToString("0.###", CultureInfo.InvariantCulture) + "px";
+
+    protected override void OnParametersSet() {
+        var total = Values.Sum();
+        if (total <= 0) {
+            _bars = [];
+            return;
+        }
+        var keys = Values.Select((_, i) => i.ToString(CultureInfo.InvariantCulture)).ToList();
+        var series = new ReportSeries(keys, keys, [.. Values.Select(v => (double?)v)], [.. Values.Select(_ => 0)]);
+        _bars = [.. BarGeometry.Bars(series).Select(b => b with { Width = ChartGeometry.Percent(b.Value, total) })];
+    }
+
+    static string SegCss(string? cls) => string.IsNullOrEmpty(cls) ? "mini-stack-seg" : $"mini-stack-seg {cls}";
+
+    static string SegStyle(double width, string? hex) {
+        var style = "width:" + width.ToString("0.###", CultureInfo.InvariantCulture) + "%";
+        var fill = EggIdentity.Formatting.CssColor.HexStyle(hex?[1..], "background-color");
+        return fill is null ? style : style + ";" + fill;
+    }
+}

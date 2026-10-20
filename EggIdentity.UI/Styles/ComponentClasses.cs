@@ -32,5 +32,7 @@ public static class ComponentClasses {
         .AddRange(Components.Icons.Applies)
         .AddRange(Components.Diagrams.Applies)
         .AddRange(Rarity.Applies)
+        .AddRange(MiniGraphs.Applies)
+        .AddRange(Components.Canvas.Applies)
         .AddRange(Suite.Applies);
 }

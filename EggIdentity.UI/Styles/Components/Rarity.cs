@@ -12,5 +12,9 @@ internal static class Rarity {
         { ".text-rarity-1", "[color:var(--rarity-fg-1,#6ab6ff)]" },
         { ".text-rarity-2", "[color:var(--rarity-fg-2,#c03fe2)]" },
         { ".text-rarity-3", "[color:var(--rarity-fg-3,#eeab42)]" },
+        { ".border-rarity-0", "[border-color:var(--rarity-fg-0,rgb(156_163_175))]" },
+        { ".border-rarity-1", "[border-color:var(--rarity-fg-1,#6ab6ff)]" },
+        { ".border-rarity-2", "[border-color:var(--rarity-fg-2,#c03fe2)]" },
+        { ".border-rarity-3", "[border-color:var(--rarity-fg-3,#eeab42)]" },
     }.ToImmutableDictionary();
 }

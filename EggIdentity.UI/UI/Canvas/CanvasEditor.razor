@@ -1,0 +1,195 @@
+@namespace EggIdentity.UI.Canvas
+@using EggIdentity.Canvas
+@using System.Globalization
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div class="@Css">
+    @if (!ReadOnly) {
+        <div class="canvas-palette" role="list" aria-label="Palette">
+            @foreach (var entry in Palette) {
+                <button type="button" class="canvas-palette-item" role="listitem" data-canvas-kind="@entry.Kind" @onclick="() => AddFromPaletteAsync(entry)">
+                    @if (entry.Icon is { } icon) {
+                        <Icon Name="@icon"/>
+                    }
+                    <span>@entry.Label</span>
+                </button>
+            }
+        </div>
+    }
+    <div class="canvas-stage" tabindex="@(ReadOnly ? null : "0")" role="application" aria-label="Canvas" @ref="_stage"
+         @onkeydown="OnKeyDownAsync" @onkeydown:preventDefault="_preventKey" @onclick="ClearSelectionAsync">
+        <div class="canvas-grid" style="@GridStyle">
+            @if (Doc.Items.Count == 0) {
+                <div class="canvas-empty">
+                    <EmptyState Icon="layout-grid" Title="Empty canvas" Hint="@(ReadOnly ? null : "Pick an element from the palette")"/>
+                </div>
+            }
+            @foreach (var item in Doc.Items.OrderBy(i => i.Z)) {
+                var selected = IsSelected(item);
+                <div class="@ItemCss(selected)" style="@CanvasCss.Pixels(item, CellSize)" data-canvas-item="@item.Id" @key="item.Id"
+                     @onclick="() => SelectAsync(item.Id)" @onclick:stopPropagation="true">
+                    @ItemBody?.Invoke(item)
+                    @if (selected && !ReadOnly) {
+                        @foreach (var dir in HandleDirs) {
+                            <span class="canvas-handle canvas-handle-@dir" data-canvas-handle="@dir" aria-hidden="true"></span>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </div>
+    @if (Inspector is not null && !ReadOnly) {
+        <div class="canvas-inspector">
+            @if (SelectedItem is { } current) {
+                @Inspector(current)
+            } else {
+                <EmptyState Icon="mouse-pointer-click" Title="Nothing selected" Hint="Select an element to edit it"/>
+            }
+        </div>
+    }
+    @if (Preview is not null) {
+        <div class="canvas-preview">@Preview</div>
+    }
+</div>
+
+@code {
+    const string Module = "./_content/EggIdentity.UI/canvasEditor.js";
+    static readonly string[] HandleDirs = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
+
+    [Parameter, EditorRequired] public CanvasDoc Doc { get; set; } = new(8, 4, []);
+    [Parameter] public EventCallback<CanvasDoc> DocChanged { get; set; }
+    [Parameter] public IReadOnlyList<CanvasPaletteEntry> Palette { get; set; } = [];
+    [Parameter] public int CellSize { get; set; } = 24;
+    [Parameter] public bool ReadOnly { get; set; }
+    [Parameter] public string? Selected { get; set; }
+    [Parameter] public EventCallback<string?> SelectedChanged { get; set; }
+    [Parameter] public RenderFragment<CanvasItem>? ItemBody { get; set; }
+    [Parameter] public RenderFragment<CanvasItem>? Inspector { get; set; }
+    [Parameter] public RenderFragment? Preview { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    ElementReference _stage;
+    DotNetObjectReference<CanvasEditor>? _self;
+    IJSObjectReference? _module;
+    IJSObjectReference? _attached;
+    CanvasHistory? _history;
+    bool _preventKey;
+
+    string Css => string.IsNullOrEmpty(Class) ? "canvas-editor" : $"canvas-editor {Class}";
+
+    string GridStyle => string.Create(CultureInfo.InvariantCulture, $"--canvas-unit:{CellSize}px;width:{Doc.Cols * CellSize}px;height:{Doc.Rows * CellSize}px");
+
+    CanvasItem? SelectedItem => Selected is null ? null : Doc.Items.FirstOrDefault(i => string.Equals(i.Id, Selected, StringComparison.Ordinal));
+
+    bool IsSelected(CanvasItem item) => string.Equals(item.Id, Selected, StringComparison.Ordinal);
+
+    static string ItemCss(bool selected) => selected ? "canvas-item selected" : "canvas-item";
+
+    protected override void OnParametersSet() {
+        _history ??= new CanvasHistory(Doc);
+        if (!_history.Current.Equals(Doc)) _history.Push(Doc);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (!firstRender || ReadOnly) return;
+        try {
+            _self = DotNetObjectReference.Create(this);
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", Module);
+            if (_module is null) return;
+            _attached = await _module.InvokeAsync<IJSObjectReference>("attach", _stage, _self, CellSize);
+        } catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException) {
+        }
+    }
+
+    [JSInvokable]
+    public Task OnMoved(string id, int x, int y) => CommitAsync(CanvasOps.Move(Doc, id, x, y));
+
+    [JSInvokable]
+    public Task OnResized(string id, int x, int y, int w, int h) => CommitAsync(CanvasOps.Resize(CanvasOps.Move(Doc, id, x, y), id, w, h));
+
+    [JSInvokable]
+    public async Task OnDropped(string kind, int x, int y) {
+        var entry = Palette.FirstOrDefault(p => string.Equals(p.Kind, kind, StringComparison.Ordinal));
+        if (entry is null) return;
+        await AddAsync(entry, x, y);
+    }
+
+    [JSInvokable]
+    public Task OnPicked(string id) => SelectAsync(id);
+
+    Task AddFromPaletteAsync(CanvasPaletteEntry entry) => AddAsync(entry, 1, 1);
+
+    async Task AddAsync(CanvasPaletteEntry entry, int x, int y) {
+        var id = NewId();
+        await CommitAsync(CanvasOps.Add(Doc, new CanvasItem(id, entry.Kind, x, y, entry.W, entry.H, 0) { Payload = entry.Payload }));
+        await SelectAsync(id);
+    }
+
+    async Task SelectAsync(string? id) {
+        if (string.Equals(id, Selected, StringComparison.Ordinal)) return;
+        Selected = id;
+        await SelectedChanged.InvokeAsync(id);
+    }
+
+    Task ClearSelectionAsync() => SelectAsync(null);
+
+    async Task CommitAsync(CanvasDoc next) {
+        if (ReadOnly || next.Equals(Doc)) return;
+        _history?.Push(next);
+        Doc = next;
+        await DocChanged.InvokeAsync(next);
+    }
+
+    async Task OnKeyDownAsync(KeyboardEventArgs e) {
+        _preventKey = false;
+        if (ReadOnly) return;
+        var ctrl = e.CtrlKey || e.MetaKey;
+        var step = e.ShiftKey ? 5 : Math.Max(1, Doc.Snap);
+        var id = Selected;
+        var next = (e.Key, ctrl, id) switch {
+            ("z", true, _) => _history?.Undo(),
+            ("y", true, _) => _history?.Redo(),
+            ("Z", true, _) => _history?.Redo(),
+            ("d", true, { } s) => CanvasOps.Duplicate(Doc, s, NewId()),
+            ("Delete", _, { } s) => CanvasOps.Remove(Doc, s),
+            ("Backspace", _, { } s) => CanvasOps.Remove(Doc, s),
+            ("ArrowLeft", _, { } s) => CanvasOps.Nudge(Doc, s, -step, 0),
+            ("ArrowRight", _, { } s) => CanvasOps.Nudge(Doc, s, step, 0),
+            ("ArrowUp", _, { } s) => CanvasOps.Nudge(Doc, s, 0, -step),
+            ("ArrowDown", _, { } s) => CanvasOps.Nudge(Doc, s, 0, step),
+            ("]", _, { } s) => CanvasOps.BringForward(Doc, s),
+            ("[", _, { } s) => CanvasOps.SendBack(Doc, s),
+            _ => null,
+        };
+        if (e.Key == "Escape") {
+            await ClearSelectionAsync();
+            return;
+        }
+        if (next is null) return;
+        _preventKey = true;
+        if (e.Key is "Delete" or "Backspace") await SelectAsync(null);
+        if (e.Key == "d" && ctrl) await SelectAsync(next.Items.MaxBy(i => i.Z)!.Id);
+        if (ctrl && e.Key is "z" or "y" or "Z") {
+            if (next.Equals(Doc)) return;
+            Doc = next;
+            await DocChanged.InvokeAsync(next);
+            return;
+        }
+        await CommitAsync(next);
+    }
+
+    static string NewId() => Guid.NewGuid().ToString("N")[..8];
+
+    public async ValueTask DisposeAsync() {
+        try {
+            if (_attached is not null) {
+                await _attached.InvokeVoidAsync("stop");
+                await _attached.DisposeAsync();
+            }
+            if (_module is not null) await _module.DisposeAsync();
+        } catch (JSDisconnectedException) {
+        }
+        _self?.Dispose();
+    }
+}

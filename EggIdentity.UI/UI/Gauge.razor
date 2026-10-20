@@ -1,0 +1,32 @@
+@using EggIdentity.Reports
+@using System.Globalization
+
+<svg class="@Css" style="@Style" viewBox="0 0 @Fmt(Size) @Fmt(Size)" width="@Fmt(Size)" height="@Fmt(Size)" role="img" aria-label="@Label">
+    <path class="mini-gauge-track" d="@_layout.TrackPath" stroke-width="@Fmt(Stroke)"/>
+    @if (_layout.FillPath.Length > 0) {
+        <path class="mini-gauge-fill" d="@_layout.FillPath" stroke-width="@Fmt(Stroke)"/>
+    }
+</svg>
+
+@code {
+    const double Thickness = 0.18;
+
+    [Parameter, EditorRequired] public double Value { get; set; }
+    [Parameter] public double Max { get; set; } = 1;
+    [Parameter] public double Size { get; set; } = 48;
+    [Parameter] public string? Color { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    GaugeLayout _layout = GaugeGeometry.Layout(0, 1, 48);
+
+    string Css => string.IsNullOrEmpty(Class) ? "mini-gauge" : $"mini-gauge {Class}";
+
+    string? Style => Color is null ? null : "--mini-color:" + Color;
+
+    double Stroke => Size * Thickness;
+
+    protected override void OnParametersSet() => _layout = GaugeGeometry.Layout(Value, Max, Size, thickness: Thickness);
+
+    static string Fmt(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+}

@@ -30,6 +30,8 @@ public class ComponentClassesTests {
             + Components.Brand.Applies.Count
             + Components.Consent.Applies.Count
             + Components.Rarity.Applies.Count
+            + Components.MiniGraphs.Applies.Count
+            + Components.Canvas.Applies.Count
             + Components.Suite.Applies.Count;
 
         Assert.Equal(expected, ComponentClasses.All.Count);
