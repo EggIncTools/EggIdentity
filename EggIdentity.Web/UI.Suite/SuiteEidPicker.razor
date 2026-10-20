@@ -2,7 +2,7 @@
 @inject SuiteContext Suite
 
 <Menu Class="@RootCss" TriggerClass="suite-eid-trigger" TriggerLabel="Choose account" AlignStart="true" CloseOnSelect="false"
-      Open="_open" OpenChanged="v => _open = v">
+      MaxHeight="@MaxHeight" Open="Open" OpenChanged="SetOpenAsync">
     <Trigger>
         @if (TriggerTemplate is { } trigger) {
             @trigger(Current)
@@ -60,8 +60,10 @@
     [Parameter] public string AnonymousLabel { get; set; } = "Log in to add an account";
     [Parameter] public int FilterThreshold { get; set; } = 8;
     [Parameter] public string? Class { get; set; }
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+    [Parameter] public string? MaxHeight { get; set; }
 
-    bool _open;
     string? _filter;
 
     string RootCss => string.IsNullOrEmpty(Class) ? "suite-eid-picker" : $"suite-eid-picker {Class}";
@@ -82,10 +84,16 @@
         entry.Snapshot?.Color is { Length: 6 } color && color.All(Uri.IsHexDigit) ? $"color:#{color}" : null;
 
     async Task PickAsync(ProfileEid entry) {
-        _open = false;
+        await SetOpenAsync(false);
         if (SetsActive) await Suite.SetActiveEidAsync(entry.Eid, entry.DisplayName);
         Selected = entry;
         await SelectedChanged.InvokeAsync(entry);
+    }
+
+    async Task SetOpenAsync(bool open) {
+        if (Open == open) return;
+        Open = open;
+        await OpenChanged.InvokeAsync(open);
     }
 
     void OnSuiteChanged() => InvokeAsync(StateHasChanged);
