@@ -15,6 +15,10 @@ internal static class ProfileLinkRoutes {
             app.Services.GetRequiredService<ProfileService>(),
             app.Services.GetRequiredService<UserQueries>(),
             app.Services.GetService<IdentityReconciler>());
+        EidRoutes.Map(app, sessionOptions, revocations,
+            app.Services.GetRequiredService<ProfileService>(),
+            app.Services.GetRequiredService<UserQueries>(),
+            app.Services.GetRequiredService<EidStore>());
         ConsentRoutes.Map(app, sessionOptions, revocations, app.Services.GetRequiredService<ConsentService>());
 
         var deps = new LinkDeps(apps, sessionOptions, revocations);

@@ -47,28 +47,6 @@ public static class ProfileRoutes {
             return Results.NoContent();
         });
 
-        profileRoutes.MapGet("/game", async (HttpContext ctx) => {
-            var userId = await ProfileAuth.TryGetUserIdAsync(ctx, sessionOptions, isRevoked, ctx.RequestAborted);
-            if (userId is null) return Results.Unauthorized();
-
-            var user = await users.GetAsync(userId.Value, ctx.RequestAborted);
-            if (user is null) return Results.NotFound();
-            return Results.Ok(new ProfileGame { ActiveEid = user.ActiveEid, ActiveEidLabel = user.ActiveEidLabel });
-        });
-
-        profileRoutes.MapPost("/game", async (HttpContext ctx, ProfileGame req) => {
-            var userId = await ProfileAuth.TryGetUserIdAsync(ctx, sessionOptions, isRevoked, ctx.RequestAborted);
-            if (userId is null) return Results.Unauthorized();
-
-            var eid = string.IsNullOrWhiteSpace(req.ActiveEid) ? null : req.ActiveEid.Trim();
-            var label = string.IsNullOrWhiteSpace(req.ActiveEidLabel) ? null : req.ActiveEidLabel.Trim();
-            if (eid?.Length > ProfileGame.MaxEidLength || label?.Length > ProfileGame.MaxLabelLength)
-                return Results.BadRequest("activeEid or activeEidLabel too long");
-
-            await profiles.SetGameAsync(userId.Value, eid, eid is null ? null : label, ctx.RequestAborted);
-            return Results.NoContent();
-        });
-
         profileRoutes.MapPost("/identities/{provider}/{subject}/unlink", async (HttpContext ctx, string provider, string subject) => {
             var userId = await ProfileAuth.TryGetUserIdAsync(ctx, sessionOptions, isRevoked, ctx.RequestAborted);
             if (userId is null) return Results.Unauthorized();

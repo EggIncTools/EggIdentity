@@ -1,0 +1,142 @@
+@implements IDisposable
+@inject SuiteContext Suite
+
+<div class="@RootCss">
+    @if (!Suite.CanEditEids) {
+        <p class="suite-eid-empty">Log in to manage your accounts.</p>
+    } else {
+        @if (Suite.Eids.Count == 0) {
+            <p class="suite-eid-empty">No accounts yet.</p>
+        }
+        <ul class="suite-eid-editor-list">
+            @for (var i = 0; i < Suite.Eids.Count; i++) {
+                var index = i;
+                var entry = Suite.Eids[index];
+                var active = entry.Eid == Suite.ActiveEid;
+                <li class="@(active ? "suite-eid-editor-row suite-eid-editor-row-active" : "suite-eid-editor-row")">
+                    <div class="suite-eid-editor-identity">
+                        @if (RowTemplate is { } row) {
+                            @row(entry)
+                        } else {
+                            <span class="suite-eid-name">@entry.DisplayName</span>
+                            <span class="suite-eid-masked">@entry.Masked</span>
+                        }
+                    </div>
+                    <input class="form-input suite-eid-label-input" maxlength="@EidRules.MaxLabelLength" placeholder="Label" aria-label="Label"
+                           value="@entry.Label" @onchange="e => RenameAsync(entry, e.Value as string)"/>
+                    <div class="suite-eid-editor-actions">
+                        <button type="button" class="btn-mini" aria-label="Move up" disabled="@(index == 0)" @onclick="() => MoveAsync(index, -1)">
+                            <Icon Name="arrow-up"/>
+                        </button>
+                        <button type="button" class="btn-mini" aria-label="Move down" disabled="@(index == Suite.Eids.Count - 1)" @onclick="() => MoveAsync(index, 1)">
+                            <Icon Name="arrow-down"/>
+                        </button>
+                        <button type="button" class="btn-mini" disabled="@active" @onclick="() => Suite.SetActiveEidAsync(entry.Eid, entry.DisplayName)">
+                            @(active ? "Active" : "Set active")
+                        </button>
+                        @if (_confirming == entry.Eid) {
+                            <span class="suite-eid-confirm">@ConfirmText(entry)</span>
+                            <button type="button" class="btn-mini" @onclick="() => RemoveAsync(entry)">Remove</button>
+                            <button type="button" class="btn-mini" @onclick="() => _confirming = null">Cancel</button>
+                        } else {
+                            <button type="button" class="btn-mini" @onclick="() => _confirming = entry.Eid">Remove</button>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+        @if (Suite.Eids.Count < EidRules.MaxEntries) {
+            <div class="suite-eid-add">
+                <input class="form-input" placeholder="EI0000000000000000" aria-label="EID" autocomplete="off" spellcheck="false"
+                       @bind="_newEid" @bind:event="oninput"/>
+                <input class="form-input" placeholder="Label (optional)" aria-label="New account label" maxlength="@EidRules.MaxLabelLength"
+                       @bind="_newLabel"/>
+                <button type="button" class="btn-mini" disabled="@(!CanAdd)" @onclick="AddAsync">@(_adding ? "Adding..." : "Add account")</button>
+            </div>
+        }
+        @if (_error is not null) {
+            <p class="suite-eid-error" role="alert">@_error</p>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public Func<string, Task<EidSnapshot?>>? ValidateAsync { get; set; }
+    [Parameter] public EventCallback<ProfileEid> Added { get; set; }
+    [Parameter] public Func<ProfileEid, Task<bool>>? OnRemoving { get; set; }
+    [Parameter] public Func<ProfileEid, string>? RemoveConfirmText { get; set; }
+    [Parameter] public RenderFragment<ProfileEid>? RowTemplate { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    public const string DefaultRemoveConfirm = "Remove this account from every suite site?";
+
+    string? _newEid;
+    string? _newLabel;
+    string? _confirming;
+    string? _error;
+    bool _adding;
+
+    string RootCss => string.IsNullOrEmpty(Class) ? "suite-eid-editor" : $"suite-eid-editor {Class}";
+
+    bool CanAdd => !_adding && EidRules.IsValid(_newEid?.Trim());
+
+    string ConfirmText(ProfileEid entry) => RemoveConfirmText?.Invoke(entry) ?? DefaultRemoveConfirm;
+
+    protected override async Task OnInitializedAsync() {
+        Suite.Changed += OnSuiteChanged;
+        await Suite.LoadAsync();
+    }
+
+    async Task AddAsync() {
+        var eid = _newEid?.Trim();
+        if (!EidRules.IsValid(eid)) return;
+        _adding = true;
+        _error = null;
+        try {
+            var snapshot = ValidateAsync is null ? null : await ValidateAsync(eid!);
+            var result = await Suite.AddEidAsync(eid!, _newLabel, snapshot);
+            if (result is null) {
+                _error = "Could not add that account.";
+            } else if (result.Rejected.FirstOrDefault() is { } rejected) {
+                _error = RejectionText(rejected.Reason);
+            } else if (result.Eids.FirstOrDefault(e => e.Eid == eid) is { } added) {
+                _newEid = null;
+                _newLabel = null;
+                await Added.InvokeAsync(added);
+            }
+        } catch (Exception e) when (e is not OperationCanceledException) {
+            _error = e.Message;
+        } finally {
+            _adding = false;
+        }
+    }
+
+    static string RejectionText(string reason) => reason switch {
+        EidRules.FormatReason => "That is not a valid EID.",
+        EidRules.LabelReason => "That label is too long.",
+        EidRules.CapReason => $"You can save at most {EidRules.MaxEntries} accounts.",
+        _ => "Could not add that account.",
+    };
+
+    async Task RenameAsync(ProfileEid entry, string? label) {
+        _error = await Suite.RenameEidAsync(entry.Eid, label) ? null : "Could not rename that account.";
+    }
+
+    async Task MoveAsync(int index, int delta) {
+        var order = Suite.Eids.Select(e => e.Eid).ToList();
+        var target = index + delta;
+        if (target < 0 || target >= order.Count) return;
+        (order[index], order[target]) = (order[target], order[index]);
+        _error = await Suite.ReorderEidsAsync(order) ? null : "Could not reorder accounts.";
+    }
+
+    async Task RemoveAsync(ProfileEid entry) {
+        _confirming = null;
+        if (OnRemoving is not null && !await OnRemoving(entry)) return;
+        _error = await Suite.RemoveEidAsync(entry.Eid) ? null : "Could not remove that account.";
+    }
+
+    void OnSuiteChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Suite.Changed -= OnSuiteChanged;
+}

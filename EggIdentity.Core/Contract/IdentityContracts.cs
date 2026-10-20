@@ -205,6 +205,9 @@ public sealed class ProfileGame {
 
     [JsonPropertyName("activeEidLabel")]
     public string? ActiveEidLabel { get; set; }
+
+    [JsonPropertyName("eids")]
+    public IReadOnlyList<ProfileEid> Eids { get; set; } = [];
 }
 
 public sealed class SuiteTool {

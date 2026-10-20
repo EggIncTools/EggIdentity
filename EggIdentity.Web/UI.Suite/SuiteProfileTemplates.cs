@@ -47,4 +47,9 @@ public sealed record SuiteProfileEidContext(
     string? Label,
     int MaxEidLength,
     int MaxLabelLength,
-    EventCallback<(string? Eid, string? Label)> OnSave);
+    EventCallback<(string? Eid, string? Label)> OnSave,
+    IReadOnlyList<ProfileEid> Eids,
+    Func<string, string?, EidSnapshot?, Task<EidUpsertResult?>> OnAdd,
+    Func<string, string?, Task<bool>> OnRename,
+    Func<string, Task<bool>> OnRemove,
+    Func<IReadOnlyList<string>, Task<bool>> OnReorder);

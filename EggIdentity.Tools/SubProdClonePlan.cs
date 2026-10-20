@@ -11,6 +11,7 @@ internal static class SubProdClonePlan {
         new TablePolicy("user_merges", ClonePolicy.Full),
         new TablePolicy("github_sponsor_status", ClonePolicy.Full),
         new TablePolicy("cookie_consent", ClonePolicy.Full),
+        new TablePolicy("user_eids", ClonePolicy.Full),
         new TablePolicy("revoked_sessions", ClonePolicy.SchemaOnly),
         new TablePolicy("login_codes", ClonePolicy.SchemaOnly),
         new TablePolicy("oauth_states", ClonePolicy.SchemaOnly),

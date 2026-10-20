@@ -90,16 +90,9 @@
             @if (Slots?.Eid is { } eidSlot) {
                 @eidSlot(EidContext)
             } else {
-                <section class="suite-profile-section suite-profile-grid">
-                    <label class="suite-profile-field">
-                        <span class="suite-profile-label">Active EID</span>
-                        <input class="form-input" maxlength="@ProfileGame.MaxEidLength" autocomplete="off" spellcheck="false" @bind="_eid"/>
-                    </label>
-                    <label class="suite-profile-field">
-                        <span class="suite-profile-label">Label</span>
-                        <input class="form-input" maxlength="@ProfileGame.MaxLabelLength" @bind="_eidLabel"/>
-                    </label>
-                    <button type="button" class="btn-mini" @onclick="() => SaveEidAsync((_eid, _eidLabel))">Save EID</button>
+                <section class="suite-profile-section">
+                    <h4 class="suite-profile-label">Egg Inc accounts</h4>
+                    <SuiteEidEditor/>
                 </section>
             }
         </div>
@@ -122,8 +115,6 @@
     ProfileResponse? _profile;
     bool _loadFailed;
     bool _wasOpen;
-    string? _eid;
-    string? _eidLabel;
 
     SuiteProfileTemplates? Slots => Templates ?? CascadedTemplates;
 
@@ -157,7 +148,12 @@
 
     SuiteProfileEidContext EidContext => new(
         Suite.ActiveEid, Suite.ActiveEidLabel, ProfileGame.MaxEidLength, ProfileGame.MaxLabelLength,
-        EventCallback.Factory.Create<(string?, string?)>(this, SaveEidAsync));
+        EventCallback.Factory.Create<(string?, string?)>(this, SaveEidAsync),
+        Suite.Eids,
+        (eid, label, snapshot) => Suite.AddEidAsync(eid, label, snapshot),
+        (eid, label) => Suite.RenameEidAsync(eid, label),
+        eid => Suite.RemoveEidAsync(eid),
+        order => Suite.ReorderEidsAsync(order));
 
     protected override async Task OnParametersSetAsync() {
         var opening = Open && !_wasOpen;
@@ -173,8 +169,6 @@
         } catch (HttpRequestException) {
             _loadFailed = true;
         }
-        _eid = Suite.ActiveEid;
-        _eidLabel = Suite.ActiveEidLabel;
     }
 
     static string? AvatarSrc(string? avatar) =>
@@ -220,8 +214,6 @@
             Toasts.Push(StatusNoteKind.Error, "That EID is too long.");
             return Task.CompletedTask;
         }
-        _eid = value.Eid;
-        _eidLabel = value.Label;
         return Report(Done(Suite.SetActiveEidAsync(value.Eid, value.Label)), "Active EID saved.", "Could not save the EID.");
     }
 

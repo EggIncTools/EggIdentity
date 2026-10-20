@@ -310,7 +310,8 @@ public class IdentityApiClientTests {
             "SelectAvatarAsync", "GetSponsorStatusAsync", "GetSupporterStatusAsync", "RefreshSupporterStatusAsync",
             "SetPreferencesAsync", "GetConsentAsync", "SetConsentAsync", "SyncIdentitiesAsync", "ListMergesAsync",
             "GetDiscordRegistrationAsync", "GetGameAsync", "SetGameAsync", "GetSuiteToolsAsync",
-            "GetDmReachabilityAsync",
+            "GetDmReachabilityAsync", "UpsertEidsAsync", "UpdateEidSnapshotAsync", "RenameEidAsync",
+            "RemoveEidAsync", "ReorderEidsAsync",
         };
         var actual = typeof(IdentityApiClient)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)

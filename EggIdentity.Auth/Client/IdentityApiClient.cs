@@ -188,6 +188,33 @@ public sealed class IdentityApiClient(HttpClient http) {
         return resp.IsSuccessStatusCode;
     }
 
+    public async Task<EidUpsertResult?> UpsertEidsAsync(string sessionToken, IReadOnlyList<EidUpsert> entries, CancellationToken ct) {
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/profile/eids") { Content = JsonContent.Create(entries) };
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
+        var resp = await http.SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode) return null;
+        return await resp.Content.ReadFromJsonAsync<EidUpsertResult>(cancellationToken: ct);
+    }
+
+    public Task<bool> UpdateEidSnapshotAsync(string sessionToken, string eid, EidSnapshot snapshot, CancellationToken ct) =>
+        SendEidAsync(sessionToken, HttpMethod.Post, $"/profile/eids/{Uri.EscapeDataString(eid)}/snapshot", JsonContent.Create(snapshot), ct);
+
+    public Task<bool> RenameEidAsync(string sessionToken, string eid, string? label, CancellationToken ct) =>
+        SendEidAsync(sessionToken, HttpMethod.Post, $"/profile/eids/{Uri.EscapeDataString(eid)}/label", JsonContent.Create(new EidLabelRequest { Label = label }), ct);
+
+    public Task<bool> RemoveEidAsync(string sessionToken, string eid, CancellationToken ct) =>
+        SendEidAsync(sessionToken, HttpMethod.Delete, $"/profile/eids/{Uri.EscapeDataString(eid)}", null, ct);
+
+    public Task<bool> ReorderEidsAsync(string sessionToken, IReadOnlyList<string> eids, CancellationToken ct) =>
+        SendEidAsync(sessionToken, HttpMethod.Post, "/profile/eids/order", JsonContent.Create(eids), ct);
+
+    private async Task<bool> SendEidAsync(string sessionToken, HttpMethod method, string path, HttpContent? content, CancellationToken ct) {
+        using var req = new HttpRequestMessage(method, path) { Content = content };
+        req.Headers.Add(IdentityWire.SessionHeader, sessionToken);
+        var resp = await http.SendAsync(req, ct);
+        return resp.IsSuccessStatusCode;
+    }
+
     public async Task<IReadOnlyList<SuiteTool>> GetSuiteToolsAsync(CancellationToken ct) {
         var resp = await http.GetAsync("/suite/tools", ct);
         resp.EnsureSuccessStatusCode();

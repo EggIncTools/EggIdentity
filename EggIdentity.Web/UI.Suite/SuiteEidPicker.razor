@@ -1,0 +1,94 @@
+@implements IDisposable
+@inject SuiteContext Suite
+
+<Menu Class="@RootCss" TriggerClass="suite-eid-trigger" TriggerLabel="Choose account" AlignStart="true" CloseOnSelect="false"
+      Open="_open" OpenChanged="v => _open = v">
+    <Trigger>
+        @if (TriggerTemplate is { } trigger) {
+            @trigger(Current)
+        } else {
+            <span class="suite-eid-trigger-name">@(Current?.DisplayName ?? EmptyLabel)</span>
+            <Icon Name="chevron-down"/>
+        }
+    </Trigger>
+    <ChildContent>
+        @Header
+        @if (Suite.Eids.Count == 0) {
+            <p class="suite-eid-empty">@(Suite.CanEditEids ? EmptyLabel : AnonymousLabel)</p>
+        } else {
+            @if (Suite.Eids.Count > FilterThreshold) {
+                <input class="form-input suite-eid-filter" type="search" placeholder="Filter accounts" aria-label="Filter accounts" autocomplete="off"
+                       @bind="_filter" @bind:event="oninput"/>
+            }
+            <ul class="suite-eid-list" role="none">
+                @foreach (var entry in Visible) {
+                    var selected = entry.Eid == Current?.Eid;
+                    <li role="none">
+                        <button type="button" class="@(selected ? "menu-item suite-eid-row suite-eid-row-selected" : "menu-item suite-eid-row")"
+                                role="menuitemradio" aria-checked="@(selected ? "true" : "false")" @onclick="() => PickAsync(entry)">
+                            <span class="suite-eid-check">
+                                @if (selected) {
+                                    <Icon Name="check"/>
+                                }
+                            </span>
+                            @if (RowTemplate is { } row) {
+                                @row(entry)
+                            } else {
+                                <span class="suite-eid-row-body">
+                                    <span class="suite-eid-name" style="@NameStyle(entry)">@entry.DisplayName</span>
+                                    <span class="suite-eid-masked">@entry.Masked</span>
+                                </span>
+                            }
+                        </button>
+                    </li>
+                }
+            </ul>
+        }
+        @Footer
+    </ChildContent>
+</Menu>
+
+@code {
+    [Parameter] public ProfileEid? Selected { get; set; }
+    [Parameter] public EventCallback<ProfileEid> SelectedChanged { get; set; }
+    [Parameter] public bool SetsActive { get; set; } = true;
+    [Parameter] public RenderFragment<ProfileEid?>? TriggerTemplate { get; set; }
+    [Parameter] public RenderFragment<ProfileEid>? RowTemplate { get; set; }
+    [Parameter] public RenderFragment? Header { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+    [Parameter] public string EmptyLabel { get; set; } = "No account";
+    [Parameter] public string AnonymousLabel { get; set; } = "Log in to add an account";
+    [Parameter] public int FilterThreshold { get; set; } = 8;
+    [Parameter] public string? Class { get; set; }
+
+    bool _open;
+    string? _filter;
+
+    string RootCss => string.IsNullOrEmpty(Class) ? "suite-eid-picker" : $"suite-eid-picker {Class}";
+
+    ProfileEid? Current => Selected ?? (SetsActive ? Suite.ActiveAccount : null);
+
+    IEnumerable<ProfileEid> Visible => string.IsNullOrWhiteSpace(_filter)
+        ? Suite.Eids
+        : Suite.Eids.Where(e => e.Eid.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase)
+            || e.DisplayName.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync() {
+        Suite.Changed += OnSuiteChanged;
+        await Suite.LoadAsync();
+    }
+
+    static string? NameStyle(ProfileEid entry) =>
+        entry.Snapshot?.Color is { Length: 6 } color && color.All(Uri.IsHexDigit) ? $"color:#{color}" : null;
+
+    async Task PickAsync(ProfileEid entry) {
+        _open = false;
+        if (SetsActive) await Suite.SetActiveEidAsync(entry.Eid, entry.DisplayName);
+        Selected = entry;
+        await SelectedChanged.InvokeAsync(entry);
+    }
+
+    void OnSuiteChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Suite.Changed -= OnSuiteChanged;
+}

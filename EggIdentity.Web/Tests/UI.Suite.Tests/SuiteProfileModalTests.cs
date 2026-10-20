@@ -16,6 +16,7 @@ namespace EggIdentity.UI.Suite.Tests;
 public class SuiteProfileModalTests {
     private const string Discord = "discord";
     private const string AliceDiscord = "alice#1";
+    private const string MainEid = "EI1234567890123456";
 
     private sealed class TestNav : NavigationManager {
         public TestNav() => Initialize("https://eggledger.egginc.tools/", "https://eggledger.egginc.tools/missions");
@@ -37,7 +38,11 @@ public class SuiteProfileModalTests {
         var profile = new ProfileResponse { UserId = Guid.NewGuid(), Username = "alice", Identities = [.. identities], Timezone = "UTC" };
         var stub = new StubHttpMessageHandler(req => req.RequestUri!.AbsolutePath switch {
             "/profile/me" => Json(profile),
-            "/profile/game" => Json(new ProfileGame { ActiveEid = "EI123", ActiveEidLabel = "main" }),
+            "/profile/game" => Json(new ProfileGame {
+                ActiveEid = MainEid,
+                ActiveEidLabel = "main",
+                Eids = [new ProfileEid { Eid = MainEid, Label = "main" }],
+            }),
             "/suite/tools" => Json(new List<SuiteTool>()),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound),
         });
@@ -101,7 +106,9 @@ public class SuiteProfileModalTests {
 
         Assert.Contains("alice-gh", html);
         Assert.DoesNotContain(SuiteProfileModal.LastIdentityReason, html);
-        Assert.Contains("value=\"EI123\"", html);
+        Assert.Contains("suite-eid-editor", html);
+        Assert.Contains(EidRules.Mask(MainEid), html);
+        Assert.DoesNotContain(MainEid, html);
     }
 
     [Fact]

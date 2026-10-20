@@ -267,6 +267,25 @@ public sealed class IdentityResolver(NpgsqlDataSource dataSource, AdminAllowlist
             await cmd.ExecuteNonQueryAsync(ct);
         }
 
+        var droppedEids = await EidStore.MergeAsync(conn, keepUserId, mergeUserId, ct);
+        if (droppedEids.Count > 0) {
+            Console.WriteLine($"merge {mergeUserId} into {keepUserId} dropped {droppedEids.Count} eids over cap: {string.Join(",", droppedEids.Select(EidRules.Mask))}");
+        }
+
+        await using (var cmd = new NpgsqlCommand(
+            """
+            UPDATE users k SET
+                active_eid = m.active_eid,
+                active_eid_label = m.active_eid_label
+            FROM users m
+            WHERE k.user_id = $1 AND m.user_id = $2 AND k.active_eid IS NULL AND m.active_eid IS NOT NULL
+                AND EXISTS (SELECT 1 FROM user_eids e WHERE e.user_id = $1 AND e.eid = m.active_eid)
+            """, conn)) {
+            cmd.Parameters.AddWithValue(keepUserId);
+            cmd.Parameters.AddWithValue(mergeUserId);
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+
         await using (var cmd = new NpgsqlCommand("UPDATE user_merges SET kept_user_id = $1 WHERE kept_user_id = $2", conn)) {
             cmd.Parameters.AddWithValue(keepUserId);
             cmd.Parameters.AddWithValue(mergeUserId);
