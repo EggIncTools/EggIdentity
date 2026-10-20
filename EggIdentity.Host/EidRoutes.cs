@@ -6,7 +6,9 @@ namespace EggIdentity.Host;
 public static class EidRoutes {
     public static void Map(WebApplication app, SessionCookieOptions sessionOptions, RevocationStore revocations, ProfileService profiles, UserQueries users, EidStore eids) {
         Func<string, CancellationToken, Task<bool>> isRevoked = revocations.IsRevokedAsync;
-        Task<Guid?> UserAsync(HttpContext ctx) => ProfileAuth.TryGetUserIdAsync(ctx, sessionOptions, isRevoked, ctx.RequestAborted);
+        Task<Guid?> UserAsync(HttpContext ctx) {
+            return ProfileAuth.TryGetUserIdAsync(ctx, sessionOptions, isRevoked, ctx.RequestAborted);
+        }
 
         var routes = app.MapGroup("/profile");
 
