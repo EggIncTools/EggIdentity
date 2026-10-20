@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\EggIdentity.Core\EggIdentity.Core.csproj" />
+    <ProjectReference Include="..\..\EggIdentity.Core\EggIdentity.Core.csproj" GlobalPropertiesToRemove="PublishDir" />
   </ItemGroup>
 
 </Project>
