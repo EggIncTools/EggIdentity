@@ -27,11 +27,11 @@
                     var slice = Slices[i];
                     var dim = Dimmed(slice);
                     var label = Context.Label(slice.Key, slice.Label);
-                    var pct = slice.Pct.ToString("0.0", CultureInfo.InvariantCulture);
                     <div class="@RowClass(dim)">
-                        <span class="report-legend-swatch" style="@SeriesStyle(slice.Key)"></span>
-                        <Tooltip Class="report-legend-label" Text="@label">@label</Tooltip>
-                        <span class="report-pie-pct">@pct%</span>
+                        <span class="report-legend-swatch" style="@SeriesStyle(slice.Key)" aria-hidden="true"></span>
+                        <span class="report-legend-label">@label</span>
+                        <span class="report-pie-value">@FormatValue(slice.Value)</span>
+                        <span class="report-pie-pct">@EggIdentity.Formatting.NumberFormat.Percent(slice.Pct / 100)</span>
                     </div>
                 }
             </div>
@@ -53,11 +53,18 @@
 
     protected override void OnParametersSet() {
         Series = ReportProjection.Series(Context.Cube, MeasureKey, Context.Source);
-        Layout = PieGeometry.Layout(Series, Context.Style, Context.Labels.Other);
+        Layout = PieGeometry.Layout(Series, Context.Style with { PieMaxSegments = PieTop }, Context.Labels.Other);
         var hide = Context.Definition.View.Sample == SampleRule.Hide;
         Slices = [.. Layout.Slices.Where(s => !hide || !ReportProjection.BelowSample(s.Samples, Context.Definition.Query.MinSample))];
         _styles = Context.SeriesStyles([.. Slices.Select(s => s.Key)]);
     }
+
+    public const int DefaultPieTop = 8;
+
+    private int PieTop =>
+        Context.Definition.View.Options.TryGetValue("pie_top", out var raw) && int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n)
+            ? Math.Max(2, n)
+            : DefaultPieTop;
 
     private string ViewBox => string.Create(CultureInfo.InvariantCulture, $"0 0 {Layout.Width} {Layout.Height}");
 
@@ -76,5 +83,9 @@
     private string FormatValue(double value) => Context.Format(MeasureKey).Format(value);
 
     private IReadOnlyList<TooltipLine> SliceLines(PieSlice slice) =>
-        [new TooltipLine(Context.Label(slice.Key, slice.Label), Head: true), new TooltipLine($"{FormatValue(slice.Value)} ({slice.Pct.ToString("0.0", CultureInfo.InvariantCulture)}%)")];
+        [
+            new TooltipLine(Context.Label(slice.Key, slice.Label), Head: true),
+            new TooltipLine("Value", Value: FormatValue(slice.Value)),
+            new TooltipLine("Share", Value: EggIdentity.Formatting.NumberFormat.Percent(slice.Pct / 100)),
+        ];
 }

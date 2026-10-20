@@ -28,8 +28,9 @@ public sealed record ChartContext(ReportCube Cube, ReportDefinition Definition, 
         if (Cube.Normalized) {
             return Definition.Query.Normalize.Kind == NormalizeKind.By ? ValueFormat.Decimal(2) : ValueFormat.Percent;
         }
-        return Source?.Measure(measureKey)?.Format
+        var format = Source?.Measure(measureKey)?.Format
             ?? (measureKey == MeasureRequest.RowCountKey ? ValueFormat.Integer : ValueFormat.Decimal(2));
+        return Definition.View.Resolve(format);
     }
 
     public string Label(string key, string fallback) {

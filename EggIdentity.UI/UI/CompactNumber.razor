@@ -1,0 +1,27 @@
+@using EggIdentity.Formatting
+
+@if (Compacted == Expanded) {
+    <span class="@Css">@Lead<span>@Compacted</span></span>
+} else {
+    <Tooltip Text="@Expanded" Class="@Css">@Lead<span>@Compacted</span></Tooltip>
+}
+
+@code {
+    [Parameter] public double Value { get; set; }
+    [Parameter] public int Digits { get; set; } = 3;
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? IconSrc { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    string Compacted => NumberFormat.Compact(Value, Digits);
+
+    string Expanded => NumberFormat.Full(Value);
+
+    string Css => string.IsNullOrEmpty(Class) ? "compact-number" : $"compact-number {Class}";
+
+    RenderFragment? Lead => !string.IsNullOrEmpty(IconSrc)
+        ? @<img class="compact-number-icon" src="@IconSrc" alt=""/>
+        : !string.IsNullOrEmpty(Icon)
+            ? @<Icon Name="@Icon" Class="compact-number-icon"/>
+            : null;
+}

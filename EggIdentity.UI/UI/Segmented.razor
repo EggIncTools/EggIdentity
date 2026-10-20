@@ -29,8 +29,13 @@
 
     RenderFragment Option(SegmentedOption<T> option) => @<button type="button" class="@(IsActive(option) ? "segmented-opt active" : "segmented-opt")"
                                                                  aria-pressed="@(IsActive(option) ? "true" : "false")" disabled="@option.Disabled"
+                                                                 aria-label="@(option.Icon is null ? null : option.Label)"
                                                                  @onclick="() => PickAsync(option)">
-        <span>@option.Label</span>
+        @if (option.Icon is { } icon) {
+            <Icon Name="@icon"/>
+        } else {
+            <span>@option.Label</span>
+        }
         @if (option.Count is { } count) {
             <span class="segmented-count">@count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)</span>
         }

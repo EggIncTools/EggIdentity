@@ -5,14 +5,14 @@
     <div class="report-note">@Context.Labels.NoData</div>
 } else {
     <div class="report-chart" style="@UnfilledStyle">
-        <div class="report-bars report-marks">
+        <div class="report-bars report-marks" role="list">
             @foreach (var bar in Bars) {
                 var dim = Dimmed(bar);
                 var label = Context.Label(bar.Key, bar.Label);
-                <div class="@RowClass(dim)">
-                    <Tooltip Class="report-bar-label" Text="@label">@label</Tooltip>
-                    <span class="report-bar-track"><Tooltip Class="report-bar-fill report-mark" Style="@FillStyle(bar)" Lines="@BarLines(bar)"/></span>
-                    <span class="report-bar-value">@FormatValue(bar.Value)</span>
+                <div class="@RowClass(dim)" role="listitem" aria-label="@($"{label}, {FormatValue(bar.Value)}")">
+                    <span class="report-bar-label" aria-hidden="true">@label</span>
+                    <span class="report-bar-track" aria-hidden="true"><Tooltip Class="report-bar-fill report-mark" Style="@FillStyle(bar)" Lines="@BarLines(bar)"/></span>
+                    <span class="report-bar-value" aria-hidden="true">@FormatValue(bar.Value)</span>
                 </div>
             }
             @if (!string.IsNullOrEmpty(Context.Definition.View.Unit)) {
@@ -65,7 +65,7 @@
         var label = Context.Label(bar.Key, bar.Label);
         var unit = Context.Definition.View.Unit;
         var unitSuffix = string.IsNullOrEmpty(unit) ? "" : $" {unit}";
-        return [new TooltipLine(label, Head: true), new TooltipLine(FormatValue(bar.Value) + unitSuffix)];
+        return [new TooltipLine(label, Head: true), new TooltipLine("Value", Value: FormatValue(bar.Value) + unitSuffix)];
     }
 
     private string FormatValue(double value) => Context.Format(MeasureKey).Format(value);

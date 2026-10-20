@@ -55,12 +55,17 @@ internal sealed class ValueFormatKindConverter : JsonStringEnumConverter<ValueFo
     }
 }
 
+internal sealed class ReportNumberFormatConverter : JsonStringEnumConverter<ReportNumberFormat> {
+    public ReportNumberFormatConverter() : base(JsonNamingPolicy.CamelCase) {
+    }
+}
+
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, UseStringEnumConverter = false,
     Converters = [
         typeof(FilterCodec.ConditionConverter), typeof(FilterCodec.SetConverter),
         typeof(TimeBucketConverter), typeof(AggregationConverter), typeof(MeasureKindConverter), typeof(NormalizeKindConverter),
         typeof(SampleRuleConverter), typeof(HeatScaleConverter), typeof(ReportTierConverter), typeof(ReportRejectionKindConverter),
-        typeof(FilterValueKindConverter), typeof(ValueFormatKindConverter),
+        typeof(FilterValueKindConverter), typeof(ValueFormatKindConverter), typeof(ReportNumberFormatConverter),
     ])]
 [JsonSerializable(typeof(FilterSet))]
 [JsonSerializable(typeof(FilterCondition))]

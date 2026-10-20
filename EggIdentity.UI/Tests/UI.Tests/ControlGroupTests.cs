@@ -75,11 +75,10 @@ public class ControlGroupTests {
         var shaded = await RenderAsync<RatioChip>(new() { [nameof(RatioChip.Ratio)] = 0.62, [nameof(RatioChip.Label)] = "Home" });
         var muted = await RenderAsync<RatioChip>(new() { [nameof(RatioChip.Ratio)] = 0.62, [nameof(RatioChip.Muted)] = true });
 
-        Assert.Contains("ratio-fill ratio-ink", shaded);
         Assert.Contains("--ratio:0.62", shaded);
         Assert.Contains("ratio-chip-label", shaded);
+        Assert.DoesNotContain("ratio-chip-muted", shaded);
         Assert.Contains("ratio-chip-muted", muted);
-        Assert.DoesNotContain("ratio-fill", muted);
     }
 
     [Fact]

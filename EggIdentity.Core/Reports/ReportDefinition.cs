@@ -12,6 +12,21 @@ public static class ReportCharts {
     public const string Table = "table";
 
     public static IReadOnlyList<string> BuiltIn { get; } = [Bar, Line, Pie, Heatmap, GroupedBar, MultiLine, Table];
+
+    public static IReadOnlyList<string> Compatible(ReportQuery query, bool hasNegative = false) {
+        ArgumentNullException.ThrowIfNull(query);
+        return query.GroupBy.Count switch {
+            1 when query.EffectiveMeasures.Count == 1 && !hasNegative => [Bar, Pie, Line, Table],
+            1 => [Bar, Line, Table],
+            2 => [GroupedBar, MultiLine, Heatmap, Table],
+            _ => [Table],
+        };
+    }
+
+    public static IReadOnlyList<string> Compatible(ReportQuery query, ReportCube cube) {
+        ArgumentNullException.ThrowIfNull(cube);
+        return Compatible(query, cube.Rows.Any(r => r.Values.Any(v => v is < 0)));
+    }
 }
 
 public enum HeatScale {
@@ -33,6 +48,12 @@ public sealed record ReportView(string Chart) {
     public IReadOnlyDictionary<string, string> LabelColors { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
     public string? Unfilled { get; init; }
     public IReadOnlyDictionary<string, string> Options { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
+    public ReportNumberFormat? NumberFormat { get; init; }
+
+    public ValueFormat Resolve(ValueFormat measureFormat) {
+        ArgumentNullException.ThrowIfNull(measureFormat);
+        return measureFormat.Resolve(NumberFormat);
+    }
 }
 
 public sealed record ReportDefinition(int Version, string Id, string Title, ReportQuery Query, ReportView View) {

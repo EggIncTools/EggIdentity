@@ -11,7 +11,7 @@
                 @if (Current is null) {
                     @EmptyLabel
                 } else if (Current.Name is { } name) {
-                    @name
+                    <span style="@NameStyle(Current)">@name</span>
                 } else {
                     <EidText Value="@Current.Eid" Interactive="false"/>
                 }
@@ -90,8 +90,7 @@
         await Suite.LoadAsync();
     }
 
-    static string? NameStyle(ProfileEid entry) =>
-        entry.Snapshot?.Color is { Length: 6 } color && color.All(Uri.IsHexDigit) ? $"color:#{color}" : null;
+    static string? NameStyle(ProfileEid entry) => EggIdentity.Formatting.CssColor.HexStyle(entry.Snapshot?.Color);
 
     async Task PickAsync(ProfileEid entry) {
         await SetOpenAsync(false);

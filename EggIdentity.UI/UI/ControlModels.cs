@@ -1,6 +1,6 @@
 namespace EggIdentity.UI;
 
-public sealed record SegmentedOption<T>(T Value, string Label, int? Count = null, string? Title = null, bool Disabled = false);
+public sealed record SegmentedOption<T>(T Value, string Label, int? Count = null, string? Title = null, bool Disabled = false, string? Icon = null);
 
 public sealed record ViewTab<TKey>(TKey Key, string Label, string? Sub = null, string? AccentVar = null);
 

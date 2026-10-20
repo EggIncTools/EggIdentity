@@ -21,7 +21,7 @@
     readonly string _id = "tt-" + Guid.NewGuid().ToString("N");
     bool _dismissed;
 
-    RenderFragment Pop => @<span id="@_id" role="tooltip" class="@PopCss">@if (Content is not null) {
+    RenderFragment Pop => @<span id="@_id" role="tooltip" class="@PopCss" aria-hidden="true">@if (Content is not null) {
             @Content
         } else if (Lines is not null && Lines.Any(l => l.Value is not null)) {
             <span class="tooltip-rows">

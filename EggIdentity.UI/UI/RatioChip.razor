@@ -20,7 +20,7 @@
 
     string Css {
         get {
-            var css = Muted ? "ratio-chip ratio-chip-muted" : "ratio-chip ratio-fill ratio-ink";
+            var css = Muted ? "ratio-chip ratio-chip-muted" : "ratio-chip";
             return string.IsNullOrEmpty(Class) ? css : $"{css} {Class}";
         }
     }

@@ -4,11 +4,22 @@
 <div class="report-card">
     <div class="report-card-head">
         <div class="report-card-titles">
-            <div class="report-card-title" title="@Definition.Title">@Definition.Title</div>
+            <div class="report-card-title">@Definition.Title</div>
             @if (!string.IsNullOrEmpty(Definition.Description)) {
-                <div class="report-card-desc" title="@Definition.Description">@Definition.Description</div>
+                <div class="report-card-desc">@Definition.Description</div>
             }
         </div>
+        @if (ShowChartSwitch || ShowNumberSwitch) {
+            <div class="report-card-switch">
+                @if (ShowChartSwitch) {
+                    <Segmented T="string" Options="ChartOptions" Selected="Definition.View.Chart" SelectedChanged="OnChartChanged" AriaLabel="Chart type"/>
+                }
+                @if (ShowNumberSwitch) {
+                    <Segmented T="ReportNumberFormat" Options="NumberOptions" Selected="NumberFormat ?? ReportNumberFormat.Full"
+                               SelectedChanged="OnNumberFormatChanged" AriaLabel="Number format"/>
+                }
+            </div>
+        }
         @if (Actions is not null) {
             <div class="report-card-actions">@Actions</div>
         }
@@ -40,8 +51,47 @@
     [Parameter] public RenderFragment? Actions { get; set; }
     [Parameter] public RenderFragment<ChartContext>? Body { get; set; }
 
+    [Parameter] public IReadOnlyList<string>? ChartChoices { get; set; }
+    [Parameter] public EventCallback<string> OnChartChanged { get; set; }
+    [Parameter] public ReportNumberFormat? NumberFormat { get; set; }
+    [Parameter] public EventCallback<ReportNumberFormat> OnNumberFormatChanged { get; set; }
+
+    private bool ShowChartSwitch => ChartChoices is { Count: > 1 } && OnChartChanged.HasDelegate;
+
+    private bool ShowNumberSwitch => OnNumberFormatChanged.HasDelegate;
+
+    private IReadOnlyList<SegmentedOption<string>> ChartOptions =>
+        [.. ChartChoices!.Select(c => new SegmentedOption<string>(c, ChartLabel(c), Title: ChartLabel(c), Icon: ChartIcon(c)))];
+
+    public static string ChartIcon(string chart) => chart switch {
+        ReportCharts.Bar => "chart-bar",
+        ReportCharts.Pie => "chart-pie",
+        ReportCharts.Line => "chart-line",
+        ReportCharts.GroupedBar => "chart-column-big",
+        ReportCharts.MultiLine => "chart-spline",
+        ReportCharts.Heatmap => "layout-grid",
+        _ => "table",
+    };
+
+    private static readonly IReadOnlyList<SegmentedOption<ReportNumberFormat>> NumberOptions = [
+        new(ReportNumberFormat.Full, "123,456"),
+        new(ReportNumberFormat.Compact, "123k"),
+    ];
+
+    public static string ChartLabel(string chart) => chart switch {
+        ReportCharts.Bar => "Bar",
+        ReportCharts.Pie => "Pie",
+        ReportCharts.Line => "Line",
+        ReportCharts.GroupedBar => "Grouped",
+        ReportCharts.MultiLine => "Lines",
+        ReportCharts.Heatmap => "Heat",
+        ReportCharts.Table => "Table",
+        _ => chart,
+    };
+
     private ReportLabels ChartLabels => Labels ?? ReportLabels.Default;
 
     private ChartContext BuildContext() =>
-        new(Cube!, Definition, Source, Style ?? ChartStyle.Default, ChartLabels);
+        new(Cube!, NumberFormat is { } format ? Definition with { View = Definition.View with { NumberFormat = format } } : Definition,
+            Source, Style ?? ChartStyle.Default, ChartLabels);
 }

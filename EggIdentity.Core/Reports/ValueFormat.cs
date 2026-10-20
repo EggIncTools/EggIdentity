@@ -9,6 +9,12 @@ public enum ValueFormatKind {
     Percent,
     Duration,
     Custom,
+    Compact,
+}
+
+public enum ReportNumberFormat {
+    Full,
+    Compact,
 }
 
 public sealed record ValueFormat(ValueFormatKind Kind, int Places = 0) {
@@ -17,6 +23,8 @@ public sealed record ValueFormat(ValueFormatKind Kind, int Places = 0) {
     public static ValueFormat Percent { get; } = new(ValueFormatKind.Percent, 1);
 
     public static ValueFormat Duration { get; } = new(ValueFormatKind.Duration);
+
+    public static ValueFormat Compact { get; } = new(ValueFormatKind.Compact);
 
     public static ValueFormat Decimal(int places) => new(ValueFormatKind.Decimal, Math.Clamp(places, 0, 10));
 
@@ -33,6 +41,7 @@ public sealed record ValueFormat(ValueFormatKind Kind, int Places = 0) {
         ValueFormatKind.Decimal => value.ToString("F" + Places.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture),
         ValueFormatKind.Percent => value.ToString("F" + Places.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture) + "%",
         ValueFormatKind.Duration => Span(value),
+        ValueFormatKind.Compact => Formatting.NumberFormat.Compact(value),
         _ => Formatter?.Invoke(value) ?? value.ToString(CultureInfo.InvariantCulture),
     };
 
@@ -41,6 +50,12 @@ public sealed record ValueFormat(ValueFormatKind Kind, int Places = 0) {
         ValueFormatKind.Decimal => value.ToString(Places > 0 ? "0.0" : "0", CultureInfo.InvariantCulture),
         ValueFormatKind.Percent => value.ToString("0", CultureInfo.InvariantCulture) + "%",
         _ => Format(value),
+    };
+
+    public ValueFormat Resolve(ReportNumberFormat? overrideFormat) => (overrideFormat, Kind) switch {
+        (ReportNumberFormat.Full, ValueFormatKind.Compact) => Integer,
+        (ReportNumberFormat.Compact, ValueFormatKind.Integer or ValueFormatKind.Decimal) => Compact,
+        _ => this,
     };
 
     private static string Span(double seconds) {
