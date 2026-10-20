@@ -2665,7 +2665,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow-y: auto;
+    overflow: hidden;
     padding: calc(var(--spacing) * 4);
     background: rgba(0,0,0,.6);
     backdrop-filter: blur(4px);
@@ -2755,6 +2755,12 @@
   .cal-lane-group {
     display: flex;
     flex-direction: column;
+  }
+  .wb-card.wb-card-fit {
+    --wb-card-w: max-content;
+    --wb-card-h: auto;
+    --wb-card-max: 98vw;
+    min-width: min(94vw, 92rem);
   }
   .report-builder-add {
     display: inline-flex;

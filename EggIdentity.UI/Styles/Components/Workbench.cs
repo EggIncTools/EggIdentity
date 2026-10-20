@@ -11,6 +11,7 @@ internal static class Workbench {
     internal static readonly ImmutableDictionary<string, string> Applies = new Dictionary<string, string> {
         { ".modal-card.wb-card", $"flex flex-col [width:var(--wb-card-w,92vw)] [height:var(--wb-card-h,88vh)] [max-width:var(--wb-card-max,80rem)] [transition:width_{Dur}_{Ease},max-width_{Dur}_{Ease},height_{Dur}_{Ease}]" },
         { ".wb-card.wb-card-wide", "[--wb-card-w:94vw] [--wb-card-h:90vh] [--wb-card-max:92rem]" },
+        { ".wb-card.wb-card-fit", "[--wb-card-w:max-content] [--wb-card-h:auto] [--wb-card-max:98vw] [min-width:min(94vw,92rem)]" },
         { ".wb-body", "flex flex-1 min-h-0" },
         { ".wb-body:has(.wb-drawer)", "relative" },
         { ".wb-main", $"flex-1 min-w-0 overflow-y-auto p-4 [transition:margin-right_{Dur}_{Ease},padding-right_{Dur}_{Ease}]" },

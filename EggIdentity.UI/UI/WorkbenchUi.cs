@@ -2,7 +2,8 @@ namespace EggIdentity.UI;
 
 public enum WorkbenchSize {
     Regular,
-    Wide
+    Wide,
+    Fit
 }
 
 public enum WorkbenchTone {

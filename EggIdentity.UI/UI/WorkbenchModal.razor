@@ -38,7 +38,11 @@
 
     string CardCss {
         get {
-            var size = Size == WorkbenchSize.Wide ? "wb-card wb-card-wide" : "wb-card";
+            var size = Size switch {
+                WorkbenchSize.Wide => "wb-card wb-card-wide",
+                WorkbenchSize.Fit => "wb-card wb-card-fit",
+                _ => "wb-card",
+            };
             return string.IsNullOrWhiteSpace(CardClass) ? size : $"{size} {CardClass}";
         }
     }
