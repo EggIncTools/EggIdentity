@@ -14,8 +14,6 @@ internal static class Diagrams {
         { ".diagram-stage", "relative [overflow:visible]" },
         { ".diagram-canvas", "relative [transform-origin:top_left]" },
         { ".diagram-edges", "absolute top-0 left-0 [fill:none] [pointer-events:none]" },
-        { ".diagram-edge", "[fill:none] [stroke:var(--diagram-edge,var(--color-border))] [stroke-linecap:round]" },
-        { ".diagram-edge-back", "[stroke-dasharray:var(--diagram-edge-back-dash,4_3)]" },
         { ".diagram-edge-label", "absolute px-1.5 rounded-full border border-border text-xs [pointer-events:none] [background-color:var(--diagram-edge-label-bg,var(--color-panel))] [color:var(--diagram-edge-label-fg,var(--color-muted))]" },
         { ".diagram-node", $"absolute flex items-center justify-center text-left cursor-pointer rounded-md border [border-color:var(--diagram-node-border,var(--color-border))] [background-color:var(--diagram-node-bg,var(--color-panel))] [transition:border-color_{Fast},box-shadow_{Fast}]" },
         { ".diagram-node:hover", "[border-color:var(--diagram-node-hover-border,var(--color-accent2))]" },

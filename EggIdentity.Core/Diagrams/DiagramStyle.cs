@@ -10,6 +10,7 @@ public sealed record DiagramStyle {
     public double EdgeMaxWidth { get; init; } = 8;
     public double EdgeMinOpacity { get; init; } = 0.35;
     public int Sweeps { get; init; } = 4;
+    public bool SplitRoot { get; init; }
     public IReadOnlyList<double> ZoomSteps { get; init; } = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
     public static DiagramStyle Default { get; } = new();

@@ -1346,9 +1346,6 @@
   .suite-inline.suite-account .suite-account-panel {
     position-area: bottom span-right;
   }
-  .diagram-edge-back {
-    stroke-dasharray: var(--diagram-edge-back-dash,4 3);
-  }
   .drag-panel {
     position: fixed;
     z-index: 1100;
@@ -2693,11 +2690,6 @@
     flex: 1;
     min-height: calc(var(--spacing) * 0);
   }
-  .diagram-edge {
-    fill: none;
-    stroke: var(--diagram-edge,var(--color-border));
-    stroke-linecap: round;
-  }
   .wb-drawer-tab:hover {
     color: var(--color-fg);
   }
@@ -3595,6 +3587,26 @@ body:has(.modal-backdrop) {
     grid-column: auto / span min(var(--rg-w,1),var(--report-grid-cols-mid,4));
     grid-row: auto / span var(--rg-h,1);
   }
+}
+:where(.diagram-edge) {
+  fill: none;
+  stroke: var(--diagram-edge,var(--color-border));
+  stroke-linecap: round;
+}
+:where(.diagram-edge-back) {
+  stroke-dasharray: var(--diagram-edge-back-dash,4 3);
+}
+.diagram-fit {
+  container-type: inline-size;
+  overflow: hidden;
+}
+.diagram-fit .diagram-stage {
+  --diagram-scale: min(1, tan(atan2(100cqw, var(--diagram-w))));
+  width: calc(var(--diagram-w) * var(--diagram-scale));
+  height: calc(var(--diagram-h) * var(--diagram-scale));
+}
+.diagram-fit .diagram-canvas {
+  transform: scale(var(--diagram-scale));
 }
 @container (max-width: 20rem) {
   .suite-rail .suite-tool-soon .suite-tool-name {

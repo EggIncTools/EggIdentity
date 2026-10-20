@@ -201,4 +201,168 @@ public class LayeredLayoutTests {
             }
         }
     }
+
+    [Fact]
+    public void SplitRootOffByDefaultKeepsAllChildrenOnOneSide() {
+        var graph = Graph(
+            [.. new[] { "r", "c0", "c1", "c2", "c3" }.Select(id => new DiagramNode(id))],
+            [new DiagramEdge("r", "c0"), new DiagramEdge("r", "c1"), new DiagramEdge("r", "c2"), new DiagramEdge("r", "c3")]);
+
+        var layout = LayeredLayout.Layout(graph, ["r"], DiagramDirection.Down, DiagramStyle.Default);
+
+        var root = At(layout, "r");
+        foreach (var id in new[] { "c0", "c1", "c2", "c3" }) {
+            var child = At(layout, id);
+            Assert.Equal(1, child.Rank);
+            Assert.True(child.Y > root.Y);
+        }
+    }
+
+    [Fact]
+    public void SplitRootDistributesTwelveChildrenAcrossBothSidesInDown() {
+        var childIds = Enumerable.Range(0, 12).Select(i => $"c{i}").ToList();
+        var graph = Graph(
+            [new DiagramNode("r"), .. childIds.Select(id => new DiagramNode(id))],
+            [.. childIds.Select(id => new DiagramEdge("r", id))]);
+
+        var style = DiagramStyle.Default with { SplitRoot = true };
+        var layout = LayeredLayout.Layout(graph, ["r"], DiagramDirection.Down, style);
+
+        var root = At(layout, "r");
+        var evenCount = 0;
+        var oddCount = 0;
+        for (var i = 0; i < childIds.Count; i++) {
+            var child = At(layout, childIds[i]);
+            if (i % 2 == 0) {
+                Assert.Equal(1, child.Rank);
+                Assert.True(child.Y > root.Y);
+                Assert.Equal(DiagramDirection.Down, child.Direction);
+                evenCount++;
+            } else {
+                Assert.Equal(-1, child.Rank);
+                Assert.True(child.Y < root.Y);
+                Assert.Equal(DiagramDirection.Up, child.Direction);
+                oddCount++;
+            }
+        }
+        Assert.Equal(6, evenCount);
+        Assert.Equal(6, oddCount);
+    }
+
+    [Fact]
+    public void SplitRootInRightPutsMirrorSideLeftOfRoot() {
+        var graph = Graph(
+            [.. new[] { "r", "c0", "c1", "c2", "c3" }.Select(id => new DiagramNode(id))],
+            [new DiagramEdge("r", "c0"), new DiagramEdge("r", "c1"), new DiagramEdge("r", "c2"), new DiagramEdge("r", "c3")]);
+
+        var style = DiagramStyle.Default with { SplitRoot = true };
+        var layout = LayeredLayout.Layout(graph, ["r"], DiagramDirection.Right, style);
+
+        var root = At(layout, "r");
+        var c0 = At(layout, "c0");
+        var c1 = At(layout, "c1");
+        var c2 = At(layout, "c2");
+        var c3 = At(layout, "c3");
+
+        Assert.True(c0.X > root.X);
+        Assert.True(c2.X > root.X);
+        Assert.True(c1.X < root.X);
+        Assert.True(c3.X < root.X);
+        Assert.Equal(DiagramDirection.Left, c1.Direction);
+        Assert.Equal(DiagramDirection.Left, c3.Direction);
+    }
+
+    [Fact]
+    public void SplitRootCentersRootOverBothFans() {
+        var graph = Graph(
+            [.. new[] { "r", "c0", "c1", "c2", "c3" }.Select(id => new DiagramNode(id) { Width = 140, Height = 48 })],
+            [new DiagramEdge("r", "c0"), new DiagramEdge("r", "c1"), new DiagramEdge("r", "c2"), new DiagramEdge("r", "c3")]);
+
+        var style = DiagramStyle.Default with { SplitRoot = true };
+        var layout = LayeredLayout.Layout(graph, ["r"], DiagramDirection.Down, style);
+
+        double CenterX(string id) {
+            var node = At(layout, id);
+            return node.X + node.Width / 2;
+        }
+
+        var root = At(layout, "r");
+        var rootCenter = root.X + root.Width / 2;
+        var evenMid = (Math.Min(CenterX("c0"), CenterX("c2")) + Math.Max(CenterX("c0"), CenterX("c2"))) / 2;
+        var oddMid = (Math.Min(CenterX("c1"), CenterX("c3")) + Math.Max(CenterX("c1"), CenterX("c3"))) / 2;
+
+        Assert.Equal(evenMid, rootCenter, 2);
+        Assert.Equal(oddMid, rootCenter, 2);
+    }
+
+    [Fact]
+    public void SplitRootSkippedForSingleChildMultipleRootsOrCollapsedRoot() {
+        var style = DiagramStyle.Default with { SplitRoot = true };
+
+        var singleChildGraph = Graph(
+            [new DiagramNode("r"), new DiagramNode("c0")],
+            [new DiagramEdge("r", "c0")]);
+        var singleChildLayout = LayeredLayout.Layout(singleChildGraph, ["r"], DiagramDirection.Down, style);
+        Assert.All(singleChildLayout.Nodes, n => Assert.True(n.Rank >= 0));
+
+        var multiRootGraph = Graph(
+            [new DiagramNode("r1"), new DiagramNode("r2"), new DiagramNode("c0"), new DiagramNode("c1")],
+            [new DiagramEdge("r1", "c0"), new DiagramEdge("r2", "c1")]);
+        var multiRootLayout = LayeredLayout.Layout(multiRootGraph, ["r1", "r2"], DiagramDirection.Down, style);
+        Assert.All(multiRootLayout.Nodes, n => Assert.True(n.Rank >= 0));
+
+        var collapsedRootGraph = Graph(
+            [new DiagramNode("r"), new DiagramNode("c0"), new DiagramNode("c1")],
+            [new DiagramEdge("r", "c0"), new DiagramEdge("r", "c1")]);
+        var collapsedRootLayout = LayeredLayout.Layout(collapsedRootGraph, ["r"], DiagramDirection.Down, style, new HashSet<string> { "r" });
+        Assert.All(collapsedRootLayout.Nodes, n => Assert.True(n.Rank >= 0));
+    }
+
+    [Fact]
+    public void SplitRootDeepSubtreeRanksGrowAwayFromRoot() {
+        var graph = Graph(
+            [new DiagramNode("r"), new DiagramNode("a"), new DiagramNode("b"), new DiagramNode("a1"), new DiagramNode("b1")],
+            [new DiagramEdge("r", "a"), new DiagramEdge("r", "b"), new DiagramEdge("a", "a1"), new DiagramEdge("b", "b1")]);
+
+        var style = DiagramStyle.Default with { SplitRoot = true };
+        var layout = LayeredLayout.Layout(graph, ["r"], DiagramDirection.Down, style);
+
+        var r = At(layout, "r");
+        var b = At(layout, "b");
+        var b1 = At(layout, "b1");
+
+        Assert.Equal(2, At(layout, "a1").Rank);
+        Assert.Equal(-2, b1.Rank);
+        Assert.True(b1.Y < b.Y);
+        Assert.True(b.Y < r.Y);
+    }
+
+    [Fact]
+    public void SplitRootNodeReachableFromBothSidesIsOwnedOnceAndCrossEdgeIsBack() {
+        var graph = Graph(
+            [new DiagramNode("r"), new DiagramNode("a"), new DiagramNode("b"), new DiagramNode("s")],
+            [new DiagramEdge("r", "a"), new DiagramEdge("r", "b"), new DiagramEdge("a", "s"), new DiagramEdge("b", "s")]);
+
+        var style = DiagramStyle.Default with { SplitRoot = true };
+        var layout = LayeredLayout.Layout(graph, ["r"], DiagramDirection.Down, style);
+
+        Assert.Single(layout.Nodes, n => n.Node.Id == "s");
+        Assert.Equal(2, At(layout, "s").Rank);
+
+        var crossEdge = layout.Edges.Single(e => e.Edge.From == "b" && e.Edge.To == "s");
+        Assert.True(crossEdge.IsBack);
+    }
+
+    [Fact]
+    public void SplitRootLayoutStartsAtPadding() {
+        var graph = Graph(
+            [.. new[] { "r", "c0", "c1", "c2", "c3" }.Select(id => new DiagramNode(id))],
+            [new DiagramEdge("r", "c0"), new DiagramEdge("r", "c1"), new DiagramEdge("r", "c2"), new DiagramEdge("r", "c3")]);
+
+        var style = DiagramStyle.Default with { SplitRoot = true };
+        var layout = LayeredLayout.Layout(graph, ["r"], DiagramDirection.Down, style);
+
+        Assert.Equal(16, layout.Nodes.Min(n => n.X), 2);
+        Assert.Equal(16, layout.Nodes.Min(n => n.Y), 2);
+    }
 }

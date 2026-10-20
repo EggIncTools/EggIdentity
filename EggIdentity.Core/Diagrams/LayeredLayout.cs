@@ -12,10 +12,30 @@ public static class LayeredLayout {
         var nodesById = graph.Nodes.ToDictionary(n => n.Id);
         var known = new HashSet<string>(nodesById.Keys);
         var knownEdges = graph.Edges.Where(e => known.Contains(e.From) && known.Contains(e.To)).ToList();
+
+        var splitLayout = TryBuildSplitLayout(graph, nodesById, known, knownEdges, roots, direction, style, collapsedSet);
+        if (splitLayout != null) {
+            return splitLayout;
+        }
+
+        var (positioned, backEdges) = ComputeLayoutCore(graph, nodesById, known, roots, direction, style, collapsedSet);
+        var positionedEdges = ComputeEdges(knownEdges, backEdges, positioned, style);
+
+        return BuildLayout(positioned, positionedEdges, style);
+    }
+
+    private static DiagramLayout BuildLayout(List<PositionedNode> positioned, List<PositionedEdge> edges, DiagramStyle style) {
+        var width = positioned.Count == 0 ? 0 : positioned.Max(n => n.X + n.Width) + style.Padding;
+        var height = positioned.Count == 0 ? 0 : positioned.Max(n => n.Y + n.Height) + style.Padding;
+        return new DiagramLayout(width, height, positioned, edges);
+    }
+
+    private static (List<PositionedNode> Positioned, HashSet<DiagramEdge> BackEdges) ComputeLayoutCore(DiagramGraph graph, Dictionary<string, DiagramNode> nodesById, HashSet<string> known, IReadOnlyList<string> roots, DiagramDirection direction, DiagramStyle style, IReadOnlySet<string> collapsed) {
+        var knownEdges = graph.Edges.Where(e => known.Contains(e.From) && known.Contains(e.To)).ToList();
         var edgesByFrom = knownEdges.GroupBy(e => e.From).ToDictionary(g => g.Key, g => (IReadOnlyList<DiagramEdge>)[.. g]);
 
-        var (visibleOrder, visibleSet, rootSet) = ComputeVisible(roots, known, edgesByFrom, collapsedSet);
-        var hiddenChildren = ComputeHiddenChildren(graph, edgesByFrom, visibleSet, collapsedSet);
+        var (visibleOrder, visibleSet, rootSet) = ComputeVisible(roots, known, edgesByFrom, collapsed);
+        var hiddenChildren = ComputeHiddenChildren(graph, edgesByFrom, visibleSet, collapsed);
         var backEdges = ComputeBackEdges(roots, visibleSet, edgesByFrom);
         var forwardEdges = knownEdges.Where(e => visibleSet.Contains(e.From) && visibleSet.Contains(e.To) && !backEdges.Contains(e)).ToList();
         var forwardByFrom = forwardEdges.GroupBy(e => e.From).ToDictionary(g => g.Key, g => (IReadOnlyList<DiagramEdge>)[.. g]);
@@ -23,13 +43,185 @@ public static class LayeredLayout {
         var rank = ComputeRanks(visibleOrder, forwardEdges, rootSet);
         var order = ComputeOrder(visibleOrder, rank, forwardEdges, style.Sweeps);
         var positioned = ComputePositions(nodesById, visibleOrder, rank, order, forwardByFrom, direction, style, rootSet, hiddenChildren);
-        var positionedEdges = ComputeEdges(knownEdges, visibleSet, backEdges, positioned, direction, style);
 
-        var width = positioned.Count == 0 ? 0 : positioned.Max(n => n.X + n.Width) + style.Padding;
-        var height = positioned.Count == 0 ? 0 : positioned.Max(n => n.Y + n.Height) + style.Padding;
-
-        return new DiagramLayout(width, height, positioned, positionedEdges);
+        return (positioned, backEdges);
     }
+
+    private static DiagramLayout? TryBuildSplitLayout(DiagramGraph graph, Dictionary<string, DiagramNode> nodesById, HashSet<string> known, List<DiagramEdge> knownEdges, IReadOnlyList<string> roots, DiagramDirection direction, DiagramStyle style, IReadOnlySet<string> collapsed) {
+        if (!style.SplitRoot) {
+            return null;
+        }
+
+        var rootCandidates = roots.Where(known.Contains).Distinct().ToList();
+        if (rootCandidates.Count != 1) {
+            return null;
+        }
+
+        var root = rootCandidates[0];
+        if (collapsed.Contains(root)) {
+            return null;
+        }
+
+        var edgesByFrom = knownEdges.GroupBy(e => e.From).ToDictionary(g => g.Key, g => (IReadOnlyList<DiagramEdge>)[.. g]);
+        var children = GetRootChildren(root, edgesByFrom);
+        if (children.Count < 2) {
+            return null;
+        }
+
+        return BuildSplitLayout(graph, nodesById, knownEdges, edgesByFrom, root, children, direction, style, collapsed);
+    }
+
+    private static List<string> GetRootChildren(string root, Dictionary<string, IReadOnlyList<DiagramEdge>> edgesByFrom) {
+        var children = new List<string>();
+        if (!edgesByFrom.TryGetValue(root, out var outgoing)) {
+            return children;
+        }
+
+        var seen = new HashSet<string>();
+        foreach (var edge in outgoing) {
+            if (edge.To == root) {
+                continue;
+            }
+            if (seen.Add(edge.To)) {
+                children.Add(edge.To);
+            }
+        }
+
+        return children;
+    }
+
+    private static Dictionary<string, int> ComputeOwnership(string root, List<string> children, Dictionary<string, IReadOnlyList<DiagramEdge>> edgesByFrom, IReadOnlySet<string> collapsed) {
+        var owner = new Dictionary<string, int>();
+        var queue = new Queue<string>();
+
+        for (var i = 0; i < children.Count; i++) {
+            var child = children[i];
+            if (child == root) {
+                continue;
+            }
+            var side = i % 2;
+            if (owner.TryAdd(child, side)) {
+                queue.Enqueue(child);
+            }
+        }
+
+        while (queue.Count > 0) {
+            var id = queue.Dequeue();
+            if (collapsed.Contains(id)) {
+                continue;
+            }
+            if (!edgesByFrom.TryGetValue(id, out var outgoing)) {
+                continue;
+            }
+            var side = owner[id];
+            foreach (var edge in outgoing) {
+                if (edge.To == root) {
+                    continue;
+                }
+                if (owner.TryAdd(edge.To, side)) {
+                    queue.Enqueue(edge.To);
+                }
+            }
+        }
+
+        return owner;
+    }
+
+    private static HashSet<string> BuildSideSet(string root, Dictionary<string, int> owner, int side) {
+        var set = new HashSet<string> { root };
+        foreach (var pair in owner) {
+            if (pair.Value == side) {
+                set.Add(pair.Key);
+            }
+        }
+        return set;
+    }
+
+    private static DiagramLayout BuildSplitLayout(DiagramGraph graph, Dictionary<string, DiagramNode> nodesById, List<DiagramEdge> knownEdges, Dictionary<string, IReadOnlyList<DiagramEdge>> edgesByFrom, string root, List<string> children, DiagramDirection direction, DiagramStyle style, IReadOnlySet<string> collapsed) {
+        var owner = ComputeOwnership(root, children, edgesByFrom, collapsed);
+        var primarySet = BuildSideSet(root, owner, 0);
+        var mirrorSet = BuildSideSet(root, owner, 1);
+        var opposite = Opposite(direction);
+        var rootOnly = new List<string> { root };
+
+        var (primaryPositioned, primaryBack) = ComputeLayoutCore(graph, nodesById, primarySet, rootOnly, direction, style, collapsed);
+        var (mirrorPositioned, mirrorBack) = ComputeLayoutCore(graph, nodesById, mirrorSet, rootOnly, opposite, style, collapsed);
+
+        var combinedNodes = CombineSides(primaryPositioned, mirrorPositioned, root);
+        var positioned = ShiftToPadding(combinedNodes, style);
+
+        var positionedIds = new HashSet<string>(positioned.Select(n => n.Node.Id));
+        var combinedKnownEdges = knownEdges.Where(e => positionedIds.Contains(e.From) && positionedIds.Contains(e.To)).ToList();
+        var combinedBack = CombineBackEdges(combinedKnownEdges, primaryBack, mirrorBack, owner, root);
+
+        var positionedEdges = ComputeEdges(combinedKnownEdges, combinedBack, positioned, style);
+        return BuildLayout(positioned, positionedEdges, style);
+    }
+
+    private static List<PositionedNode> CombineSides(List<PositionedNode> primary, List<PositionedNode> mirror, string root) {
+        var primaryRoot = primary.First(n => n.Node.Id == root);
+        var mirrorRoot = mirror.First(n => n.Node.Id == root);
+        var dx = primaryRoot.X - mirrorRoot.X;
+        var dy = primaryRoot.Y - mirrorRoot.Y;
+
+        var combined = new List<PositionedNode>(primary.Count + mirror.Count - 1);
+        combined.AddRange(primary);
+        foreach (var node in mirror) {
+            if (node.Node.Id == root) {
+                continue;
+            }
+            combined.Add(node with {
+                X = node.X + dx,
+                Y = node.Y + dy,
+                Rank = -node.Rank,
+            });
+        }
+
+        return combined;
+    }
+
+    private static List<PositionedNode> ShiftToPadding(List<PositionedNode> nodes, DiagramStyle style) {
+        if (nodes.Count == 0) {
+            return nodes;
+        }
+
+        var minX = nodes.Min(n => n.X);
+        var minY = nodes.Min(n => n.Y);
+        var dx = style.Padding - minX;
+        var dy = style.Padding - minY;
+
+        var shifted = new List<PositionedNode>(nodes.Count);
+        foreach (var node in nodes) {
+            shifted.Add(node with { X = node.X + dx, Y = node.Y + dy });
+        }
+        return shifted;
+    }
+
+    private static HashSet<DiagramEdge> CombineBackEdges(List<DiagramEdge> combinedKnownEdges, HashSet<DiagramEdge> primaryBack, HashSet<DiagramEdge> mirrorBack, Dictionary<string, int> owner, string root) {
+        var combined = new HashSet<DiagramEdge>(primaryBack);
+        foreach (var edge in mirrorBack) {
+            combined.Add(edge);
+        }
+
+        foreach (var edge in combinedKnownEdges) {
+            if (edge.From == root || edge.To == root) {
+                continue;
+            }
+            if (owner.TryGetValue(edge.From, out var fromSide) && owner.TryGetValue(edge.To, out var toSide) && fromSide != toSide) {
+                combined.Add(edge);
+            }
+        }
+
+        return combined;
+    }
+
+    private static DiagramDirection Opposite(DiagramDirection direction) => direction switch {
+        DiagramDirection.Down => DiagramDirection.Up,
+        DiagramDirection.Up => DiagramDirection.Down,
+        DiagramDirection.Right => DiagramDirection.Left,
+        DiagramDirection.Left => DiagramDirection.Right,
+        _ => DiagramDirection.Up,
+    };
 
     private static (List<string> Order, HashSet<string> Set, HashSet<string> Roots) ComputeVisible(IReadOnlyList<string> roots, HashSet<string> known, Dictionary<string, IReadOnlyList<DiagramEdge>> edgesByFrom, IReadOnlySet<string> collapsed) {
         var visible = new HashSet<string>();
@@ -439,19 +631,20 @@ public static class LayeredLayout {
             positioned.Add(new PositionedNode(node, rank[id], order[id], x, y, width[id], height[id]) {
                 HiddenChildren = hidden,
                 IsRoot = rootSet.Contains(id),
+                Direction = direction,
             });
         }
 
         return positioned;
     }
 
-    private static List<PositionedEdge> ComputeEdges(List<DiagramEdge> knownEdges, HashSet<string> visible, HashSet<DiagramEdge> backEdges, List<PositionedNode> positioned, DiagramDirection direction, DiagramStyle style) {
+    private static List<PositionedEdge> ComputeEdges(List<DiagramEdge> knownEdges, HashSet<DiagramEdge> backEdges, List<PositionedNode> positioned, DiagramStyle style) {
         var byId = new Dictionary<string, PositionedNode>();
         foreach (var node in positioned) {
             byId[node.Node.Id] = node;
         }
 
-        var visibleEdges = knownEdges.Where(e => visible.Contains(e.From) && visible.Contains(e.To)).ToList();
+        var visibleEdges = knownEdges.Where(e => byId.ContainsKey(e.From) && byId.ContainsKey(e.To)).ToList();
         var maxWeight = 0.0;
         foreach (var edge in visibleEdges) {
             if (edge.Weight is double w && w > maxWeight) {
@@ -463,45 +656,47 @@ public static class LayeredLayout {
         foreach (var edge in visibleEdges) {
             var source = byId[edge.From];
             var target = byId[edge.To];
-            var (path, labelX, labelY) = BuildPath(source, target, direction);
+            var edgeDirection = source.IsRoot ? target.Direction : source.Direction;
+            var (path, labelX, labelY) = BuildPath(source, target, edgeDirection, target.Direction, style);
 
-            double edgeWidth;
-            double opacity;
-            if (edge.Weight is double weight) {
-                var ratio = maxWeight <= 0 ? 0 : weight / maxWeight;
-                edgeWidth = style.EdgeMinWidth + (ratio * (style.EdgeMaxWidth - style.EdgeMinWidth));
-                opacity = style.EdgeMinOpacity + (ratio * (1 - style.EdgeMinOpacity));
-            } else {
-                edgeWidth = style.EdgeMinWidth;
-                opacity = 1;
-            }
-
+            var (edgeWidth, opacity) = EdgeScale(edge, maxWeight, style);
             result.Add(new PositionedEdge(edge, path, edgeWidth, opacity, labelX, labelY) {
                 IsBack = backEdges.Contains(edge),
+                Direction = edgeDirection,
             });
         }
 
         return result;
     }
 
-    private static (string Path, double LabelX, double LabelY) BuildPath(PositionedNode source, PositionedNode target, DiagramDirection direction) {
-        var (ex, ey) = ExitPoint(source, direction);
-        var (tx, ty) = EntryPoint(target, direction);
-        var vertical = direction is DiagramDirection.Down or DiagramDirection.Up;
+    private static (string Path, double LabelX, double LabelY) BuildPath(PositionedNode source, PositionedNode target, DiagramDirection exitDirection, DiagramDirection entryDirection, DiagramStyle style) {
+        var (ex, ey) = ExitPoint(source, exitDirection);
+        var (tx, ty) = EntryPoint(target, entryDirection);
 
         double c1x, c1y, c2x, c2y;
-        if (vertical) {
-            var half = (ty - ey) / 2;
-            c1x = ex;
-            c1y = ey + half;
-            c2x = tx;
-            c2y = ty - half;
+        if (exitDirection == entryDirection) {
+            var vertical = exitDirection is DiagramDirection.Down or DiagramDirection.Up;
+            if (vertical) {
+                var half = (ty - ey) / 2;
+                c1x = ex;
+                c1y = ey + half;
+                c2x = tx;
+                c2y = ty - half;
+            } else {
+                var half = (tx - ex) / 2;
+                c1x = ex + half;
+                c1y = ey;
+                c2x = tx - half;
+                c2y = ty;
+            }
         } else {
-            var half = (tx - ex) / 2;
-            c1x = ex + half;
-            c1y = ey;
-            c2x = tx - half;
-            c2y = ty;
+            var (exUx, exUy) = Unit(exitDirection);
+            var (enUx, enUy) = Unit(entryDirection);
+            var halfGap = style.RankGap / 2;
+            c1x = ex + (halfGap * exUx);
+            c1y = ey + (halfGap * exUy);
+            c2x = tx - (halfGap * enUx);
+            c2y = ty - (halfGap * enUy);
         }
 
         var path = $"M {Fmt(ex)},{Fmt(ey)} C {Fmt(c1x)},{Fmt(c1y)} {Fmt(c2x)},{Fmt(c2y)} {Fmt(tx)},{Fmt(ty)}";
@@ -510,6 +705,22 @@ public static class LayeredLayout {
 
         return (path, labelX, labelY);
     }
+
+    private static (double Width, double Opacity) EdgeScale(DiagramEdge edge, double maxWeight, DiagramStyle style) {
+        if (edge.Weight is not double weight) {
+            return (style.EdgeMinWidth, 1);
+        }
+        var ratio = maxWeight <= 0 ? 0 : weight / maxWeight;
+        return (style.EdgeMinWidth + (ratio * (style.EdgeMaxWidth - style.EdgeMinWidth)), style.EdgeMinOpacity + (ratio * (1 - style.EdgeMinOpacity)));
+    }
+
+    private static (double X, double Y) Unit(DiagramDirection direction) => direction switch {
+        DiagramDirection.Down => (0, 1),
+        DiagramDirection.Up => (0, -1),
+        DiagramDirection.Right => (1, 0),
+        DiagramDirection.Left => (-1, 0),
+        _ => (0, 1),
+    };
 
     private static double CubicAt(double p0, double p1, double p2, double p3) => (0.125 * p0) + (0.375 * p1) + (0.375 * p2) + (0.125 * p3);
 

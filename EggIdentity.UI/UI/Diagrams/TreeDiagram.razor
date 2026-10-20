@@ -1,18 +1,20 @@
 @using EggIdentity.Diagrams
 
-<div class="diagram">
-    <div class="diagram-tools">
-        <button type="button" class="diagram-tool" aria-label="@Labels.ZoomOut" disabled="@(!CanZoomOut)" @onclick="ZoomOut">-</button>
-        <button type="button" class="diagram-tool" aria-label="@Labels.ZoomIn" disabled="@(!CanZoomIn)" @onclick="ZoomIn">+</button>
-        <button type="button" class="diagram-tool" aria-label="@Labels.Fit" @onclick="Fit">@Labels.Fit</button>
-    </div>
-    <div class="diagram-stage" style="width:@((_layout.Width * Zoom).ToString("0.##"))px;height:@((_layout.Height * Zoom).ToString("0.##"))px">
-        <div class="diagram-canvas" style="width:@(_layout.Width.ToString("0.##"))px;height:@(_layout.Height.ToString("0.##"))px;transform:scale(@(Zoom.ToString("0.###")))">
+<div class="@RootClass">
+    @if (ShowTools) {
+        <div class="diagram-tools">
+            <button type="button" class="diagram-tool" aria-label="@Labels.ZoomOut" disabled="@(!CanZoomOut)" @onclick="ZoomOut">-</button>
+            <button type="button" class="diagram-tool" aria-label="@Labels.ZoomIn" disabled="@(!CanZoomIn)" @onclick="ZoomIn">+</button>
+            <button type="button" class="diagram-tool" aria-label="@Labels.Fit" @onclick="Fit">@Labels.Fit</button>
+        </div>
+    }
+    <div class="diagram-stage" style="@StageStyle">
+        <div class="diagram-canvas" style="@CanvasStyle">
             <svg class="diagram-edges" width="@(_layout.Width.ToString("0.##"))" height="@(_layout.Height.ToString("0.##"))" viewBox="0 0 @(_layout.Width.ToString("0.##")) @(_layout.Height.ToString("0.##"))">
                 @foreach (var edge in _layout.Edges) {
                     <path class="diagram-edge @(edge.IsBack ? "diagram-edge-back" : "") @(EdgeClass?.Invoke(edge))"
                           d="@edge.Path"
-                          style="@(EdgeStyle?.Invoke(edge) ?? $"stroke-width:{edge.Width.ToString("0.##")};opacity:{edge.Opacity.ToString("0.##")}")">
+                          style="@EdgeInlineStyle(edge)">
                         @if (edge.Edge.Label is not null) {
                             <title>@edge.Edge.Label</title>
                         }

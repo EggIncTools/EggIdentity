@@ -216,6 +216,26 @@ public static class SharedLiterals {
             grid-row: auto / span var(--rg-h,1);
           }
         }
+        :where(.diagram-edge) {
+          fill: none;
+          stroke: var(--diagram-edge,var(--color-border));
+          stroke-linecap: round;
+        }
+        :where(.diagram-edge-back) {
+          stroke-dasharray: var(--diagram-edge-back-dash,4 3);
+        }
+        .diagram-fit {
+          container-type: inline-size;
+          overflow: hidden;
+        }
+        .diagram-fit .diagram-stage {
+          --diagram-scale: min(1, tan(atan2(100cqw, var(--diagram-w))));
+          width: calc(var(--diagram-w) * var(--diagram-scale));
+          height: calc(var(--diagram-h) * var(--diagram-scale));
+        }
+        .diagram-fit .diagram-canvas {
+          transform: scale(var(--diagram-scale));
+        }
         @container (max-width: 20rem) {
           .suite-rail .suite-tool-soon .suite-tool-name {
             display: none;

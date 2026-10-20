@@ -33,8 +33,25 @@ public sealed partial class TreeDiagram : ComponentBase {
     [Parameter] public RenderFragment<PositionedEdge>? EdgeLabelTemplate { get; set; }
     [Parameter] public Func<PositionedNode, string?>? NodeClass { get; set; }
     [Parameter] public DiagramLabels Labels { get; set; } = DiagramLabels.Default;
+    [Parameter] public bool ShowTools { get; set; } = true;
 
     private DiagramStyle EffectiveStyle => Style ?? DiagramStyle.Default;
+
+    private string RootClass => ShowTools ? "diagram" : "diagram diagram-fit";
+
+    private string StageStyle => ShowTools
+        ? string.Create(CultureInfo.InvariantCulture, $"width:{_layout.Width * Zoom:0.##}px;height:{_layout.Height * Zoom:0.##}px")
+        : string.Create(CultureInfo.InvariantCulture, $"--diagram-w:{_layout.Width:0.##}px;--diagram-h:{_layout.Height:0.##}px");
+
+    private string CanvasStyle => ShowTools
+        ? string.Create(CultureInfo.InvariantCulture, $"width:{_layout.Width:0.##}px;height:{_layout.Height:0.##}px;transform:scale({Zoom:0.###})")
+        : string.Create(CultureInfo.InvariantCulture, $"width:{_layout.Width:0.##}px;height:{_layout.Height:0.##}px");
+
+    private string EdgeInlineStyle(PositionedEdge edge) {
+        var baseStyle = string.Create(CultureInfo.InvariantCulture, $"stroke-width:{edge.Width:0.##};opacity:{edge.Opacity:0.##}");
+        var extra = EdgeStyle?.Invoke(edge);
+        return string.IsNullOrEmpty(extra) ? baseStyle : $"{baseStyle};{extra}";
+    }
 
     private double Zoom {
         get {
@@ -97,8 +114,8 @@ public sealed partial class TreeDiagram : ComponentBase {
 
     private bool IsSelected(string nodeId) => SelectedId == nodeId;
 
-    private string ToggleStyle(PositionedNode node) {
-        var (x, y) = Direction switch {
+    private static string ToggleStyle(PositionedNode node) {
+        var (x, y) = node.Direction switch {
             DiagramDirection.Down => (node.X + (node.Width / 2), node.Y + node.Height),
             DiagramDirection.Up => (node.X + (node.Width / 2), node.Y),
             DiagramDirection.Right => (node.X + node.Width, node.Y + (node.Height / 2)),
@@ -144,7 +161,7 @@ public sealed partial class TreeDiagram : ComponentBase {
     }
 
     private string? ResolveArrowTarget(PositionedNode node, string key) {
-        var (childKey, parentKey) = Direction switch {
+        var (childKey, parentKey) = node.Direction switch {
             DiagramDirection.Down => ("ArrowDown", "ArrowUp"),
             DiagramDirection.Up => ("ArrowUp", "ArrowDown"),
             DiagramDirection.Right => ("ArrowRight", "ArrowLeft"),
@@ -153,13 +170,13 @@ public sealed partial class TreeDiagram : ComponentBase {
         };
 
         if (key == childKey) {
-            return FindChild(node.Node.Id);
+            return FindChild(node.Node.Id, e => e.Direction == node.Direction);
         }
         if (key == parentKey) {
-            return FindParent(node.Node.Id);
+            return FindParent(node.Node.Id) ?? FindChild(node.Node.Id, e => e.Direction != node.Direction);
         }
 
-        var verticalRank = Direction is DiagramDirection.Down or DiagramDirection.Up;
+        var verticalRank = node.Direction is DiagramDirection.Down or DiagramDirection.Up;
         var orderDelta = verticalRank
             ? key switch { "ArrowLeft" => -1, "ArrowRight" => 1, _ => 0 }
             : key switch { "ArrowUp" => -1, "ArrowDown" => 1, _ => 0 };
@@ -169,7 +186,7 @@ public sealed partial class TreeDiagram : ComponentBase {
 
     private string? FindParent(string nodeId) => _layout.Edges.FirstOrDefault(e => e.Edge.To == nodeId && !e.IsBack)?.Edge.From;
 
-    private string? FindChild(string nodeId) => _layout.Edges.FirstOrDefault(e => e.Edge.From == nodeId && !e.IsBack)?.Edge.To;
+    private string? FindChild(string nodeId, Func<PositionedEdge, bool> side) => _layout.Edges.FirstOrDefault(e => e.Edge.From == nodeId && !e.IsBack && side(e))?.Edge.To;
 
     private string? FindSameRank(PositionedNode node, int delta) {
         var sameRank = _layout.Nodes.Where(n => n.Rank == node.Rank).OrderBy(n => n.Order).ToList();
