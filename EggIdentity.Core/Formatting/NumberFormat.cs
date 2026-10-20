@@ -29,10 +29,18 @@ public static class NumberFormat {
     public static string Full(double value) =>
         double.IsFinite(value) ? Math.Round(value).ToString("N0", CultureInfo.InvariantCulture) : "-";
 
-    public static string Percent(double fraction, int decimals = 1) =>
-        double.IsFinite(fraction)
-            ? (fraction * 100).ToString("F" + Math.Clamp(decimals, 0, 6).ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture) + "%"
-            : "-";
+    public static string Percent(double fraction, int digits = 2) {
+        if (!double.IsFinite(fraction)) return "-";
+        var magnitude = Math.Abs(fraction * 100);
+        if (magnitude < double.Epsilon) return "0%";
+        digits = Math.Clamp(digits, 1, 6);
+        var rounded = RoundSignificant(magnitude, digits);
+        if (rounded >= 100) return Full(fraction * 100) + "%";
+        var decimals = Math.Max(0, digits - 1 - (int)Math.Floor(Math.Log10(rounded)));
+        var text = rounded.ToString("F" + decimals.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+        if (text.Contains('.')) text = text.TrimEnd('0').TrimEnd('.');
+        return (fraction < 0 ? "-" : "") + text + "%";
+    }
 
     public static string Odds(double p) {
         if (!double.IsFinite(p) || p <= 0) return "-";

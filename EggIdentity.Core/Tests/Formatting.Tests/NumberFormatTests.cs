@@ -34,7 +34,18 @@ public class NumberFormatTests {
     public void FullUsesGrouping() => Assert.Equal("60,907", NumberFormat.Full(60907));
 
     [Theory]
-    [InlineData(0.123, "12.3%")]
+    [InlineData(0.088, "8.8%")]
+    [InlineData(0.000_42, "0.042%")]
+    [InlineData(0.000_4, "0.04%")]
+    [InlineData(0.5, "50%")]
+    [InlineData(0.123_45, "12%")]
+    [InlineData(1, "100%")]
+    [InlineData(0, "0%")]
+    [InlineData(-0.088, "-8.8%")]
+    public void PercentKeepsTwoSignificantDigits(double fraction, string expected) => Assert.Equal(expected, NumberFormat.Percent(fraction));
+
+    [Theory]
+    [InlineData(0.123, "12%")]
     [InlineData(0.001, "0.1%")]
     [InlineData(0.000_232, "1 in 4,310")]
     public void OddsSwitchesBelowOneInAThousand(double p, string expected) => Assert.Equal(expected, NumberFormat.Odds(p));
