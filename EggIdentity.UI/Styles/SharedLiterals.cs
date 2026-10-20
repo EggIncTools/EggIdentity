@@ -236,6 +236,18 @@ public static class SharedLiterals {
         .diagram-fit .diagram-canvas {
           transform: scale(var(--diagram-scale));
         }
+        @container (max-width: 48rem) {
+          .view-tab-sub {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+        }
+        @container (max-width: 30rem) {
+          .view-tab-sub {
+            display: none;
+          }
+        }
         @container (max-width: 20rem) {
           .suite-rail .suite-tool-soon .suite-tool-name {
             display: none;
@@ -256,7 +268,8 @@ public static class SharedLiterals {
           .fb-select, .fb-btn,
           .modal-card, .modal-card.wb-card, .wb-rail, .wb-main, .wb-drawer, .wb-drawer.wb-drawer-open, .wb-drawer-tab, .tooltip-floating, .popover, .toast, .cal-period, .cal-row, .suite-tool, .fab-bubble, .progress-fill, .caret, .mask, .menu, .menu.open, .drop-zone,
           .report-mark, .report-dim, .report-heat-cell, .report-builder-add, .report-builder-remove, .report-color-swatch, .report-card, .report-grid-cell,
-          .diagram-tool, .diagram-node, .diagram-node-toggle {
+          .diagram-tool, .diagram-node, .diagram-node-toggle,
+          .segmented-opt, .view-tab {
             transition: none;
           }
           .pulse, .pane-in, .pane-in-reverse, .wb-pane-in {

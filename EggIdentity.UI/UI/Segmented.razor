@@ -1,0 +1,44 @@
+@typeparam T
+
+<div class="@Css" role="group" aria-label="@AriaLabel">
+    @foreach (var option in Options) {
+        if (option.Title is { } title) {
+            <Tooltip Text="@title" Focusable="option.Disabled">@Option(option)</Tooltip>
+        } else {
+            @Option(option)
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<SegmentedOption<T>> Options { get; set; } = [];
+    [Parameter] public T? Selected { get; set; }
+    [Parameter] public EventCallback<T> SelectedChanged { get; set; }
+    [Parameter] public bool Wrap { get; set; }
+    [Parameter] public string? AriaLabel { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    string Css {
+        get {
+            var css = Wrap ? "segmented segmented-wrap" : "segmented";
+            return string.IsNullOrEmpty(Class) ? css : $"{css} {Class}";
+        }
+    }
+
+    bool IsActive(SegmentedOption<T> option) => EqualityComparer<T>.Default.Equals(option.Value, Selected);
+
+    RenderFragment Option(SegmentedOption<T> option) => @<button type="button" class="@(IsActive(option) ? "segmented-opt active" : "segmented-opt")"
+                                                                 aria-pressed="@(IsActive(option) ? "true" : "false")" disabled="@option.Disabled"
+                                                                 @onclick="() => PickAsync(option)">
+        <span>@option.Label</span>
+        @if (option.Count is { } count) {
+            <span class="segmented-count">@count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)</span>
+        }
+    </button>;
+
+    async Task PickAsync(SegmentedOption<T> option) {
+        if (option.Disabled || IsActive(option)) return;
+        Selected = option.Value;
+        await SelectedChanged.InvokeAsync(option.Value);
+    }
+}

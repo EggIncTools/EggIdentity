@@ -22,8 +22,8 @@ internal static class Calendar {
         { ".cal-lane-group:last-child", "flex-1 min-h-0" },
         { ".cal-lane", "relative flex-1 min-h-0" },
         { ".cal-range", "flex flex-wrap items-center gap-2 min-w-0" },
-        { ".cal-range-label", "text-[0.85rem] font-medium text-muted whitespace-nowrap" },
+        { ".cal-range-label", "text-sm font-semibold text-fg whitespace-nowrap" },
         { ".cal-range-nav", "inline-flex items-center gap-1" },
-        { ".cal-range-date", "w-auto" },
+        { ".cal-range-date", "w-auto h-7 box-border text-xs py-0 px-2" },
     }.ToImmutableDictionary();
 }

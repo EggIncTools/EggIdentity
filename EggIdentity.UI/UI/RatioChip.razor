@@ -1,0 +1,27 @@
+@using System.Globalization
+
+<span class="@Css" style="@(Ratio is { } r ? RatioStyle.Var(r) : null)">
+    @if (!string.IsNullOrEmpty(Label)) {
+        <span class="ratio-chip-label">@Label</span>
+    }
+    <span>@Text</span>
+</span>
+
+@code {
+    [Parameter] public double? Ratio { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public bool Muted { get; set; }
+    [Parameter] public int Digits { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    string Text => Ratio is { } r
+        ? (r * 100).ToString("F" + Math.Clamp(Digits, 0, 4).ToString(CultureInfo.InvariantCulture), CultureInfo.CurrentCulture) + "%"
+        : "-";
+
+    string Css {
+        get {
+            var css = Muted ? "ratio-chip ratio-chip-muted" : "ratio-chip ratio-fill ratio-ink";
+            return string.IsNullOrEmpty(Class) ? css : $"{css} {Class}";
+        }
+    }
+}

@@ -30,5 +30,8 @@ internal static class Tooltips {
         { ".tooltip-floating.tooltip-err *", "text-err" },
         { ".tooltip-line", "block text-[0.75rem] [line-height:calc(1_/_0.75)] text-muted" },
         { ".tooltip-line-head", "font-medium text-fg" },
+        { ".tooltip-rows", "grid items-baseline [grid-template-columns:auto_auto] [column-gap:calc(var(--spacing)*4)] [row-gap:0.1rem]" },
+        { ".tooltip-row-span", "[grid-column:1_/_-1]" },
+        { ".tooltip-value", "text-right text-[0.75rem] font-medium text-fg [font-variant-numeric:tabular-nums] whitespace-nowrap" },
     }.ToImmutableDictionary();
 }

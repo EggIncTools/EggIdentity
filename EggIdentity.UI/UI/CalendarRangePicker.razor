@@ -1,20 +1,20 @@
 @typeparam TZoom where TZoom : struct, Enum
 
-<div class="cal-range">
+<div class="cal-range toolbar-group">
     @if (!string.IsNullOrEmpty(RangeLabel)) {
         <span class="cal-range-label">@RangeLabel</span>
     }
-    <div class="segmented">
-        @foreach (var z in AvailableZooms) {
-            <button type="button" class="segmented-opt @(EqualityComparer<TZoom>.Default.Equals(Zoom, z) ? "active" : "")" @onclick="@(() => ZoomChanged.InvokeAsync(z))">@ZoomLabel(z)</button>
-        }
-    </div>
+    <Segmented T="TZoom" Options="ZoomOptions" Selected="Zoom" SelectedChanged="ZoomChanged" AriaLabel="Zoom"/>
     <div class="cal-range-nav">
-        <button type="button" class="btn-mini" disabled="@PrevDisabled" @onclick="@(() => OnPan.InvokeAsync(-1))">&larr; Prev</button>
+        <button type="button" class="btn-mini btn-icon" aria-label="Previous" disabled="@PrevDisabled" @onclick="@(() => OnPan.InvokeAsync(-1))">
+            <Icon Name="chevron-left"/>
+        </button>
         <button type="button" class="btn-mini" @onclick="@(() => OnToday.InvokeAsync())">Today</button>
-        <button type="button" class="btn-mini" disabled="@NextDisabled" @onclick="@(() => OnPan.InvokeAsync(1))">Next &rarr;</button>
+        <button type="button" class="btn-mini btn-icon" aria-label="Next" disabled="@NextDisabled" @onclick="@(() => OnPan.InvokeAsync(1))">
+            <Icon Name="chevron-right"/>
+        </button>
     </div>
-    <input type="date" class="form-input cal-range-date" value="@DateValue" @onchange="DateChanged"/>
+    <input type="date" class="form-input cal-range-date" aria-label="Go to date" value="@DateValue" @onchange="DateChanged"/>
 </div>
 
 @code {
@@ -29,4 +29,6 @@
     [Parameter] public EventCallback<int> OnPan { get; set; }
     [Parameter] public EventCallback OnToday { get; set; }
     [Parameter] public EventCallback<ChangeEventArgs> DateChanged { get; set; }
+
+    IReadOnlyList<SegmentedOption<TZoom>> ZoomOptions => [.. AvailableZooms.Select(z => new SegmentedOption<TZoom>(z, ZoomLabel(z)))];
 }

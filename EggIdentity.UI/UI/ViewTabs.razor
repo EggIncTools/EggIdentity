@@ -1,0 +1,35 @@
+@typeparam TKey
+
+<div class="@Css" role="group" aria-label="@AriaLabel">
+    @foreach (var tab in Tabs) {
+        var active = EqualityComparer<TKey>.Default.Equals(tab.Key, Active);
+        <button type="button" class="@(active ? "view-tab active" : "view-tab")" aria-pressed="@(active ? "true" : "false")"
+                style="@AccentStyle(tab)" @onclick="() => PickAsync(tab)">
+            <span class="view-tab-label">@tab.Label</span>
+            @if (!string.IsNullOrEmpty(tab.Sub)) {
+                <span class="view-tab-sub">@tab.Sub</span>
+            }
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ViewTab<TKey>> Tabs { get; set; } = [];
+    [Parameter] public TKey? Active { get; set; }
+    [Parameter] public EventCallback<TKey> ActiveChanged { get; set; }
+    [Parameter] public string? AriaLabel { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    string Css => string.IsNullOrEmpty(Class) ? "view-tabs" : $"view-tabs {Class}";
+
+    static string? AccentStyle(ViewTab<TKey> tab) =>
+        tab.AccentVar is { Length: > 2 } accent && accent.StartsWith("--", StringComparison.Ordinal) && accent.All(c => char.IsAsciiLetterOrDigit(c) || c == '-')
+            ? $"--view-tab-accent:var({accent})"
+            : null;
+
+    async Task PickAsync(ViewTab<TKey> tab) {
+        if (EqualityComparer<TKey>.Default.Equals(tab.Key, Active)) return;
+        Active = tab.Key;
+        await ActiveChanged.InvokeAsync(tab.Key);
+    }
+}

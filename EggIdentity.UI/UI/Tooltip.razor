@@ -23,6 +23,17 @@
 
     RenderFragment Pop => @<span id="@_id" role="tooltip" class="@PopCss">@if (Content is not null) {
             @Content
+        } else if (Lines is not null && Lines.Any(l => l.Value is not null)) {
+            <span class="tooltip-rows">
+                @foreach (var line in Lines) {
+                    if (line.Head || line.Value is null) {
+                        <span class="@line.Css tooltip-row-span">@line.Text</span>
+                    } else {
+                        <span class="@line.Css">@line.Text</span>
+                        <span class="@line.ValueCss" style="@line.ValueStyle">@line.Value</span>
+                    }
+                }
+            </span>
         } else if (Lines is not null) {
             @foreach (var line in Lines) {
                 <span class="@line.Css">@line.Text</span>
